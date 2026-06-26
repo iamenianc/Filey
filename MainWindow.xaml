@@ -1,12 +1,381 @@
-﻿<Window x:Class="Filey.MainWindow"
+<Window x:Class="Filey.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
+        Title="Filey" Height="650" Width="1100"
+        Background="#121212"
+        Foreground="#E0E0E0">
+    <Window.Resources>
+        <!-- Modern Grid Splitter Style -->
+        <Style x:Key="ModernGridSplitter" TargetType="GridSplitter">
+            <Setter Property="Background" Value="#2D2D2D" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#007ACC" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern ListBox Style -->
+        <Style x:Key="ModernListBox" TargetType="ListBox">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#2D2D2D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        </Style>
+
+        <!-- ListBoxItem Style for Folders list -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4,6,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="true"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="Bd" Property="Background" Value="#2A2D2E" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="true">
+                                <Setter TargetName="Bd" Property="Background" Value="#094771" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected" Value="true" />
+                                    <Condition Property="Selector.IsSelectionActive" Value="false" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bd" Property="Background" Value="#37373D" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern ListView Style -->
+        <Style x:Key="ModernListView" TargetType="ListView">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="BorderBrush" Value="#2D2D2D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <!-- ListViewItem Style for Contents grid -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,4,4,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="true"
+                                CornerRadius="3">
+                            <GridViewRowPresenter Columns="{TemplateBinding GridView.ColumnCollection}"
+                                                 VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="Bd" Property="Background" Value="#2A2D2E" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="true">
+                                <Setter TargetName="Bd" Property="Background" Value="#094771" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected" Value="true" />
+                                    <Condition Property="Selector.IsSelectionActive" Value="false" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bd" Property="Background" Value="#37373D" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Column Header Style -->
+        <Style TargetType="GridViewColumnHeader">
+            <Setter Property="Background" Value="#252526" />
+            <Setter Property="Foreground" Value="#D4D4D4" />
+            <Setter Property="BorderBrush" Value="#2D2D2D" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Padding" Value="6,8,6,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridViewColumnHeader">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Background" Value="#2D2D30" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter Property="Background" Value="#1E1E1E" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <!-- Left Side Pane -->
+            <ColumnDefinition Width="*" MinWidth="350" />
+            <!-- Centre Splitter -->
+            <ColumnDefinition Width="8" />
+            <!-- Right Side Pane -->
+            <ColumnDefinition Width="*" MinWidth="350" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Pane Grid -->
+        <Grid Grid.Column="0" DataContext="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Path Display -->
+            <TextBox Grid.Row="0" 
+                     Text="{Binding CurrentPath, Mode=OneWay}" 
+                     Background="#1E1E1E" 
+                     Foreground="#8A8A8A" 
+                     BorderBrush="#2D2D2D" 
+                     Padding="10,8" 
+                     IsReadOnly="True" 
+                     BorderThickness="1" 
+                     Margin="0,0,0,8"
+                     FontFamily="Consolas, Courier New"
+                     FontSize="12"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <!-- Col 0: Favourites L -->
+                    <ColumnDefinition Width="150" MinWidth="50"/>
+                    <!-- Divider 1 -->
+                    <ColumnDefinition Width="4" />
+                    <!-- Col 1: Folders L -->
+                    <ColumnDefinition Width="200" MinWidth="100"/>
+                    <!-- Divider 2 -->
+                    <ColumnDefinition Width="4" />
+                    <!-- Col 2: Contents L -->
+                    <ColumnDefinition Width="2*" MinWidth="150"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Favourites L -->
+                <Border Grid.Column="0" Background="#181818" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="★" Foreground="#555555" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Favourites" Foreground="#555555" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Placeholder)" Foreground="#444444" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- GridSplitter 1 -->
+                <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
+
+                <!-- Folders L -->
+                <ListBox Grid.Column="2" 
+                         Style="{StaticResource ModernListBox}"
+                         ItemsSource="{Binding Folders}"
+                         SelectionChanged="Folders_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="2">
+                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- GridSplitter 2 -->
+                <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
+
+                <!-- Contents L -->
+                <ListView Grid.Column="4" 
+                          Style="{StaticResource ModernListView}"
+                          ItemsSource="{Binding Contents}"
+                          GridViewColumnHeader.Click="Header_Click">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                            <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="220">
+                                <GridViewColumnHeader Content="Name" Tag="Name"/>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                            </GridViewColumn>
+                            <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                <GridViewColumnHeader Content="Size" Tag="Size"/>
+                            </GridViewColumn>
+                            <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                <GridViewColumnHeader Content="Type" Tag="Type"/>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Grid>
+
+        <!-- Centre Splitter -->
+        <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="8" />
+
+        <!-- Right Pane Grid -->
+        <Grid Grid.Column="2" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Path Display -->
+            <TextBox Grid.Row="0" 
+                     Text="{Binding CurrentPath, Mode=OneWay}" 
+                     Background="#1E1E1E" 
+                     Foreground="#8A8A8A" 
+                     BorderBrush="#2D2D2D" 
+                     Padding="10,8" 
+                     IsReadOnly="True" 
+                     BorderThickness="1" 
+                     Margin="0,0,0,8"
+                     FontFamily="Consolas, Courier New"
+                     FontSize="12"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <!-- Col 0: Contents R -->
+                    <ColumnDefinition Width="2*" MinWidth="150"/>
+                    <!-- Divider 1 -->
+                    <ColumnDefinition Width="4" />
+                    <!-- Col 1: Folders R -->
+                    <ColumnDefinition Width="200" MinWidth="100"/>
+                    <!-- Divider 2 -->
+                    <ColumnDefinition Width="4" />
+                    <!-- Col 2: Favourites R -->
+                    <ColumnDefinition Width="150" MinWidth="50"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Contents R -->
+                <ListView Grid.Column="0" 
+                          Style="{StaticResource ModernListView}"
+                          ItemsSource="{Binding Contents}"
+                          GridViewColumnHeader.Click="Header_Click">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                            <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="220">
+                                <GridViewColumnHeader Content="Name" Tag="Name"/>
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="2">
+                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                            </GridViewColumn>
+                            <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                <GridViewColumnHeader Content="Size" Tag="Size"/>
+                            </GridViewColumn>
+                            <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                <GridViewColumnHeader Content="Type" Tag="Type"/>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+                <!-- GridSplitter 1 -->
+                <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
+
+                <!-- Folders R -->
+                <ListBox Grid.Column="2" 
+                         Style="{StaticResource ModernListBox}"
+                         ItemsSource="{Binding Folders}"
+                         SelectionChanged="Folders_SelectionChanged">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="2">
+                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- GridSplitter 2 -->
+                <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
+
+                <!-- Favourites R -->
+                <Border Grid.Column="4" Background="#181818" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="★" Foreground="#555555" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Favourites" Foreground="#555555" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Placeholder)" Foreground="#444444" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
