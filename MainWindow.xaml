@@ -259,7 +259,6 @@
                                              Visibility="Collapsed"
                                              LostFocus="NameEdit_LostFocus"
                                              KeyDown="NameEdit_KeyDown"
-                                             Loaded="NameEdit_Loaded"
                                              IsVisibleChanged="NameEdit_IsVisibleChanged"/>
                                 </Grid>
                             </StackPanel>
@@ -308,7 +307,6 @@
                                                          Visibility="Collapsed"
                                                          LostFocus="NameEdit_LostFocus"
                                                          KeyDown="NameEdit_KeyDown"
-                                                         Loaded="NameEdit_Loaded"
                                                          IsVisibleChanged="NameEdit_IsVisibleChanged"/>
                                             </Grid>
                                         </StackPanel>
@@ -403,7 +401,6 @@
                                                          Visibility="Collapsed"
                                                          LostFocus="NameEdit_LostFocus"
                                                          KeyDown="NameEdit_KeyDown"
-                                                         Loaded="NameEdit_Loaded"
                                                          IsVisibleChanged="NameEdit_IsVisibleChanged"/>
                                             </Grid>
                                         </StackPanel>
@@ -454,7 +451,6 @@
                                              Visibility="Collapsed"
                                              LostFocus="NameEdit_LostFocus"
                                              KeyDown="NameEdit_KeyDown"
-                                             Loaded="NameEdit_Loaded"
                                              IsVisibleChanged="NameEdit_IsVisibleChanged"/>
                                 </Grid>
                             </StackPanel>

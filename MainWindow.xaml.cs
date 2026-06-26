@@ -139,14 +139,6 @@ namespace Filey
             }
         }
 
-        private void NameEdit_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox textBox)
-            {
-                FocusAndSelectTextBox(textBox);
-            }
-        }
-
         private void NameEdit_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (sender is TextBox textBox && textBox.IsVisible)
@@ -159,19 +151,35 @@ namespace Filey
         {
             textBox.Dispatcher.BeginInvoke(new Action(() =>
             {
-                textBox.Focus();
-                Keyboard.Focus(textBox);
-                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
+                if (textBox.DataContext is FolderItem folderItem)
+                {
+                    var selector = FindAncestor<System.Windows.Controls.Primitives.Selector>(textBox);
+                    if (selector != null)
+                    {
+                        if (selector.SelectedItem != folderItem)
+                        {
+                            return;
+                        }
+                        if (!selector.IsKeyboardFocusWithin)
+                        {
+                            return;
+                        }
+                    }
 
-                string text = textBox.Text;
-                int lastDot = text.LastIndexOf('.');
-                if (lastDot > 0 && textBox.DataContext is FolderItem folderItem && !folderItem.IsDirectory)
-                {
-                    textBox.Select(0, lastDot);
-                }
-                else
-                {
-                    textBox.SelectAll();
+                    textBox.Focus();
+                    Keyboard.Focus(textBox);
+                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
+
+                    string text = textBox.Text;
+                    int lastDot = text.LastIndexOf('.');
+                    if (lastDot > 0 && !folderItem.IsDirectory)
+                    {
+                        textBox.Select(0, lastDot);
+                    }
+                    else
+                    {
+                        textBox.SelectAll();
+                    }
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
