@@ -33,6 +33,7 @@
 
         <!-- ListBoxItem Style for Folders list -->
         <Style TargetType="ListBoxItem">
+            <EventSetter Event="MouseDoubleClick" Handler="FoldersItem_MouseDoubleClick" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -123,6 +124,20 @@
             </Setter>
         </Style>
 
+        <!-- Style for the Column Header Gripper (Resize handle) -->
+        <Style x:Key="GridViewColumnHeaderGripper" TargetType="{x:Type Thumb}">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="SizeWE"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border Background="{TemplateBinding Background}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Modern Column Header Style -->
         <Style TargetType="GridViewColumnHeader">
             <Setter Property="Background" Value="#252526" />
@@ -134,14 +149,21 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="GridViewColumnHeader">
-                        <Border BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              RecognizesAccessKey="True" />
-                        </Border>
+                        <Grid>
+                            <Border BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                            <Thumb x:Name="PART_HeaderGripper"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,0,-4,0"
+                                   Width="8"
+                                   Style="{StaticResource GridViewColumnHeaderGripper}"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="true">
                                 <Setter Property="Background" Value="#2D2D30" />
@@ -217,15 +239,36 @@
 
                 <!-- Folders L -->
                 <ListBox Grid.Column="2" 
-                         Style="{StaticResource ModernListBox}"
-                         ItemsSource="{Binding Folders}"
-                         SelectionChanged="Folders_SelectionChanged">
+                           Style="{StaticResource ModernListBox}"
+                           ItemsSource="{Binding Folders}"
+                           KeyDown="List_KeyDown">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Margin="2">
                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                <Grid VerticalAlignment="Center">
+                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                    <TextBox x:Name="NameEdit" 
+                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                             Background="#121212" 
+                                             Foreground="#E0E0E0" 
+                                             BorderBrush="#007ACC" 
+                                             BorderThickness="1" 
+                                             Padding="2,1"
+                                             Margin="-2,-2,-2,-2"
+                                             Visibility="Collapsed"
+                                             LostFocus="NameEdit_LostFocus"
+                                             KeyDown="NameEdit_KeyDown"
+                                             Loaded="NameEdit_Loaded"
+                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                </Grid>
                             </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -237,7 +280,8 @@
                 <ListView Grid.Column="4" 
                           Style="{StaticResource ModernListView}"
                           ItemsSource="{Binding Contents}"
-                          GridViewColumnHeader.Click="Header_Click">
+                          GridViewColumnHeader.Click="Header_Click"
+                          KeyDown="List_KeyDown">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
@@ -251,8 +295,29 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="2">
                                             <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                            <Grid VerticalAlignment="Center">
+                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                <TextBox x:Name="NameEdit" 
+                                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                         Background="#121212" 
+                                                         Foreground="#E0E0E0" 
+                                                         BorderBrush="#007ACC" 
+                                                         BorderThickness="1" 
+                                                         Padding="2,1"
+                                                         Margin="-2,-2,-2,-2"
+                                                         Visibility="Collapsed"
+                                                         LostFocus="NameEdit_LostFocus"
+                                                         KeyDown="NameEdit_KeyDown"
+                                                         Loaded="NameEdit_Loaded"
+                                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                            </Grid>
                                         </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -306,13 +371,12 @@
                     <ColumnDefinition Width="4" />
                     <!-- Col 2: Favourites R -->
                     <ColumnDefinition Width="150" MinWidth="50"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Contents R -->
+                </Grid.ColumnDefinitions>                <!-- Contents R -->
                 <ListView Grid.Column="0" 
                           Style="{StaticResource ModernListView}"
                           ItemsSource="{Binding Contents}"
-                          GridViewColumnHeader.Click="Header_Click">
+                          GridViewColumnHeader.Click="Header_Click"
+                          KeyDown="List_KeyDown">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
@@ -326,8 +390,29 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="2">
                                             <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                            <Grid VerticalAlignment="Center">
+                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                <TextBox x:Name="NameEdit" 
+                                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                         Background="#121212" 
+                                                         Foreground="#E0E0E0" 
+                                                         BorderBrush="#007ACC" 
+                                                         BorderThickness="1" 
+                                                         Padding="2,1"
+                                                         Margin="-2,-2,-2,-2"
+                                                         Visibility="Collapsed"
+                                                         LostFocus="NameEdit_LostFocus"
+                                                         KeyDown="NameEdit_KeyDown"
+                                                         Loaded="NameEdit_Loaded"
+                                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                            </Grid>
                                         </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -349,15 +434,36 @@
 
                 <!-- Folders R -->
                 <ListBox Grid.Column="2" 
-                         Style="{StaticResource ModernListBox}"
-                         ItemsSource="{Binding Folders}"
-                         SelectionChanged="Folders_SelectionChanged">
+                          Style="{StaticResource ModernListBox}"
+                          ItemsSource="{Binding Folders}"
+                          KeyDown="List_KeyDown">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Margin="2">
                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="#E0E0E0"/>
+                                <Grid VerticalAlignment="Center">
+                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                    <TextBox x:Name="NameEdit" 
+                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                             Background="#121212" 
+                                             Foreground="#E0E0E0" 
+                                             BorderBrush="#007ACC" 
+                                             BorderThickness="1" 
+                                             Padding="2,1"
+                                             Margin="-2,-2,-2,-2"
+                                             Visibility="Collapsed"
+                                             LostFocus="NameEdit_LostFocus"
+                                             KeyDown="NameEdit_KeyDown"
+                                             Loaded="NameEdit_Loaded"
+                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                </Grid>
                             </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -376,6 +482,27 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <!-- Overlay Placeholder for Inactive Right Pane -->
+            <Border Grid.Row="0" Grid.RowSpan="2" 
+                    x:Name="RightPaneOverlay"
+                    Background="#161616"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Cursor="Hand"
+                    MouseDown="RightPaneOverlay_MouseDown">
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Soft subtle icon with circle background -->
+                        <Border Width="64" Height="64" CornerRadius="32" Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" Margin="0,0,0,16">
+                            <TextBlock Text="⇄" Foreground="#007ACC" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="Right Pane Inactive" Foreground="#D4D4D4" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Click anywhere in this pane to activate" Foreground="#858585" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </Window>

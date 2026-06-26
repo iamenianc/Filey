@@ -3,8 +3,10 @@ using System.Windows.Media;
 
 namespace Filey
 {
-    public class FolderItem
+    public class FolderItem : ViewModelBase
     {
+        private bool _isEditing;
+        
         public string Name { get; set; }
         public string FullPath { get; set; }
         public bool IsDirectory { get; set; }
@@ -13,6 +15,12 @@ namespace Filey
         public string Extension { get; set; }
         public string Type { get; set; }
         public ImageSource Icon { get; set; }
+
+        public bool IsEditing
+        {
+            get => _isEditing;
+            set => SetField(ref _isEditing, value);
+        }
 
         public string SizeFormatted
         {

@@ -76,13 +76,8 @@ namespace Filey
                 // 2. Load Contents (for contents list, including both folders and files)
                 var contentList = new System.Collections.Generic.List<FolderItem>();
 
-                // Add folders to contents
-                foreach (var folder in Folders)
-                {
-                    contentList.Add(folder);
-                }
-
-                // Add files to contents
+                // Add files to contents (sorted alphabetically ascending)
+                var fileList = new System.Collections.Generic.List<FolderItem>();
                 try
                 {
                     foreach (var file in dirInfo.GetFiles())
@@ -90,7 +85,7 @@ namespace Filey
                         try
                         {
                             var item = CreateFolderItem(file);
-                            contentList.Add(item);
+                            fileList.Add(item);
                         }
                         catch (UnauthorizedAccessException) { }
                         catch (FileNotFoundException) { }
@@ -99,6 +94,18 @@ namespace Filey
                 }
                 catch (UnauthorizedAccessException) { }
                 catch (Exception) { }
+
+                fileList.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+                foreach (var file in fileList)
+                {
+                    contentList.Add(file);
+                }
+
+                // Add folders to contents (after files, so folders are at the bottom by default)
+                foreach (var folder in Folders)
+                {
+                    contentList.Add(folder);
+                }
 
                 foreach (var item in contentList)
                 {
