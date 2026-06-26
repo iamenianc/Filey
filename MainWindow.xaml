@@ -190,24 +190,21 @@
         </Grid.ColumnDefinitions>
 
         <!-- Left Pane Grid -->
-        <Grid Grid.Column="0" DataContext="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
+        <Grid x:Name="LeftPaneGrid" Grid.Column="0" DataContext="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
             <!-- Path Display -->
-            <TextBox Grid.Row="0" 
-                     Text="{Binding CurrentPath, Mode=OneWay}" 
-                     Background="#1E1E1E" 
-                     Foreground="#8A8A8A" 
-                     BorderBrush="#2D2D2D" 
-                     Padding="10,8" 
-                     IsReadOnly="True" 
-                     BorderThickness="1" 
-                     Margin="0,0,0,8"
-                     FontFamily="Consolas, Courier New"
-                     FontSize="12"/>
+            <local:AddressBar x:Name="LeftAddressBar"
+                              Grid.Row="0"
+                              CurrentPath="{Binding CurrentPath}"
+                              CanGoBack="{Binding CanGoBack}"
+                              CanGoForward="{Binding CanGoForward}"
+                              NavigationRequested="AddressBar_NavigationRequested"
+                              GoBackRequested="AddressBar_GoBackRequested"
+                              GoForwardRequested="AddressBar_GoForwardRequested"/>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
@@ -237,10 +234,10 @@
                 <!-- GridSplitter 1 -->
                 <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
-                <!-- Folders L -->
+                <!-- Parent Folders L -->
                 <ListBox Grid.Column="2" 
                            Style="{StaticResource ModernListBox}"
-                           ItemsSource="{Binding Folders}"
+                           ItemsSource="{Binding ParentFolders}"
                            KeyDown="List_KeyDown">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -275,62 +272,131 @@
                 <!-- GridSplitter 2 -->
                 <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
 
-                <!-- Contents L -->
-                <ListView Grid.Column="4" 
-                          Style="{StaticResource ModernListView}"
-                          ItemsSource="{Binding Contents}"
-                          GridViewColumnHeader.Click="Header_Click"
-                          KeyDown="List_KeyDown">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
-                            <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
-                        </Style>
-                    </ListView.ItemContainerStyle>
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Width="220">
-                                <GridViewColumnHeader Content="Name" Tag="Name"/>
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="2">
-                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                            <Grid VerticalAlignment="Center">
-                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                                <TextBox x:Name="NameEdit" 
-                                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                         Background="#121212" 
-                                                         Foreground="#E0E0E0" 
-                                                         BorderBrush="#007ACC" 
-                                                         BorderThickness="1" 
-                                                         Padding="2,1"
-                                                         Margin="-2,-2,-2,-2"
-                                                         Visibility="Collapsed"
-                                                         LostFocus="NameEdit_LostFocus"
-                                                         KeyDown="NameEdit_KeyDown"
-                                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                            </Grid>
-                                        </StackPanel>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
-                                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
-                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
-                            </GridViewColumn>
-                            <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
-                                <GridViewColumnHeader Content="Size" Tag="Size"/>
-                            </GridViewColumn>
-                            <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
-                                <GridViewColumnHeader Content="Type" Tag="Type"/>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                <!-- Contents L (Split: Top = Folders, Bottom = Files) -->
+                <Grid Grid.Column="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="LeftFoldersRow" Height="*" MinHeight="100"/>
+                        <RowDefinition x:Name="LeftSplitterRow" Height="6"/>
+                        <RowDefinition x:Name="LeftFilesRow" Height="*" MinHeight="100"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Folders L (Child Folders) -->
+                    <ListView x:Name="LeftFoldersListView" Grid.Row="0" 
+                              Style="{StaticResource ModernListView}"
+                              ItemsSource="{Binding Folders}"
+                              GridViewColumnHeader.Click="Header_Click"
+                              KeyDown="List_KeyDown">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="220">
+                                    <GridViewColumnHeader Content="Folders" Tag="Name"/>
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                                <Grid VerticalAlignment="Center">
+                                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                    <TextBox x:Name="NameEdit" 
+                                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                             Background="#121212" 
+                                                             Foreground="#E0E0E0" 
+                                                             BorderBrush="#007ACC" 
+                                                             BorderThickness="1" 
+                                                             Padding="2,1"
+                                                             Margin="-2,-2,-2,-2"
+                                                             Visibility="Collapsed"
+                                                             LostFocus="NameEdit_LostFocus"
+                                                             KeyDown="NameEdit_KeyDown"
+                                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                                </Grid>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <!-- Horizontal Grid Splitter -->
+                    <GridSplitter x:Name="LeftGridSplitter" Grid.Row="1" Style="{StaticResource ModernGridSplitter}" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+
+                    <!-- Files L (Child Files) -->
+                    <ListView x:Name="LeftFilesListView" Grid.Row="2" 
+                              Style="{StaticResource ModernListView}"
+                              ItemsSource="{Binding Contents}"
+                              GridViewColumnHeader.Click="Header_Click"
+                              KeyDown="List_KeyDown">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="220">
+                                    <GridViewColumnHeader Content="Files" Tag="Name"/>
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                                <Grid VerticalAlignment="Center">
+                                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                    <TextBox x:Name="NameEdit" 
+                                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                             Background="#121212" 
+                                                             Foreground="#E0E0E0" 
+                                                             BorderBrush="#007ACC" 
+                                                             BorderThickness="1" 
+                                                             Padding="2,1"
+                                                             Margin="-2,-2,-2,-2"
+                                                             Visibility="Collapsed"
+                                                             LostFocus="NameEdit_LostFocus"
+                                                             KeyDown="NameEdit_KeyDown"
+                                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                                </Grid>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
             </Grid>
         </Grid>
 
@@ -338,24 +404,21 @@
         <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="8" />
 
         <!-- Right Pane Grid -->
-        <Grid Grid.Column="2" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
+        <Grid x:Name="RightPaneGrid" Grid.Column="2" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Path Display -->
-            <TextBox Grid.Row="0" 
-                     Text="{Binding CurrentPath, Mode=OneWay}" 
-                     Background="#1E1E1E" 
-                     Foreground="#8A8A8A" 
-                     BorderBrush="#2D2D2D" 
-                     Padding="10,8" 
-                     IsReadOnly="True" 
-                     BorderThickness="1" 
-                     Margin="0,0,0,8"
-                     FontFamily="Consolas, Courier New"
-                     FontSize="12"/>
+            <local:AddressBar x:Name="RightAddressBar"
+                              Grid.Row="0"
+                              CurrentPath="{Binding CurrentPath}"
+                              CanGoBack="{Binding CanGoBack}"
+                              CanGoForward="{Binding CanGoForward}"
+                              NavigationRequested="AddressBar_NavigationRequested"
+                              GoBackRequested="AddressBar_GoBackRequested"
+                              GoForwardRequested="AddressBar_GoForwardRequested"/>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
@@ -369,70 +432,139 @@
                     <ColumnDefinition Width="4" />
                     <!-- Col 2: Favourites R -->
                     <ColumnDefinition Width="150" MinWidth="50"/>
-                </Grid.ColumnDefinitions>                <!-- Contents R -->
-                <ListView Grid.Column="0" 
-                          Style="{StaticResource ModernListView}"
-                          ItemsSource="{Binding Contents}"
-                          GridViewColumnHeader.Click="Header_Click"
-                          KeyDown="List_KeyDown">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
-                            <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
-                        </Style>
-                    </ListView.ItemContainerStyle>
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Width="220">
-                                <GridViewColumnHeader Content="Name" Tag="Name"/>
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="2">
-                                            <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                            <Grid VerticalAlignment="Center">
-                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                                <TextBox x:Name="NameEdit" 
-                                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                         Background="#121212" 
-                                                         Foreground="#E0E0E0" 
-                                                         BorderBrush="#007ACC" 
-                                                         BorderThickness="1" 
-                                                         Padding="2,1"
-                                                         Margin="-2,-2,-2,-2"
-                                                         Visibility="Collapsed"
-                                                         LostFocus="NameEdit_LostFocus"
-                                                         KeyDown="NameEdit_KeyDown"
-                                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                            </Grid>
-                                        </StackPanel>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
-                                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
-                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
-                            </GridViewColumn>
-                            <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
-                                <GridViewColumnHeader Content="Size" Tag="Size"/>
-                            </GridViewColumn>
-                            <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
-                                <GridViewColumnHeader Content="Type" Tag="Type"/>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                </Grid.ColumnDefinitions>                <!-- Contents R (Split: Top = Folders, Bottom = Files) -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="RightFoldersRow" Height="*" MinHeight="100"/>
+                        <RowDefinition x:Name="RightSplitterRow" Height="6"/>
+                        <RowDefinition x:Name="RightFilesRow" Height="*" MinHeight="100"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Folders R (Child Folders) -->
+                    <ListView x:Name="RightFoldersListView" Grid.Row="0" 
+                              Style="{StaticResource ModernListView}"
+                              ItemsSource="{Binding Folders}"
+                              GridViewColumnHeader.Click="Header_Click"
+                              KeyDown="List_KeyDown">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="220">
+                                    <GridViewColumnHeader Content="Folders" Tag="Name"/>
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                                <Grid VerticalAlignment="Center">
+                                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                    <TextBox x:Name="NameEdit" 
+                                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                             Background="#121212" 
+                                                             Foreground="#E0E0E0" 
+                                                             BorderBrush="#007ACC" 
+                                                             BorderThickness="1" 
+                                                             Padding="2,1"
+                                                             Margin="-2,-2,-2,-2"
+                                                             Visibility="Collapsed"
+                                                             LostFocus="NameEdit_LostFocus"
+                                                             KeyDown="NameEdit_KeyDown"
+                                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                                </Grid>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <!-- Horizontal Grid Splitter -->
+                    <GridSplitter x:Name="RightGridSplitter" Grid.Row="1" Style="{StaticResource ModernGridSplitter}" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+
+                    <!-- Files R (Child Files) -->
+                    <ListView x:Name="RightFilesListView" Grid.Row="2" 
+                              Style="{StaticResource ModernListView}"
+                              ItemsSource="{Binding Contents}"
+                              GridViewColumnHeader.Click="Header_Click"
+                              KeyDown="List_KeyDown">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                                <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="220">
+                                    <GridViewColumnHeader Content="Files" Tag="Name"/>
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                                <Grid VerticalAlignment="Center">
+                                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                    <TextBox x:Name="NameEdit" 
+                                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                             Background="#121212" 
+                                                             Foreground="#E0E0E0" 
+                                                             BorderBrush="#007ACC" 
+                                                             BorderThickness="1" 
+                                                             Padding="2,1"
+                                                             Margin="-2,-2,-2,-2"
+                                                             Visibility="Collapsed"
+                                                             LostFocus="NameEdit_LostFocus"
+                                                             KeyDown="NameEdit_KeyDown"
+                                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                                </Grid>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn>
+                                <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
 
                 <!-- GridSplitter 1 -->
                 <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
-                <!-- Folders R -->
+                <!-- Parent Folders R -->
                 <ListBox Grid.Column="2" 
                           Style="{StaticResource ModernListBox}"
-                          ItemsSource="{Binding Folders}"
+                          ItemsSource="{Binding ParentFolders}"
                           KeyDown="List_KeyDown">
                     <ListBox.ItemTemplate>
                         <DataTemplate>

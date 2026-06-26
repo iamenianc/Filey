@@ -9,11 +9,16 @@ namespace Filey
         private string _currentPath;
         private ObservableCollection<FolderItem> _folders;
         private ObservableCollection<FolderItem> _contents;
+        private ObservableCollection<FolderItem> _parentFolders;
+
+        private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
+        private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
 
         public DirectoryViewModel()
         {
             _folders = new ObservableCollection<FolderItem>();
             _contents = new ObservableCollection<FolderItem>();
+            _parentFolders = new ObservableCollection<FolderItem>();
         }
 
         public string CurrentPath
@@ -21,6 +26,9 @@ namespace Filey
             get => _currentPath;
             set => SetField(ref _currentPath, value);
         }
+
+        public bool CanGoBack => _backStack.Count > 0;
+        public bool CanGoForward => _forwardStack.Count > 0;
 
         public ObservableCollection<FolderItem> Folders
         {
@@ -34,17 +42,88 @@ namespace Filey
             set => SetField(ref _contents, value);
         }
 
+        public ObservableCollection<FolderItem> ParentFolders
+        {
+            get => _parentFolders;
+            set => SetField(ref _parentFolders, value);
+        }
+
+        public void GoBack()
+        {
+            if (!CanGoBack) return;
+            string prevPath = _backStack[_backStack.Count - 1];
+            _backStack.RemoveAt(_backStack.Count - 1);
+            if (!string.IsNullOrEmpty(CurrentPath))
+            {
+                _forwardStack.Add(CurrentPath);
+            }
+            LoadDirectory(prevPath, pushToHistory: false);
+        }
+
+        public void GoForward()
+        {
+            if (!CanGoForward) return;
+            string nextPath = _forwardStack[_forwardStack.Count - 1];
+            _forwardStack.RemoveAt(_forwardStack.Count - 1);
+            if (!string.IsNullOrEmpty(CurrentPath))
+            {
+                _backStack.Add(CurrentPath);
+                if (_backStack.Count > 50)
+                {
+                    _backStack.RemoveAt(0);
+                }
+            }
+            LoadDirectory(nextPath, pushToHistory: false);
+        }
+
         public void LoadDirectory(string path)
+        {
+            LoadDirectory(path, pushToHistory: true);
+        }
+
+        public void LoadDirectory(string path, bool pushToHistory)
         {
             try
             {
                 if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
                     return;
 
+                string oldPath = _currentPath;
+
                 Folders.Clear();
                 Contents.Clear();
+                ParentFolders.Clear();
 
                 var dirInfo = new DirectoryInfo(path);
+
+                // 0. Load ParentFolders (folders in parent directory)
+                if (dirInfo.Parent != null)
+                {
+                    var parentFolderList = new System.Collections.Generic.List<FolderItem>();
+                    try
+                    {
+                        foreach (var dir in dirInfo.Parent.GetDirectories())
+                        {
+                            try
+                            {
+                                var item = CreateFolderItem(dir);
+                                parentFolderList.Add(item);
+                            }
+                            catch (UnauthorizedAccessException) { }
+                            catch (FileNotFoundException) { }
+                            catch (DirectoryNotFoundException) { }
+                            catch (Exception) { }
+                        }
+                    }
+                    catch (UnauthorizedAccessException) { }
+                    catch (Exception) { }
+
+                    parentFolderList.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
+                    foreach (var item in parentFolderList)
+                    {
+                        ParentFolders.Add(item);
+                    }
+                }
 
                 // 1. Load Folders (for folders list)
                 var folderList = new System.Collections.Generic.List<FolderItem>();
@@ -73,7 +152,7 @@ namespace Filey
                     Folders.Add(item);
                 }
 
-                // 2. Load Contents (for contents list, including both folders and files)
+                // 2. Load Contents (for contents list, including only files now)
                 var contentList = new System.Collections.Generic.List<FolderItem>();
 
                 // Add files to contents (sorted alphabetically ascending)
@@ -101,18 +180,25 @@ namespace Filey
                     contentList.Add(file);
                 }
 
-                // Add folders to contents (after files, so folders are at the bottom by default)
-                foreach (var folder in Folders)
-                {
-                    contentList.Add(folder);
-                }
-
                 foreach (var item in contentList)
                 {
                     Contents.Add(item);
                 }
 
-                CurrentPath = path;
+                CurrentPath = dirInfo.FullName;
+
+                if (pushToHistory && !string.IsNullOrEmpty(oldPath) && oldPath != CurrentPath)
+                {
+                    _backStack.Add(oldPath);
+                    if (_backStack.Count > 50)
+                    {
+                        _backStack.RemoveAt(0);
+                    }
+                    _forwardStack.Clear();
+                }
+
+                OnPropertyChanged(nameof(CanGoBack));
+                OnPropertyChanged(nameof(CanGoForward));
             }
             catch (Exception ex)
             {

@@ -1,0 +1,163 @@
+<UserControl x:Class="Filey.AddressBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Filey"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="600">
+    <UserControl.Resources>
+        <!-- Modern Flat Button Style for Back/Forward/Breadcrumbs -->
+        <Style x:Key="FlatButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Padding" Value="6,4,6,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                CornerRadius="4" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1E1E1E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#555555"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Breadcrumb specific Button Style -->
+        <Style x:Key="BreadcrumbButtonStyle" TargetType="Button" BasedOn="{StaticResource FlatButtonStyle}">
+            <Setter Property="Foreground" Value="#B0B0B0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style for the PathTextBox to match theme and prevent white background on focus -->
+        <Style x:Key="PathTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CaretBrush" Value="#E0E0E0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0" VerticalAlignment="Center"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Active/Last Segment Text Color -->
+        <SolidColorBrush x:Key="BreadcrumbActiveTextBrush" Color="#FFFFFF"/>
+        <!-- Chevron Color -->
+        <SolidColorBrush x:Key="BreadcrumbChevronBrush" Color="#666666"/>
+    </UserControl.Resources>
+
+    <Grid VerticalAlignment="Center" Margin="0,0,0,8">
+        <Grid.ColumnDefinitions>
+            <!-- Back Button -->
+            <ColumnDefinition Width="Auto"/>
+            <!-- Forward Button -->
+            <ColumnDefinition Width="Auto"/>
+            <!-- Spacer -->
+            <ColumnDefinition Width="4"/>
+            <!-- Address Bar Box -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Back Button -->
+        <Button Grid.Column="0" 
+                Width="30" 
+                Height="30" 
+                Content="◄" 
+                Style="{StaticResource FlatButtonStyle}"
+                ToolTip="Back"
+                IsEnabled="{Binding CanGoBack, RelativeSource={RelativeSource AncestorType=local:AddressBar}}"
+                Click="BackButton_Click"/>
+
+        <!-- Forward Button -->
+        <Button Grid.Column="1" 
+                Width="30" 
+                Height="30" 
+                Content="►" 
+                Style="{StaticResource FlatButtonStyle}"
+                ToolTip="Forward"
+                IsEnabled="{Binding CanGoForward, RelativeSource={RelativeSource AncestorType=local:AddressBar}}"
+                Click="ForwardButton_Click"/>
+
+        <!-- Main Bar Area -->
+        <Border x:Name="MainBarBorder"
+                Grid.Column="3" 
+                Background="#1E1E1E" 
+                BorderBrush="#2D2D2D" 
+                BorderThickness="1" 
+                CornerRadius="4" 
+                Height="32">
+            
+            <Grid>
+                <!-- Breadcrumbs Mode (Visible by Default) -->
+                <Border x:Name="BreadcrumbsWrapper" 
+                        Background="Transparent" 
+                        MouseLeftButtonDown="BreadcrumbsWrapper_MouseLeftButtonDown"
+                        SizeChanged="BreadcrumbsWrapper_SizeChanged"
+                        Padding="6,0,6,0">
+                    <StackPanel x:Name="BreadcrumbsContainer" 
+                                Orientation="Horizontal" 
+                                VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Edit Mode (Hidden by Default) -->
+                <Grid x:Name="EditModeGrid" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="PathTextBox" 
+                             Grid.Column="0"
+                             Style="{StaticResource PathTextBoxStyle}"
+                             Padding="8,0,8,0" 
+                             FontFamily="Consolas, Courier New"
+                             FontSize="12"
+                             KeyDown="TextBox_KeyDown"
+                             LostFocus="TextBox_LostFocus"
+                             TextChanged="TextBox_TextChanged"/>
+
+                    <!-- Error Text Block placed inside the Address Bar on the right -->
+                    <TextBlock x:Name="ErrorTextBlock" 
+                               Grid.Column="1"
+                               Foreground="#FF4D4D" 
+                               VerticalAlignment="Center" 
+                               Margin="0,0,10,0" 
+                               FontSize="11" 
+                               FontWeight="SemiBold"
+                               Visibility="Collapsed"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

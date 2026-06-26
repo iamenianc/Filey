@@ -23,6 +23,11 @@ namespace Filey
 
             InitializeComponent();
 
+            // Subscribe to ViewModel property changes to dynamically adjust folder pane heights
+            LeftViewModel.PropertyChanged += LeftViewModel_PropertyChanged;
+            RightViewModel.PropertyChanged += RightViewModel_PropertyChanged;
+            this.SizeChanged += Window_SizeChanged;
+
             // Set up initial directories (UserProfile directory as specified in starting state)
             string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             LeftViewModel.LoadDirectory(startingPath);
@@ -269,6 +274,288 @@ namespace Filey
             if (!folderItem.IsEditing) return;
             folderItem.IsEditing = false;
             textBox.Text = folderItem.Name;
+        }
+
+        private void AddressBar_NavigationRequested(object sender, string targetPath)
+        {
+            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
+            {
+                vm.LoadDirectory(targetPath);
+            }
+        }
+
+        private void AddressBar_GoBackRequested(object sender, EventArgs e)
+        {
+            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
+            {
+                vm.GoBack();
+            }
+        }
+
+        private void AddressBar_GoForwardRequested(object sender, EventArgs e)
+        {
+            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
+            {
+                vm.GoForward();
+            }
+        }
+
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseDown(e);
+
+            if (e.ChangedButton == MouseButton.XButton1)
+            {
+                var activeVm = GetActiveViewModel();
+                if (activeVm != null && activeVm.CanGoBack)
+                {
+                    activeVm.GoBack();
+                    e.Handled = true;
+                }
+            }
+            else if (e.ChangedButton == MouseButton.XButton2)
+            {
+                var activeVm = GetActiveViewModel();
+                if (activeVm != null && activeVm.CanGoForward)
+                {
+                    activeVm.GoForward();
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private DirectoryViewModel GetActiveViewModel()
+        {
+            if (RightPaneOverlay.Visibility == Visibility.Visible)
+            {
+                return LeftViewModel;
+            }
+
+            var focused = Keyboard.FocusedElement as DependencyObject;
+            if (focused != null)
+            {
+                DependencyObject current = focused;
+                while (current != null)
+                {
+                    if (current is FrameworkElement fe)
+                    {
+                        if (fe.DataContext == LeftViewModel) return LeftViewModel;
+                        if (fe.DataContext == RightViewModel) return RightViewModel;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+            }
+
+            if (RightPaneGrid != null && RightPaneGrid.IsMouseOver)
+            {
+                return RightViewModel;
+            }
+
+            return LeftViewModel;
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateLeftPaneLayout();
+            UpdateRightPaneLayout();
+        }
+
+        private void LeftViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+            {
+                UpdateLeftPaneLayout();
+            }
+        }
+
+        private void RightViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+            {
+                UpdateRightPaneLayout();
+            }
+        }
+
+        private void UpdateLeftPaneLayout()
+        {
+            if (LeftFoldersRow == null || LeftFoldersListView == null || LeftGridSplitter == null || LeftSplitterRow == null || LeftFilesRow == null || LeftFilesListView == null)
+                return;
+
+            int folderCount = LeftViewModel.Folders.Count;
+            int fileCount = LeftViewModel.Contents.Count;
+
+            // Rule 1: hide If there are no subfolders.
+            if (folderCount == 0)
+            {
+                LeftFoldersRow.Height = new GridLength(0);
+                LeftFoldersRow.MinHeight = 0;
+                LeftFoldersRow.MaxHeight = 0;
+                
+                LeftSplitterRow.Height = new GridLength(0);
+                
+                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                LeftFilesRow.MinHeight = 0;
+
+                LeftFoldersListView.Visibility = Visibility.Collapsed;
+                LeftGridSplitter.Visibility = Visibility.Collapsed;
+                LeftFilesListView.Visibility = Visibility.Visible;
+                return;
+            }
+
+            // Rule 4: If no files, then the sub panel shall expand fully and the files subpanel shall hide.
+            if (fileCount == 0)
+            {
+                LeftFoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                LeftFoldersRow.MinHeight = 0;
+                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
+                
+                LeftSplitterRow.Height = new GridLength(0);
+                
+                LeftFilesRow.Height = new GridLength(0);
+                LeftFilesRow.MinHeight = 0;
+
+                LeftFoldersListView.Visibility = Visibility.Visible;
+                LeftGridSplitter.Visibility = Visibility.Collapsed;
+                LeftFilesListView.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            // Both folders and files exist.
+            // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
+            double estimatedFoldersHeight = 36 + folderCount * 28;
+            double estimatedFilesHeight = 36 + fileCount * 28;
+            double splitterHeight = 6;
+
+            FrameworkElement parentGrid = LeftFoldersListView.Parent as FrameworkElement;
+            double availableHeight = parentGrid != null && parentGrid.ActualHeight > 0 
+                ? parentGrid.ActualHeight 
+                : this.Height - 150; // Fallback if not yet rendered
+
+            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
+            {
+                // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
+                LeftFoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                LeftFoldersRow.MinHeight = 0;
+                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
+
+                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                LeftFilesRow.MinHeight = 0;
+
+                LeftSplitterRow.Height = new GridLength(splitterHeight);
+
+                LeftFoldersListView.Visibility = Visibility.Visible;
+                LeftGridSplitter.Visibility = Visibility.Visible;
+                LeftFilesListView.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // Rules 2 & 3:
+                // - If one subfolder, shorten height of panel to fit exactly.
+                // - If more than one subfolder, the height of subpanel shall autofit to show all folders.
+                LeftFoldersRow.Height = GridLength.Auto;
+                LeftFoldersRow.MinHeight = 0;
+                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
+
+                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                LeftFilesRow.MinHeight = 0;
+
+                LeftSplitterRow.Height = new GridLength(splitterHeight);
+
+                LeftFoldersListView.Visibility = Visibility.Visible;
+                LeftGridSplitter.Visibility = Visibility.Visible;
+                LeftFilesListView.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void UpdateRightPaneLayout()
+        {
+            if (RightFoldersRow == null || RightFoldersListView == null || RightGridSplitter == null || RightSplitterRow == null || RightFilesRow == null || RightFilesListView == null)
+                return;
+
+            int folderCount = RightViewModel.Folders.Count;
+            int fileCount = RightViewModel.Contents.Count;
+
+            // Rule 1: hide If there are no subfolders.
+            if (folderCount == 0)
+            {
+                RightFoldersRow.Height = new GridLength(0);
+                RightFoldersRow.MinHeight = 0;
+                RightFoldersRow.MaxHeight = 0;
+                
+                RightSplitterRow.Height = new GridLength(0);
+                
+                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                RightFilesRow.MinHeight = 0;
+
+                RightFoldersListView.Visibility = Visibility.Collapsed;
+                RightGridSplitter.Visibility = Visibility.Collapsed;
+                RightFilesListView.Visibility = Visibility.Visible;
+                return;
+            }
+
+            // Rule 4: If no files, then the sub panel shall expand fully and the files subpanel shall hide.
+            if (fileCount == 0)
+            {
+                RightFoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                RightFoldersRow.MinHeight = 0;
+                RightFoldersRow.MaxHeight = double.PositiveInfinity;
+                
+                RightSplitterRow.Height = new GridLength(0);
+                
+                RightFilesRow.Height = new GridLength(0);
+                RightFilesRow.MinHeight = 0;
+
+                RightFoldersListView.Visibility = Visibility.Visible;
+                RightGridSplitter.Visibility = Visibility.Collapsed;
+                RightFilesListView.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            // Both folders and files exist.
+            // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
+            double estimatedFoldersHeight = 36 + folderCount * 28;
+            double estimatedFilesHeight = 36 + fileCount * 28;
+            double splitterHeight = 6;
+
+            FrameworkElement parentGrid = RightFoldersListView.Parent as FrameworkElement;
+            double availableHeight = parentGrid != null && parentGrid.ActualHeight > 0 
+                ? parentGrid.ActualHeight 
+                : this.Height - 150; // Fallback if not yet rendered
+
+            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
+            {
+                // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
+                RightFoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                RightFoldersRow.MinHeight = 0;
+                RightFoldersRow.MaxHeight = double.PositiveInfinity;
+
+                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                RightFilesRow.MinHeight = 0;
+
+                RightSplitterRow.Height = new GridLength(splitterHeight);
+
+                RightFoldersListView.Visibility = Visibility.Visible;
+                RightGridSplitter.Visibility = Visibility.Visible;
+                RightFilesListView.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // Rules 2 & 3:
+                // - If one subfolder, shorten height of panel to fit exactly.
+                // - If more than one subfolder, the height of subpanel shall autofit to show all folders.
+                RightFoldersRow.Height = GridLength.Auto;
+                RightFoldersRow.MinHeight = 0;
+                RightFoldersRow.MaxHeight = double.PositiveInfinity;
+
+                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
+                RightFilesRow.MinHeight = 0;
+
+                RightSplitterRow.Height = new GridLength(splitterHeight);
+
+                RightFoldersListView.Visibility = Visibility.Visible;
+                RightGridSplitter.Visibility = Visibility.Visible;
+                RightFilesListView.Visibility = Visibility.Visible;
+            }
         }
     }
 }
