@@ -93,21 +93,39 @@
         <Button Grid.Column="0" 
                 Width="30" 
                 Height="30" 
-                Content="◄" 
                 Style="{StaticResource FlatButtonStyle}"
                 ToolTip="Back"
                 IsEnabled="{Binding CanGoBack, RelativeSource={RelativeSource AncestorType=local:AddressBar}}"
-                Click="BackButton_Click"/>
+                Click="BackButton_Click">
+            <Path Width="10" 
+                  Height="10" 
+                  Stretch="Uniform" 
+                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                  StrokeThickness="1.5" 
+                  StrokeStartLineCap="Round" 
+                  StrokeEndLineCap="Round" 
+                  StrokeLineJoin="Round"
+                  Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
+        </Button>
 
         <!-- Forward Button -->
         <Button Grid.Column="1" 
                 Width="30" 
                 Height="30" 
-                Content="►" 
                 Style="{StaticResource FlatButtonStyle}"
                 ToolTip="Forward"
                 IsEnabled="{Binding CanGoForward, RelativeSource={RelativeSource AncestorType=local:AddressBar}}"
-                Click="ForwardButton_Click"/>
+                Click="ForwardButton_Click">
+            <Path Width="10" 
+                  Height="10" 
+                  Stretch="Uniform" 
+                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                  StrokeThickness="1.5" 
+                  StrokeStartLineCap="Round" 
+                  StrokeEndLineCap="Round" 
+                  StrokeLineJoin="Round"
+                  Data="M 4,2 L 8,5 L 4,8 M 8,5 L 2,5"/>
+        </Button>
 
         <!-- Main Bar Area -->
         <Border x:Name="MainBarBorder"

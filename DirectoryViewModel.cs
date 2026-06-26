@@ -10,6 +10,8 @@ namespace Filey
         private ObservableCollection<FolderItem> _folders;
         private ObservableCollection<FolderItem> _contents;
         private ObservableCollection<FolderItem> _parentFolders;
+        private FolderItem _selectedParentFolder;
+        private FolderItem _selectedItem;
 
         private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
         private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
@@ -23,12 +25,35 @@ namespace Filey
 
         public string CurrentPath
         {
-            get => _currentPath;
-            set => SetField(ref _currentPath, value);
+            get => _selectedItem != null ? _selectedItem.FullPath : _currentPath;
+            set
+            {
+                if (SetField(ref _currentPath, value))
+                {
+                    OnPropertyChanged(nameof(ParentFolderName));
+                }
+            }
         }
 
         public bool CanGoBack => _backStack.Count > 0;
         public bool CanGoForward => _forwardStack.Count > 0;
+
+        public bool CanGoToParent
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(CurrentPath)) return false;
+                try
+                {
+                    var dirInfo = new DirectoryInfo(CurrentPath);
+                    return dirInfo.Parent != null;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
 
         public ObservableCollection<FolderItem> Folders
         {
@@ -46,6 +71,68 @@ namespace Filey
         {
             get => _parentFolders;
             set => SetField(ref _parentFolders, value);
+        }
+
+        public FolderItem SelectedParentFolder
+        {
+            get => _selectedParentFolder;
+            set
+            {
+                if (SetField(ref _selectedParentFolder, value))
+                {
+                    if (value != null && value.IsDirectory && value.FullPath != CurrentPath)
+                    {
+                        LoadDirectory(value.FullPath);
+                    }
+                }
+            }
+        }
+
+        public FolderItem SelectedItem
+        {
+            get => _selectedItem;
+            set
+            {
+                if (SetField(ref _selectedItem, value))
+                {
+                    OnPropertyChanged(nameof(CurrentPath));
+                    OnPropertyChanged(nameof(ParentFolderName));
+                }
+            }
+        }
+
+        public string ParentFolderName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(CurrentPath)) return string.Empty;
+                try
+                {
+                    var dirInfo = new DirectoryInfo(CurrentPath);
+                    return dirInfo.Parent != null ? dirInfo.Parent.Name : string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+        }
+
+        public void GoToParent()
+        {
+            if (string.IsNullOrEmpty(CurrentPath)) return;
+            try
+            {
+                var dirInfo = new DirectoryInfo(CurrentPath);
+                if (dirInfo.Parent != null)
+                {
+                    LoadDirectory(dirInfo.Parent.FullName);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error going to parent: {ex.Message}");
+            }
         }
 
         public void GoBack()
@@ -93,6 +180,8 @@ namespace Filey
                 Folders.Clear();
                 Contents.Clear();
                 ParentFolders.Clear();
+
+                SelectedItem = null;
 
                 var dirInfo = new DirectoryInfo(path);
 
@@ -187,6 +276,17 @@ namespace Filey
 
                 CurrentPath = dirInfo.FullName;
 
+                FolderItem matchingParentItem = null;
+                foreach (var item in ParentFolders)
+                {
+                    if (string.Equals(item.FullPath, CurrentPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchingParentItem = item;
+                        break;
+                    }
+                }
+                SelectedParentFolder = matchingParentItem;
+
                 if (pushToHistory && !string.IsNullOrEmpty(oldPath) && oldPath != CurrentPath)
                 {
                     _backStack.Add(oldPath);
@@ -199,6 +299,7 @@ namespace Filey
 
                 OnPropertyChanged(nameof(CanGoBack));
                 OnPropertyChanged(nameof(CanGoForward));
+                OnPropertyChanged(nameof(CanGoToParent));
             }
             catch (Exception ex)
             {

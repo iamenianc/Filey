@@ -300,17 +300,47 @@ namespace Filey
             }
         }
 
+        private void ParentBackButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is DirectoryViewModel vm)
+            {
+                if (vm.CanGoToParent)
+                {
+                    vm.GoToParent();
+                }
+            }
+        }
+
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
             base.OnPreviewMouseDown(e);
 
             if (e.ChangedButton == MouseButton.XButton1)
             {
-                var activeVm = GetActiveViewModel();
-                if (activeVm != null && activeVm.CanGoBack)
+                if (LeftParentFoldersPanel != null && LeftParentFoldersPanel.IsMouseOver)
                 {
-                    activeVm.GoBack();
+                    if (LeftViewModel.CanGoToParent)
+                    {
+                        LeftViewModel.GoToParent();
+                    }
                     e.Handled = true;
+                }
+                else if (RightParentFoldersPanel != null && RightParentFoldersPanel.IsMouseOver)
+                {
+                    if (RightViewModel.CanGoToParent)
+                    {
+                        RightViewModel.GoToParent();
+                    }
+                    e.Handled = true;
+                }
+                else
+                {
+                    var activeVm = GetActiveViewModel();
+                    if (activeVm != null && activeVm.CanGoBack)
+                    {
+                        activeVm.GoBack();
+                        e.Handled = true;
+                    }
                 }
             }
             else if (e.ChangedButton == MouseButton.XButton2)

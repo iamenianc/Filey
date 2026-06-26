@@ -5,10 +5,45 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
         mc:Ignorable="d"
-        Title="Filey" Height="650" Width="1100"
+        Title="Filey" Height="800" Width="1250"
         Background="#121212"
         Foreground="#E0E0E0">
     <Window.Resources>
+        <!-- Modern Flat Button Style for Back Navigation in Parent Panel -->
+        <Style x:Key="FlatButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Padding" Value="6,4,6,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                CornerRadius="4" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1E1E1E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#555555"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Modern Grid Splitter Style -->
         <Style x:Key="ModernGridSplitter" TargetType="GridSplitter">
             <Setter Property="Background" Value="#2D2D2D" />
@@ -182,11 +217,11 @@
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left Side Pane -->
-            <ColumnDefinition Width="*" MinWidth="350" />
+            <ColumnDefinition Width="900" MinWidth="300" />
             <!-- Centre Splitter -->
-            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="12" />
             <!-- Right Side Pane -->
-            <ColumnDefinition Width="*" MinWidth="350" />
+            <ColumnDefinition Width="*" MinWidth="300" />
         </Grid.ColumnDefinitions>
 
         <!-- Left Pane Grid -->
@@ -213,7 +248,7 @@
                     <!-- Divider 1 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 1: Folders L -->
-                    <ColumnDefinition Width="200" MinWidth="100"/>
+                    <ColumnDefinition Width="150" MinWidth="100"/>
                     <!-- Divider 2 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 2: Contents L -->
@@ -235,39 +270,99 @@
                 <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
                 <!-- Parent Folders L -->
-                <ListBox Grid.Column="2" 
-                           Style="{StaticResource ModernListBox}"
-                           ItemsSource="{Binding ParentFolders}"
-                           KeyDown="List_KeyDown">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="2">
-                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                <Grid VerticalAlignment="Center">
-                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                    <TextBox x:Name="NameEdit" 
-                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                             Background="#121212" 
-                                             Foreground="#E0E0E0" 
-                                             BorderBrush="#007ACC" 
-                                             BorderThickness="1" 
-                                             Padding="2,1"
-                                             Margin="-2,-2,-2,-2"
-                                             Visibility="Collapsed"
-                                             LostFocus="NameEdit_LostFocus"
-                                             KeyDown="NameEdit_KeyDown"
-                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                </Grid>
-                            </StackPanel>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
-                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <Border x:Name="LeftParentFoldersPanel"
+                        Grid.Column="2"
+                        Background="#1E1E1E"
+                        BorderBrush="#2D2D2D"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header strip with Back Icon -->
+                        <Border Grid.Row="0"
+                                Background="#252526"
+                                BorderBrush="#2D2D2D"
+                                BorderThickness="0,0,0,1"
+                                Height="32"
+                                Padding="4,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="LeftParentBackButton"
+                                        Grid.Column="0"
+                                        Style="{StaticResource FlatButtonStyle}"
+                                        Width="24" Height="24"
+                                        ToolTip="Go back in tree"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding CanGoToParent}"
+                                        Click="ParentBackButton_Click">
+                                    <Path Width="8" 
+                                          Height="8" 
+                                          Stretch="Uniform" 
+                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                                          StrokeThickness="1.5" 
+                                          StrokeStartLineCap="Round" 
+                                          StrokeEndLineCap="Round" 
+                                          StrokeLineJoin="Round"
+                                          Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
+                                </Button>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding ParentFolderName}"
+                                           Foreground="#CCCCCC"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,8,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ListBox -->
+                        <ListBox Grid.Row="1" 
+                                 Style="{StaticResource ModernListBox}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ItemsSource="{Binding ParentFolders}"
+                                 SelectedItem="{Binding SelectedParentFolder}"
+                                 KeyDown="List_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="2">
+                                        <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                        <Grid VerticalAlignment="Center">
+                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                            <TextBox x:Name="NameEdit" 
+                                                     Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                     Background="#121212" 
+                                                     Foreground="#E0E0E0" 
+                                                     BorderBrush="#007ACC" 
+                                                     BorderThickness="1" 
+                                                     Padding="2,1"
+                                                     Margin="-2,-2,-2,-2"
+                                                     Visibility="Collapsed"
+                                                     LostFocus="NameEdit_LostFocus"
+                                                     KeyDown="NameEdit_KeyDown"
+                                                     IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                        </Grid>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
 
                 <!-- GridSplitter 2 -->
                 <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
@@ -284,6 +379,7 @@
                     <ListView x:Name="LeftFoldersListView" Grid.Row="0" 
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Folders}"
+                              SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
@@ -344,6 +440,7 @@
                     <ListView x:Name="LeftFilesListView" Grid.Row="2" 
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Contents}"
+                              SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
@@ -401,7 +498,7 @@
         </Grid>
 
         <!-- Centre Splitter -->
-        <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="8" />
+        <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="12" />
 
         <!-- Right Pane Grid -->
         <Grid x:Name="RightPaneGrid" Grid.Column="2" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
@@ -427,7 +524,7 @@
                     <!-- Divider 1 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 1: Folders R -->
-                    <ColumnDefinition Width="200" MinWidth="100"/>
+                    <ColumnDefinition Width="150" MinWidth="100"/>
                     <!-- Divider 2 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 2: Favourites R -->
@@ -444,6 +541,7 @@
                     <ListView x:Name="RightFoldersListView" Grid.Row="0" 
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Folders}"
+                              SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
@@ -504,6 +602,7 @@
                     <ListView x:Name="RightFilesListView" Grid.Row="2" 
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Contents}"
+                              SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
@@ -562,39 +661,99 @@
                 <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
                 <!-- Parent Folders R -->
-                <ListBox Grid.Column="2" 
-                          Style="{StaticResource ModernListBox}"
-                          ItemsSource="{Binding ParentFolders}"
-                          KeyDown="List_KeyDown">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="2">
-                                <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                <Grid VerticalAlignment="Center">
-                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                    <TextBox x:Name="NameEdit" 
-                                             Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                             Background="#121212" 
-                                             Foreground="#E0E0E0" 
-                                             BorderBrush="#007ACC" 
-                                             BorderThickness="1" 
-                                             Padding="2,1"
-                                             Margin="-2,-2,-2,-2"
-                                             Visibility="Collapsed"
-                                             LostFocus="NameEdit_LostFocus"
-                                             KeyDown="NameEdit_KeyDown"
-                                             IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                </Grid>
-                            </StackPanel>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                    <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
-                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <Border x:Name="RightParentFoldersPanel"
+                        Grid.Column="2"
+                        Background="#1E1E1E"
+                        BorderBrush="#2D2D2D"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header strip with Back Icon -->
+                        <Border Grid.Row="0"
+                                Background="#252526"
+                                BorderBrush="#2D2D2D"
+                                BorderThickness="0,0,0,1"
+                                Height="32"
+                                Padding="4,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="RightParentBackButton"
+                                        Grid.Column="0"
+                                        Style="{StaticResource FlatButtonStyle}"
+                                        Width="24" Height="24"
+                                        ToolTip="Go back in tree"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding CanGoToParent}"
+                                        Click="ParentBackButton_Click">
+                                    <Path Width="8" 
+                                          Height="8" 
+                                          Stretch="Uniform" 
+                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                                          StrokeThickness="1.5" 
+                                          StrokeStartLineCap="Round" 
+                                          StrokeEndLineCap="Round" 
+                                          StrokeLineJoin="Round"
+                                          Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
+                                </Button>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding ParentFolderName}"
+                                           Foreground="#CCCCCC"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,8,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ListBox -->
+                        <ListBox Grid.Row="1" 
+                                 Style="{StaticResource ModernListBox}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ItemsSource="{Binding ParentFolders}"
+                                 SelectedItem="{Binding SelectedParentFolder}"
+                                 KeyDown="List_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="2">
+                                        <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
+                                        <Grid VerticalAlignment="Center">
+                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                            <TextBox x:Name="NameEdit" 
+                                                     Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
+                                                     Background="#121212" 
+                                                     Foreground="#E0E0E0" 
+                                                     BorderBrush="#007ACC" 
+                                                     BorderThickness="1" 
+                                                     Padding="2,1"
+                                                     Margin="-2,-2,-2,-2"
+                                                     Visibility="Collapsed"
+                                                     LostFocus="NameEdit_LostFocus"
+                                                     KeyDown="NameEdit_KeyDown"
+                                                     IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                        </Grid>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
 
                 <!-- GridSplitter 2 -->
                 <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
