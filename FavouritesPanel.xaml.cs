@@ -43,7 +43,8 @@ namespace Filey
             var source = BookmarkStore.Instance.ForSide(Side);
             _view = CollectionViewSource.GetDefaultView(source);
 
-            // Group by FolderGroup; ungrouped items appear first under a null/empty key.
+            // Group by FolderGroup. Group order follows the underlying collection order,
+            // which BookmarkStore keeps with the default "Bookmarked" group pinned first.
             _view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Bookmark.FolderGroup)));
 
             BookmarksList.ItemsSource = _view;
@@ -101,7 +102,7 @@ namespace Filey
         {
             var b = BookmarkFromMenu(sender);
             if (b == null) return;
-            b.FolderGroup = null;
+            b.FolderGroup = BookmarkStore.DefaultGroup;
             _view?.Refresh();
         }
 
@@ -118,7 +119,7 @@ namespace Filey
         {
             if (_groupTarget == null) { GroupPopup.IsOpen = false; return; }
             string g = GroupNameBox.Text.Trim();
-            _groupTarget.FolderGroup = string.IsNullOrEmpty(g) ? null : g;
+            _groupTarget.FolderGroup = string.IsNullOrEmpty(g) ? BookmarkStore.DefaultGroup : g;
             GroupPopup.IsOpen = false;
             _view?.Refresh();
             _groupTarget = null;
@@ -236,45 +237,47 @@ namespace Filey
                 {
                     BookmarkStore.Instance.Copy(dragged, Side);
                     _view?.Refresh();
+                    e.Handled = true;
+                    return;
                 }
-                else if (TryGetDropGroup(e, out string targetGroup) &&
-                         !string.Equals(dragged.FolderGroup, targetGroup, StringComparison.Ordinal))
+
+                // Drop onto a bookmark / header in a different group reassigns the group;
+                // a drop within the dragged item's own group is a manual reorder.
+                var target = GetDropTarget(e);
+                string targetGroup = GetDropGroup(e, target);
+
+                if (!string.Equals(dragged.FolderGroup, targetGroup, StringComparison.Ordinal))
                 {
-                    dragged.FolderGroup = targetGroup;
-                    _view?.Refresh();
+                    BookmarkStore.Instance.SetGroup(Side, dragged, targetGroup, target);
                 }
-                else
+                else if (target != null && target != dragged)
                 {
                     var list = BookmarkStore.Instance.ForSide(Side);
-                    int from = list.IndexOf(dragged);
-                    int to = GetDropIndex(e);
-                    if (to < 0) to = list.Count - 1;
-                    BookmarkStore.Instance.Reorder(Side, from, to);
-                    _view?.Refresh();
+                    BookmarkStore.Instance.Reorder(Side, list.IndexOf(dragged), list.IndexOf(target));
                 }
+                _view?.Refresh();
                 e.Handled = true;
             }
         }
 
-        /// <summary>
-        /// Resolves the group the bookmark was dropped onto: the group of the target
-        /// bookmark, or a group header dropped directly onto. Returns false when the
-        /// drop lands on empty space (caller falls back to reorder).
-        /// </summary>
-        private bool TryGetDropGroup(DragEventArgs e, out string group)
+        private Bookmark GetDropTarget(DragEventArgs e)
         {
-            group = null;
-            var pos = e.GetPosition(BookmarksList);
-            var hit = BookmarksList.InputHitTest(pos) as DependencyObject;
-            if (hit == null) return false;
+            var hit = BookmarksList.InputHitTest(e.GetPosition(BookmarksList)) as DependencyObject;
+            return hit != null ? GetBookmarkFromContainer(hit) : null;
+        }
 
-            var target = GetBookmarkFromContainer(hit);
-            if (target != null) { group = target.FolderGroup; return true; }
+        /// <summary>
+        /// Resolves the group a bookmark was dropped onto: the group of the target
+        /// bookmark, or a group header dropped directly onto. Drops on empty space
+        /// fall into the default group.
+        /// </summary>
+        private string GetDropGroup(DragEventArgs e, Bookmark target)
+        {
+            if (target != null) return target.FolderGroup;
 
-            var header = FindGroupHeaderText(hit);
-            if (header != null) { group = string.IsNullOrEmpty(header) ? null : header; return true; }
-
-            return false;
+            var hit = BookmarksList.InputHitTest(e.GetPosition(BookmarksList)) as DependencyObject;
+            var header = hit != null ? FindGroupHeaderText(hit) : null;
+            return string.IsNullOrEmpty(header) ? BookmarkStore.DefaultGroup : header;
         }
 
         private static string FindGroupHeaderText(DependencyObject d)
@@ -284,16 +287,6 @@ namespace Filey
             if (d is GroupItem gi && gi.DataContext is CollectionViewGroup g)
                 return g.Name as string;
             return null;
-        }
-
-        private int GetDropIndex(DragEventArgs e)
-        {
-            var pos = e.GetPosition(BookmarksList);
-            var hit = BookmarksList.InputHitTest(pos) as DependencyObject;
-            var target = hit != null ? GetBookmarkFromContainer(hit) : null;
-            if (target != null)
-                return BookmarkStore.Instance.ForSide(Side).IndexOf(target);
-            return -1;
         }
 
         // --- Context menu helpers -------------------------------------------------

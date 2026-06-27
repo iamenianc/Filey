@@ -20,6 +20,9 @@ namespace Filey
         private static readonly Lazy<BookmarkStore> _instance = new Lazy<BookmarkStore>(() => new BookmarkStore());
         public static BookmarkStore Instance => _instance.Value;
 
+        /// <summary>Group a bookmark falls into when it has no explicit group. Always shown first.</summary>
+        public const string DefaultGroup = "Bookmarked";
+
         public ObservableCollection<Bookmark> Left { get; } = new ObservableCollection<Bookmark>();
         public ObservableCollection<Bookmark> Right { get; } = new ObservableCollection<Bookmark>();
 
@@ -41,11 +44,34 @@ namespace Filey
             {
                 Path = path,
                 Name = string.IsNullOrWhiteSpace(name) ? GetDefaultName(path) : name.Trim(),
-                FolderGroup = string.IsNullOrWhiteSpace(folderGroup) ? null : folderGroup.Trim()
+                FolderGroup = string.IsNullOrWhiteSpace(folderGroup) ? DefaultGroup : folderGroup.Trim()
             };
 
-            ForSide(side).Add(bookmark);
+            // Default-group bookmarks insert at the front so "Bookmarked" stays on top.
+            var list = ForSide(side);
+            if (bookmark.FolderGroup == DefaultGroup)
+                list.Insert(0, bookmark);
+            else
+                list.Add(bookmark);
             return bookmark;
+        }
+
+        /// <summary>
+        /// Reassigns a bookmark's group and repositions it next to the drop target so it
+        /// lands in the right place visually. With no target it joins the end of its group.
+        /// </summary>
+        public void SetGroup(Side side, Bookmark bookmark, string group, Bookmark target)
+        {
+            if (bookmark == null) return;
+            bookmark.FolderGroup = string.IsNullOrWhiteSpace(group) ? DefaultGroup : group;
+
+            if (target == null || target == bookmark) return;
+
+            var list = ForSide(side);
+            int from = list.IndexOf(bookmark);
+            int to = list.IndexOf(target);
+            if (from < 0 || to < 0) return;
+            list.Move(from, to);
         }
 
         public void Remove(Side side, Bookmark bookmark)

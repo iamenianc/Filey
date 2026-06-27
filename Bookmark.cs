@@ -41,7 +41,7 @@ namespace Filey
                 Id = Guid.NewGuid().ToString(),
                 Path = Path,
                 Name = Name,
-                FolderGroup = FolderGroup,
+                FolderGroup = string.IsNullOrWhiteSpace(FolderGroup) ? BookmarkStore.DefaultGroup : FolderGroup,
                 CreatedAt = DateTime.Now
             };
         }
