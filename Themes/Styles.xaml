@@ -101,16 +101,16 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="3"
                             SnapsToDevicePixels="True">
-                        <ScrollViewer Padding="{TemplateBinding Padding}"
-                                      Focusable="False">
-                            <DockPanel>
-                                <GridViewHeaderRowPresenter DockPanel.Dock="Top"
-                                                            Columns="{Binding View.Columns, RelativeSource={RelativeSource TemplatedParent}}"
-                                                            ColumnHeaderContainerStyle="{Binding View.ColumnHeaderContainerStyle, RelativeSource={RelativeSource TemplatedParent}}"
-                                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        <DockPanel>
+                            <GridViewHeaderRowPresenter DockPanel.Dock="Top"
+                                                        Columns="{Binding View.Columns, RelativeSource={RelativeSource TemplatedParent}}"
+                                                        ColumnHeaderContainerStyle="{Binding View.ColumnHeaderContainerStyle, RelativeSource={RelativeSource TemplatedParent}}"
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            <ScrollViewer Padding="{TemplateBinding Padding}"
+                                          Focusable="False">
                                 <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                            </DockPanel>
-                        </ScrollViewer>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
