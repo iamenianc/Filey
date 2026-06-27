@@ -90,7 +90,7 @@
 
             <!-- Right Pane Grid (includes the DirectoryPane and the Inactive Overlay) -->
             <Grid x:Name="RightPaneGrid" Grid.Column="4" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
-                <local:DirectoryPane x:Name="RightDirectoryPane" ViewModel="{Binding RightViewModel}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
+                <local:DirectoryPane x:Name="RightDirectoryPane" ViewModel="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
 
                 <!-- Overlay Placeholder for Inactive Right Pane -->
                 <Border Grid.Row="0" Grid.RowSpan="2" 
