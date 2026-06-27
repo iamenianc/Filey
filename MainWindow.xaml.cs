@@ -395,15 +395,10 @@ namespace Filey
 
         private void LeftDirectoryPane_SetHomeRequested(object sender, EventArgs e)
         {
-            string current = LeftViewModel.CurrentDirectory;
-            if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
+            string path = PromptForHomePath("Set the left pane's Home folder:", _settings.LeftHomePath, LeftViewModel.CurrentDirectory);
+            if (path == null) return;
 
-            var confirm = MessageBox.Show(
-                $"Set the left pane's Home folder to:\n\n{current}",
-                "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-            if (confirm != MessageBoxResult.OK) return;
-
-            _settings.LeftHomePath = current;
+            _settings.LeftHomePath = path;
             SettingsService.Save(_settings);
         }
 
@@ -415,16 +410,35 @@ namespace Filey
 
         private void RightDirectoryPane_SetHomeRequested(object sender, EventArgs e)
         {
-            string current = RightViewModel.CurrentDirectory;
-            if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
+            string path = PromptForHomePath("Set the right pane's Home folder:", _settings.RightHomePath, RightViewModel.CurrentDirectory);
+            if (path == null) return;
 
-            var confirm = MessageBox.Show(
-                $"Set the right pane's Home folder to:\n\n{current}",
-                "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-            if (confirm != MessageBoxResult.OK) return;
-
-            _settings.RightHomePath = current;
+            _settings.RightHomePath = path;
             SettingsService.Save(_settings);
+        }
+
+        /// <summary>
+        /// Shows a free-text input dialog for a Home path, pre-filled with the existing
+        /// setting (falling back to the pane's current folder). Returns the trimmed path,
+        /// or null if cancelled or the entered folder doesn't exist.
+        /// </summary>
+        private string PromptForHomePath(string prompt, string existingHome, string currentDirectory)
+        {
+            string initial = !string.IsNullOrEmpty(existingHome) ? existingHome : currentDirectory;
+
+            var dialog = new InputDialog("Set Home Folder", prompt, initial) { Owner = this };
+            if (dialog.ShowDialog() != true) return null;
+
+            string path = dialog.Value;
+            if (!System.IO.Directory.Exists(path))
+            {
+                MessageBox.Show(
+                    $"Folder does not exist:\n\n{path}",
+                    "Set Home Folder", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return null;
+            }
+
+            return path;
         }
     }
 }
