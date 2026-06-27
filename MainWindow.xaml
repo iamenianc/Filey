@@ -51,6 +51,39 @@
             </Setter>
         </Style>
 
+        <!-- Slim flat toggle button for the top menu bar -->
+        <Style x:Key="TopBarToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border"
+                                CornerRadius="3"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#094771"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Modern Grid Splitter Style -->
         <Style x:Key="ModernGridSplitter" TargetType="GridSplitter">
             <Setter Property="Background" Value="#2D2D2D" />
@@ -252,17 +285,25 @@
             <StackPanel x:Name="TopMenuBarItems"
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
-                        Margin="6,0"/>
+                        Margin="6,0">
+                <ToggleButton x:Name="RightPaneToggle"
+                              Style="{StaticResource TopBarToggleStyle}"
+                              Content="Right Pane"
+                              ToolTip="Show or hide the right pane"
+                              IsChecked="True"
+                              Checked="RightPaneToggle_Changed"
+                              Unchecked="RightPaneToggle_Changed"/>
+            </StackPanel>
         </Border>
 
     <Grid Grid.Row="1" Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left Side Pane -->
-            <ColumnDefinition Width="1000" MinWidth="200" />
+            <ColumnDefinition x:Name="LeftPaneCol" Width="1000" MinWidth="200" />
             <!-- Centre Splitter -->
-            <ColumnDefinition Width="12" />
+            <ColumnDefinition x:Name="CentreSplitterCol" Width="12" />
             <!-- Right Side Pane -->
-            <ColumnDefinition Width="*" MinWidth="300" />
+            <ColumnDefinition x:Name="RightPaneCol" Width="*" MinWidth="300" />
         </Grid.ColumnDefinitions>
 
         <!-- Left Pane Grid -->
@@ -544,7 +585,7 @@
         </Grid>
 
         <!-- Centre Splitter -->
-        <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="12" />
+        <GridSplitter x:Name="CentreSplitter" Grid.Column="1" Style="{StaticResource ModernGridSplitter}" Width="12" />
 
         <!-- Right Pane Grid -->
         <Grid x:Name="RightPaneGrid" Grid.Column="2" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">

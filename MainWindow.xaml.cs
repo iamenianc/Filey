@@ -35,26 +35,21 @@ namespace Filey
             RightViewModel = new DirectoryViewModel();
 
             _settings = SettingsService.Load();
-            DirectoryViewModel.FoldersOnTop = _settings.FoldersOnTop;
             BookmarkStore.Instance.LoadFromDisk();
 
             InitializeComponent();
 
             this.Closing += MainWindow_Closing;
 
-            LeftAddressBar.EnableFoldersOnTopToggle(DirectoryViewModel.FoldersOnTop);
-            LeftAddressBar.FoldersOnTopChanged += OnFoldersOnTopChanged;
-
             // Subscribe to ViewModel property changes to dynamically adjust folder pane heights
             LeftViewModel.PropertyChanged += LeftViewModel_PropertyChanged;
             RightViewModel.PropertyChanged += RightViewModel_PropertyChanged;
             this.SizeChanged += Window_SizeChanged;
 
-            // Wire up Favourites panels: supply current dir + handle navigation per side.
-            LeftFavouritesPanel.CurrentPathProvider = () => LeftViewModel.CurrentPath;
-            LeftFavouritesPanel.NavigationRequested += (s, path) => LeftViewModel.LoadDirectory(path);
-            RightFavouritesPanel.CurrentPathProvider = () => RightViewModel.CurrentPath;
-            RightFavouritesPanel.NavigationRequested += (s, path) => RightViewModel.LoadDirectory(path);
+            // Wire up the (single, shared) Favourites panel. It adds bookmarks for the
+            // active side's current path and navigates that side.
+            LeftFavouritesPanel.CurrentPathProvider = () => GetActiveViewModel().CurrentPath;
+            LeftFavouritesPanel.NavigationRequested += (s, path) => GetActiveViewModel().LoadDirectory(path);
 
             // Wire up parent folder lists with filtered views.
             Loaded += (s, e) =>
@@ -68,6 +63,9 @@ namespace Filey
                 RightParentFoldersList.ItemsSource = rightView;
 
                 ApplySplitterPositions();
+
+                RightPaneToggle.IsChecked = _settings.RightPaneVisible;
+                SetRightPaneVisible(_settings.RightPaneVisible);
             };
 
             RestorePersistedState();
@@ -98,17 +96,6 @@ namespace Filey
             }
         }
 
-        private void OnFoldersOnTopChanged(object sender, bool isChecked)
-        {
-            if (DirectoryViewModel.FoldersOnTop == isChecked) return;
-            DirectoryViewModel.FoldersOnTop = isChecked;
-
-            // Reload in place so both panes re-partition folders vs. files immediately.
-            LeftViewModel.LoadDirectory(LeftViewModel.CurrentDirectory, pushToHistory: false);
-            if (_rightPaneActivated)
-                RightViewModel.LoadDirectory(RightViewModel.CurrentDirectory, pushToHistory: false);
-        }
-
         private static string ResolveStartPath(string preferred, string fallback)
         {
             return !string.IsNullOrEmpty(preferred) && System.IO.Directory.Exists(preferred)
@@ -119,30 +106,34 @@ namespace Filey
         private void ApplySplitterPositions()
         {
             var widths = _settings.SplitterPositions;
-            if (widths == null || widths.Count != 6) return;
+            if (widths == null || widths.Count != 5) return;
 
             LeftFavouritesCol.Width = new GridLength(widths[0]);
             LeftParentFoldersCol.Width = new GridLength(widths[1]);
             LeftContentsCol.Width = new GridLength(widths[2]);
-            RightFavouritesCol.Width = new GridLength(widths[3]);
+            RightContentsCol.Width = new GridLength(widths[3]);
             RightParentFoldersCol.Width = new GridLength(widths[4]);
-            RightContentsCol.Width = new GridLength(widths[5]);
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             _settings.LeftRootPath = LeftViewModel.CurrentDirectory;
             _settings.RightRootPath = _rightPaneActivated ? RightViewModel.CurrentDirectory : null;
-            _settings.FoldersOnTop = DirectoryViewModel.FoldersOnTop;
-            _settings.SplitterPositions = new System.Collections.Generic.List<double>
+            _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
+
+            // When the right pane is hidden its columns report zero width; keep the
+            // previously persisted positions rather than overwriting them with zeros.
+            if (_settings.RightPaneVisible)
             {
-                LeftFavouritesCol.ActualWidth,
-                LeftParentFoldersCol.ActualWidth,
-                LeftContentsCol.ActualWidth,
-                RightFavouritesCol.ActualWidth,
-                RightParentFoldersCol.ActualWidth,
-                RightContentsCol.ActualWidth,
-            };
+                _settings.SplitterPositions = new System.Collections.Generic.List<double>
+                {
+                    LeftFavouritesCol.ActualWidth,
+                    LeftParentFoldersCol.ActualWidth,
+                    LeftContentsCol.ActualWidth,
+                    RightContentsCol.ActualWidth,
+                    RightParentFoldersCol.ActualWidth,
+                };
+            }
             SettingsService.Save(_settings);
 
             HistoryService.Save(new NavigationHistory
@@ -170,10 +161,62 @@ namespace Filey
         {
             if (RightPaneOverlay.Visibility == Visibility.Visible)
             {
-                string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                RightViewModel.LoadDirectory(startingPath);
-                RightPaneOverlay.Visibility = Visibility.Collapsed;
-                _rightPaneActivated = true;
+                ActivateRightPane();
+            }
+        }
+
+        /// <summary>
+        /// Brings the right pane out of its inactive state, opening it at the same
+        /// directory the left pane is currently viewing for side-by-side operations.
+        /// </summary>
+        private void ActivateRightPane()
+        {
+            string syncPath = LeftViewModel.CurrentDirectory;
+            if (string.IsNullOrEmpty(syncPath) || !System.IO.Directory.Exists(syncPath))
+            {
+                syncPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            }
+            RightViewModel.LoadDirectory(syncPath);
+            RightPaneOverlay.Visibility = Visibility.Collapsed;
+            _rightPaneActivated = true;
+        }
+
+        private GridLength _savedRightPaneWidth = new GridLength(1, GridUnitType.Star);
+
+        private void RightPaneToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            // Guard against running before the named columns exist (during InitializeComponent).
+            if (RightPaneCol == null) return;
+            SetRightPaneVisible(RightPaneToggle.IsChecked == true);
+        }
+
+        /// <summary>
+        /// Shows or hides the right pane (and the centre splitter). When hidden the left
+        /// pane expands to fill the freed width; the right pane's width is remembered.
+        /// </summary>
+        private void SetRightPaneVisible(bool visible)
+        {
+            if (visible)
+            {
+                CentreSplitterCol.Width = new GridLength(12);
+                RightPaneCol.MinWidth = 300;
+                RightPaneCol.Width = _savedRightPaneWidth;
+                LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+                CentreSplitter.Visibility = Visibility.Visible;
+                RightPaneGrid.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                if (RightPaneCol.ActualWidth > 0)
+                {
+                    _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth);
+                }
+                CentreSplitter.Visibility = Visibility.Collapsed;
+                RightPaneGrid.Visibility = Visibility.Collapsed;
+                CentreSplitterCol.Width = new GridLength(0);
+                RightPaneCol.MinWidth = 0;
+                RightPaneCol.Width = new GridLength(0);
+                LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
             }
         }
 
@@ -609,14 +652,6 @@ namespace Filey
             if (item != null) ContextActions.CopyPath(item.FullPath);
         }
 
-        private void CtxSetRoot_Click(object sender, RoutedEventArgs e)
-        {
-            var item = ItemFromMenu(sender);
-            if (item == null) return;
-            var vm = SideViewModelFromMenu(sender);
-            vm?.LoadDirectory(item.FullPath);
-        }
-
         private void CtxToggleFavourite_Click(object sender, RoutedEventArgs e)
         {
             var item = ItemFromMenu(sender);
@@ -631,8 +666,8 @@ namespace Filey
             }
             else
             {
-                var panel = side == Side.Right ? RightFavouritesPanel : LeftFavouritesPanel;
-                panel.AddFavourite(item.FullPath);
+                // Bookmarks are global; there is a single shared Favourites panel.
+                LeftFavouritesPanel.AddFavourite(item.FullPath);
             }
         }
 
@@ -677,7 +712,7 @@ namespace Filey
             if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
             {
                 UpdateLeftPaneLayout();
-                LeftFavouritesPanel.SyncSelectionToPath(LeftViewModel.CurrentPath);
+                LeftFavouritesPanel.SyncSelectionToPath(GetActiveViewModel().CurrentPath);
             }
         }
 
@@ -686,7 +721,7 @@ namespace Filey
             if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
             {
                 UpdateRightPaneLayout();
-                RightFavouritesPanel.SyncSelectionToPath(RightViewModel.CurrentPath);
+                LeftFavouritesPanel.SyncSelectionToPath(GetActiveViewModel().CurrentPath);
             }
         }
 

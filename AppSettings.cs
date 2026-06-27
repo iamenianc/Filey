@@ -12,7 +12,8 @@ namespace Filey
         public string LeftRootPath { get; set; }
         public string RightRootPath { get; set; }
 
-        public bool FoldersOnTop { get; set; } = true;
+        /// <summary>Whether the right pane is shown. Hiding it lets the left pane fill the width.</summary>
+        public bool RightPaneVisible { get; set; } = true;
 
         /// <summary>
         /// Pixel widths for the six resizable content columns, in order:
