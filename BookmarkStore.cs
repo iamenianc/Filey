@@ -63,15 +63,19 @@ namespace Filey
         public void SetGroup(Side side, Bookmark bookmark, string group, Bookmark target)
         {
             if (bookmark == null) return;
+
+            // Reposition next to the target first (while indices are stable), then
+            // reassign the group, so the grouped view never observes a transient state.
+            if (target != null && target != bookmark)
+            {
+                var list = ForSide(side);
+                int from = list.IndexOf(bookmark);
+                int to = list.IndexOf(target);
+                if (from >= 0 && to >= 0 && from != to)
+                    list.Move(from, to);
+            }
+
             bookmark.FolderGroup = string.IsNullOrWhiteSpace(group) ? DefaultGroup : group;
-
-            if (target == null || target == bookmark) return;
-
-            var list = ForSide(side);
-            int from = list.IndexOf(bookmark);
-            int to = list.IndexOf(target);
-            if (from < 0 || to < 0) return;
-            list.Move(from, to);
         }
 
         public void Remove(Side side, Bookmark bookmark)
