@@ -17,8 +17,10 @@ namespace Filey
     }
 
     /// <summary>
-    /// In-memory singleton store for Favourites/bookmarks. Each side is independent.
-    /// Disk persistence is deferred to Bullet 4 — Load/Save are stubs for now.
+    /// In-memory singleton store for Favourites/bookmarks. Bookmarks are global: both
+    /// sides share one list, so adding/removing on either side affects both. The Side
+    /// parameter on the API is retained for caller convenience but does not partition
+    /// the data. Persisted to %APPDATA%\Filey\bookmarks.json.
     /// </summary>
     public class BookmarkStore
     {
@@ -28,19 +30,18 @@ namespace Filey
         /// <summary>Group a bookmark falls into when it has no explicit group. Always shown first.</summary>
         public const string DefaultGroup = "Bookmarked";
 
-        public ObservableCollection<Bookmark> Left { get; } = new ObservableCollection<Bookmark>();
-        public ObservableCollection<Bookmark> Right { get; } = new ObservableCollection<Bookmark>();
+        /// <summary>The single, global bookmark list (one shared Favourites panel).</summary>
+        public ObservableCollection<Bookmark> Items { get; } = new ObservableCollection<Bookmark>();
 
         /// <summary>Suppresses auto-save while bulk-loading from disk.</summary>
         private bool _suppressSave;
 
         private BookmarkStore()
         {
-            Left.CollectionChanged += OnSideChanged;
-            Right.CollectionChanged += OnSideChanged;
+            Items.CollectionChanged += OnItemsChanged;
         }
 
-        private void OnSideChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnItemsChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.NewItems != null)
                 foreach (Bookmark b in e.NewItems) b.PropertyChanged += OnBookmarkChanged;
@@ -56,10 +57,7 @@ namespace Filey
             SaveToDisk();
         }
 
-        public ObservableCollection<Bookmark> ForSide(Side side)
-        {
-            return side == Side.Left ? Left : Right;
-        }
+        public ObservableCollection<Bookmark> ForSide(Side side) => Items;
 
         public Bookmark Add(Side side, string path, string name, string folderGroup = null)
         {
@@ -76,11 +74,10 @@ namespace Filey
             };
 
             // Default-group bookmarks insert at the front so "Bookmarked" stays on top.
-            var list = ForSide(side);
             if (bookmark.FolderGroup == DefaultGroup)
-                list.Insert(0, bookmark);
+                Items.Insert(0, bookmark);
             else
-                list.Add(bookmark);
+                Items.Add(bookmark);
             return bookmark;
         }
 
@@ -96,11 +93,10 @@ namespace Filey
             // reassign the group, so the grouped view never observes a transient state.
             if (target != null && target != bookmark)
             {
-                var list = ForSide(side);
-                int from = list.IndexOf(bookmark);
-                int to = list.IndexOf(target);
+                int from = Items.IndexOf(bookmark);
+                int to = Items.IndexOf(target);
                 if (from >= 0 && to >= 0 && from != to)
-                    list.Move(from, to);
+                    Items.Move(from, to);
             }
 
             bookmark.FolderGroup = string.IsNullOrWhiteSpace(group) ? DefaultGroup : group;
@@ -109,17 +105,16 @@ namespace Filey
         public void Remove(Side side, Bookmark bookmark)
         {
             if (bookmark == null) return;
-            ForSide(side).Remove(bookmark);
+            Items.Remove(bookmark);
         }
 
         public void Reorder(Side side, int fromIndex, int toIndex)
         {
-            var list = ForSide(side);
-            if (fromIndex < 0 || fromIndex >= list.Count) return;
+            if (fromIndex < 0 || fromIndex >= Items.Count) return;
             if (toIndex < 0) toIndex = 0;
-            if (toIndex >= list.Count) toIndex = list.Count - 1;
+            if (toIndex >= Items.Count) toIndex = Items.Count - 1;
             if (fromIndex == toIndex) return;
-            list.Move(fromIndex, toIndex);
+            Items.Move(fromIndex, toIndex);
         }
 
         public bool Contains(Side side, string path)
@@ -130,22 +125,8 @@ namespace Filey
         public Bookmark Find(Side side, string path)
         {
             if (string.IsNullOrEmpty(path)) return null;
-            return ForSide(side).FirstOrDefault(
+            return Items.FirstOrDefault(
                 b => string.Equals(b.Path, path, StringComparison.OrdinalIgnoreCase));
-        }
-
-        /// <summary>Copy a bookmark to the target side (used for cross-side drag-and-drop).</summary>
-        public Bookmark Copy(Bookmark source, Side toSide)
-        {
-            if (source == null) return null;
-
-            // Duplicate paths are not allowed on a side — skip if already present.
-            var existing = Find(toSide, source.Path);
-            if (existing != null) return existing;
-
-            var clone = source.Clone();
-            ForSide(toSide).Add(clone);
-            return clone;
         }
 
         private static string GetDefaultName(string path)
@@ -164,7 +145,6 @@ namespace Filey
         // --- Persistence ----------------------------------------------------------
         private const string FileName = "bookmarks.json";
 
-        /// <summary>Flat on-disk shape: both sides share one file, separated by Side.</summary>
         private class BookmarkRecord
         {
             public string Id { get; set; }
@@ -172,7 +152,6 @@ namespace Filey
             public string Name { get; set; }
             public string FolderGroup { get; set; }
             public DateTime CreatedAt { get; set; }
-            public Side Side { get; set; }
         }
 
         public void LoadFromDisk()
@@ -195,20 +174,18 @@ namespace Filey
             _suppressSave = true;
             try
             {
-                Left.Clear();
-                Right.Clear();
+                Items.Clear();
                 foreach (var r in records)
                 {
                     if (string.IsNullOrEmpty(r.Path)) continue;
-                    var bookmark = new Bookmark
+                    Items.Add(new Bookmark
                     {
                         Id = string.IsNullOrEmpty(r.Id) ? Guid.NewGuid().ToString() : r.Id,
                         Path = r.Path,
                         Name = string.IsNullOrWhiteSpace(r.Name) ? GetDefaultName(r.Path) : r.Name,
                         FolderGroup = string.IsNullOrWhiteSpace(r.FolderGroup) ? DefaultGroup : r.FolderGroup,
                         CreatedAt = r.CreatedAt == default(DateTime) ? DateTime.Now : r.CreatedAt
-                    };
-                    ForSide(r.Side).Add(bookmark);
+                    });
                 }
             }
             finally
@@ -221,25 +198,17 @@ namespace Filey
         {
             if (_suppressSave) return;
 
-            var records = new List<BookmarkRecord>();
-            records.AddRange(ToRecords(Left, Side.Left));
-            records.AddRange(ToRecords(Right, Side.Right));
-
-            string json = JsonConvert.SerializeObject(records, Formatting.Indented);
-            AppStorage.WriteAllTextAtomic(AppStorage.PathFor(FileName), json);
-        }
-
-        private static IEnumerable<BookmarkRecord> ToRecords(IEnumerable<Bookmark> source, Side side)
-        {
-            return source.Select(b => new BookmarkRecord
+            var records = Items.Select(b => new BookmarkRecord
             {
                 Id = b.Id,
                 Path = b.Path,
                 Name = b.Name,
                 FolderGroup = b.FolderGroup,
-                CreatedAt = b.CreatedAt,
-                Side = side
-            });
+                CreatedAt = b.CreatedAt
+            }).ToList();
+
+            string json = JsonConvert.SerializeObject(records, Formatting.Indented);
+            AppStorage.WriteAllTextAtomic(AppStorage.PathFor(FileName), json);
         }
     }
 }

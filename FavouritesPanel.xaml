@@ -60,7 +60,6 @@
         <ContextMenu x:Key="FavItemContextMenu">
             <MenuItem Header="Open in Windows Explorer" Click="FavCtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="FavCtxCopyPath_Click"/>
-            <MenuItem Header="Set as root for this side" Click="FavCtxSetRoot_Click"/>
             <MenuItem Header="Set group…" Click="FavCtxSetGroup_Click"/>
             <MenuItem Header="Clear group" Click="FavCtxClearGroup_Click"/>
             <MenuItem Header="Remove from Favourites" Click="FavCtxRemove_Click"/>

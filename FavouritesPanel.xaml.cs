@@ -40,8 +40,7 @@ namespace Filey
         {
             if (_view != null) return;
 
-            var source = BookmarkStore.Instance.ForSide(Side);
-            _view = CollectionViewSource.GetDefaultView(source);
+            _view = CollectionViewSource.GetDefaultView(BookmarkStore.Instance.Items);
 
             // Group by FolderGroup. Group order follows the underlying collection order,
             // which BookmarkStore keeps with the default "Bookmarked" group pinned first.
@@ -230,19 +229,9 @@ namespace Filey
             if (e.Data.GetDataPresent(BookmarkDragFormat) &&
                 e.Data.GetData(BookmarkDragFormat) is Bookmark dragged)
             {
-                var sourceSide = e.Data.GetDataPresent("SourceSide")
-                    ? (Side)e.Data.GetData("SourceSide") : Side;
-
-                if (sourceSide != Side)
-                {
-                    BookmarkStore.Instance.Copy(dragged, Side);
-                    _view?.Refresh();
-                    e.Handled = true;
-                    return;
-                }
-
-                // Drop onto a bookmark / header in a different group reassigns the group;
-                // a drop within the dragged item's own group is a manual reorder.
+                // Bookmarks are global, so a drag from either panel is treated the same:
+                // drop onto a different group reassigns the group; within the same group
+                // it's a manual reorder.
                 var target = GetDropTarget(e);
                 string targetGroup = GetDropGroup(e, target);
 
@@ -252,7 +241,7 @@ namespace Filey
                 }
                 else if (target != null && target != dragged)
                 {
-                    var list = BookmarkStore.Instance.ForSide(Side);
+                    var list = BookmarkStore.Instance.Items;
                     BookmarkStore.Instance.Reorder(Side, list.IndexOf(dragged), list.IndexOf(target));
                 }
                 _view?.Refresh();
@@ -305,12 +294,6 @@ namespace Filey
         {
             var b = BookmarkFromMenu(sender);
             if (b != null) ContextActions.CopyPath(b.Path);
-        }
-
-        private void FavCtxSetRoot_Click(object sender, RoutedEventArgs e)
-        {
-            var b = BookmarkFromMenu(sender);
-            if (b != null) NavigationRequested?.Invoke(this, b.Path);
         }
 
         private void FavCtxRemove_Click(object sender, RoutedEventArgs e)
