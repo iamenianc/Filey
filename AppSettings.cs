@@ -17,6 +17,12 @@ namespace Filey
         /// <summary>Whether the right pane is shown. Hiding it lets the left pane fill the width.</summary>
         public bool RightPaneVisible { get; set; } = true;
 
+        /// <summary>Whether hidden/system folders and files are shown in the panes. Off by default.</summary>
+        public bool ShowHidden { get; set; } = false;
+
+        /// <summary>Whether list views use reduced row spacing (compact density).</summary>
+        public bool CompactMode { get; set; } = false;
+
         /// <summary>
         /// Pixel widths for the six resizable content columns, in order:
         /// Left[Favourites, ParentFolders, Contents], Right[Favourites, ParentFolders, Contents].

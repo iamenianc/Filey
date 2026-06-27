@@ -293,6 +293,12 @@
                               IsChecked="True"
                               Checked="RightPaneToggle_Changed"
                               Unchecked="RightPaneToggle_Changed"/>
+                <ToggleButton x:Name="ShowHiddenToggle"
+                              Style="{StaticResource TopBarToggleStyle}"
+                              Content="Hidden"
+                              ToolTip="Show or hide hidden and system items"
+                              Checked="ShowHiddenToggle_Changed"
+                              Unchecked="ShowHiddenToggle_Changed"/>
             </StackPanel>
         </Border>
 

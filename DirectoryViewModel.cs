@@ -16,6 +16,18 @@ namespace Filey
         private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
         private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
 
+        /// <summary>
+        /// When false (default) entries flagged Hidden or System are filtered out of all
+        /// panes. Shared across both sides; persisted in settings.json.
+        /// </summary>
+        public static bool ShowHidden { get; set; } = false;
+
+        private static bool IsHidden(FileSystemInfo info)
+        {
+            var attr = info.Attributes;
+            return (attr & (FileAttributes.Hidden | FileAttributes.System)) != 0;
+        }
+
         public DirectoryViewModel()
         {
             _folders = new ObservableCollection<FolderItem>();
@@ -226,6 +238,7 @@ namespace Filey
                         {
                             try
                             {
+                                if (!ShowHidden && IsHidden(dir)) continue;
                                 var item = CreateFolderItem(dir);
                                 parentFolderList.Add(item);
                             }
@@ -253,6 +266,7 @@ namespace Filey
                     {
                         try
                         {
+                            if (!ShowHidden && IsHidden(dir)) continue;
                             var item = CreateFolderItem(dir);
                             folderList.Add(item);
                         }
@@ -283,6 +297,7 @@ namespace Filey
                     {
                         try
                         {
+                            if (!ShowHidden && IsHidden(file)) continue;
                             var item = CreateFolderItem(file);
                             fileList.Add(item);
                         }

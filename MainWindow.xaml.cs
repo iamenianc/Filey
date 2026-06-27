@@ -68,7 +68,11 @@ namespace Filey
 
                 RightPaneToggle.IsChecked = _settings.RightPaneVisible;
                 SetRightPaneVisible(_settings.RightPaneVisible);
+
+                ShowHiddenToggle.IsChecked = _settings.ShowHidden;
             };
+
+            DirectoryViewModel.ShowHidden = _settings.ShowHidden;
 
             RestorePersistedState();
         }
@@ -112,6 +116,7 @@ namespace Filey
             // The last-visited folder is intentionally not persisted; each pane reopens
             // at its Home path next launch.
             _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
+            _settings.ShowHidden = ShowHiddenToggle.IsChecked == true;
 
             // When the right pane is hidden its columns report zero width; keep the
             // previously persisted positions rather than overwriting them with zeros.
@@ -165,6 +170,25 @@ namespace Filey
             RightViewModel.LoadDirectory(syncPath);
             RightPaneOverlay.Visibility = Visibility.Collapsed;
             _rightPaneActivated = true;
+        }
+
+        private void ShowHiddenToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            // Guard against running before the named panes exist (during InitializeComponent).
+            if (LeftViewModel == null) return;
+            DirectoryViewModel.ShowHidden = ShowHiddenToggle.IsChecked == true;
+            ReloadBothPanes();
+        }
+
+        /// <summary>Re-enumerates each pane's current directory in place, applying any
+        /// changed enumeration settings (e.g. hidden-item visibility) without altering history.</summary>
+        private void ReloadBothPanes()
+        {
+            if (!string.IsNullOrEmpty(LeftViewModel.CurrentDirectory))
+                LeftViewModel.LoadDirectory(LeftViewModel.CurrentDirectory, pushToHistory: false);
+
+            if (_rightPaneActivated && !string.IsNullOrEmpty(RightViewModel.CurrentDirectory))
+                RightViewModel.LoadDirectory(RightViewModel.CurrentDirectory, pushToHistory: false);
         }
 
         private GridLength _savedRightPaneWidth = new GridLength(1, GridUnitType.Star);
