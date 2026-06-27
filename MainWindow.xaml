@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
         mc:Ignorable="d"
-        Title="Filey" Height="800" Width="1250"
+        Title="Filey" Height="787" Width="1555"
         Background="#121212"
         Foreground="#E0E0E0">
     <Window.Resources>
@@ -185,10 +185,10 @@
 
         <!-- Modern Column Header Style -->
         <Style TargetType="GridViewColumnHeader">
-            <Setter Property="Background" Value="#252526" />
+            <Setter Property="Background" Value="#1E1E1E" />
             <Setter Property="Foreground" Value="#D4D4D4" />
-            <Setter Property="BorderBrush" Value="#2D2D2D" />
-            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="6,8,6,8" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Template">
@@ -211,11 +211,11 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="true">
-                                <Setter Property="Background" Value="#2D2D30" />
+                                <Setter Property="Background" Value="#2A2D2E" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="true">
-                                <Setter Property="Background" Value="#1E1E1E" />
+                                <Setter Property="Background" Value="#252526" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -281,6 +281,7 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -305,13 +306,13 @@
                                         VerticalAlignment="Center"
                                         IsEnabled="{Binding CanGoToParent}"
                                         Click="ParentBackButton_Click">
-                                    <Path Width="8" 
-                                          Height="8" 
-                                          Stretch="Uniform" 
-                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
-                                          StrokeThickness="1.5" 
-                                          StrokeStartLineCap="Round" 
-                                          StrokeEndLineCap="Round" 
+                                    <Path Width="8"
+                                          Height="8"
+                                          Stretch="Uniform"
+                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                          StrokeThickness="1.5"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
                                           StrokeLineJoin="Round"
                                           Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
                                 </Button>
@@ -326,12 +327,23 @@
                             </Grid>
                         </Border>
 
+                        <!-- Search bar -->
+                        <Grid Grid.Row="1" Margin="4,4,4,2">
+                            <TextBox x:Name="LeftParentFoldersSearch"
+                                     Background="#121212" Foreground="#E0E0E0" CaretBrush="#E0E0E0"
+                                     BorderBrush="#2D2D2D" BorderThickness="1"
+                                     Padding="6,3,4,3" VerticalContentAlignment="Center"
+                                     TextChanged="LeftParentFoldersSearch_TextChanged"/>
+                            <TextBlock x:Name="LeftParentFoldersSearchPlaceholder" Text="search…"
+                                       Foreground="#666666" Margin="8,0,0,0"
+                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+
                         <!-- ListBox -->
-                        <ListBox Grid.Row="1" 
+                        <ListBox x:Name="LeftParentFoldersList" Grid.Row="2"
                                  Style="{StaticResource ModernListBox}"
                                  BorderThickness="0"
                                  Background="Transparent"
-                                 ItemsSource="{Binding ParentFolders}"
                                  SelectedItem="{Binding SelectedParentFolder}"
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>
@@ -677,6 +689,7 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -701,13 +714,13 @@
                                         VerticalAlignment="Center"
                                         IsEnabled="{Binding CanGoToParent}"
                                         Click="ParentBackButton_Click">
-                                    <Path Width="8" 
-                                          Height="8" 
-                                          Stretch="Uniform" 
-                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
-                                          StrokeThickness="1.5" 
-                                          StrokeStartLineCap="Round" 
-                                          StrokeEndLineCap="Round" 
+                                    <Path Width="8"
+                                          Height="8"
+                                          Stretch="Uniform"
+                                          Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                          StrokeThickness="1.5"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
                                           StrokeLineJoin="Round"
                                           Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
                                 </Button>
@@ -722,12 +735,23 @@
                             </Grid>
                         </Border>
 
+                        <!-- Search bar -->
+                        <Grid Grid.Row="1" Margin="4,4,4,2">
+                            <TextBox x:Name="RightParentFoldersSearch"
+                                     Background="#121212" Foreground="#E0E0E0" CaretBrush="#E0E0E0"
+                                     BorderBrush="#2D2D2D" BorderThickness="1"
+                                     Padding="6,3,4,3" VerticalContentAlignment="Center"
+                                     TextChanged="RightParentFoldersSearch_TextChanged"/>
+                            <TextBlock x:Name="RightParentFoldersSearchPlaceholder" Text="search…"
+                                       Foreground="#666666" Margin="8,0,0,0"
+                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        </Grid>
+
                         <!-- ListBox -->
-                        <ListBox Grid.Row="1" 
+                        <ListBox x:Name="RightParentFoldersList" Grid.Row="2"
                                  Style="{StaticResource ModernListBox}"
                                  BorderThickness="0"
                                  Background="Transparent"
-                                 ItemsSource="{Binding ParentFolders}"
                                  SelectedItem="{Binding SelectedParentFolder}"
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>

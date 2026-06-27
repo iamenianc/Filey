@@ -36,10 +36,16 @@ namespace Filey
         public event EventHandler GoForwardRequested;
 
         private bool _isEditMode;
+        private Brush _restingBackground;
+        private Brush _restingBorderBrush;
 
         public AddressBar()
         {
             InitializeComponent();
+
+            // Capture the canonical resting brushes so error state always reverts to them.
+            _restingBackground = MainBarBorder.Background;
+            _restingBorderBrush = MainBarBorder.BorderBrush;
         }
 
         public string CurrentPath
@@ -114,8 +120,8 @@ namespace Filey
         private void HideError()
         {
             ErrorTextBlock.Visibility = Visibility.Collapsed;
-            MainBarBorder.ClearValue(Border.BorderBrushProperty);
-            MainBarBorder.ClearValue(Border.BackgroundProperty);
+            MainBarBorder.BorderBrush = _restingBorderBrush;
+            MainBarBorder.Background = _restingBackground;
         }
 
         private void BreadcrumbsWrapper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -350,7 +356,8 @@ namespace Filey
                 Margin = new Thickness(1, 0, 1, 0),
                 Foreground = (Brush)FindResource("BreadcrumbActiveTextBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = FontWeights.SemiBold
+                FontWeight = FontWeights.Bold,
+                FontSize = 12
             };
         }
 

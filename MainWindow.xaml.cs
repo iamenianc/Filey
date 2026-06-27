@@ -1,9 +1,11 @@
 using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 
 namespace Filey
@@ -13,6 +15,14 @@ namespace Filey
     /// </summary>
     public partial class MainWindow : Window
     {
+        // Set false to keep the native (light) Windows title bar.
+        private const bool UseDarkTitleBar = true;
+
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
         public DirectoryViewModel LeftViewModel { get; }
         public DirectoryViewModel RightViewModel { get; }
 
@@ -34,9 +44,33 @@ namespace Filey
             RightFavouritesPanel.CurrentPathProvider = () => RightViewModel.CurrentPath;
             RightFavouritesPanel.NavigationRequested += (s, path) => RightViewModel.LoadDirectory(path);
 
+            // Wire up parent folder lists with filtered views.
+            Loaded += (s, e) =>
+            {
+                var leftView = CollectionViewSource.GetDefaultView(LeftViewModel.ParentFolders);
+                leftView.Filter = obj => FilterParentFolder(obj, LeftParentFoldersSearch.Text);
+                LeftParentFoldersList.ItemsSource = leftView;
+
+                var rightView = CollectionViewSource.GetDefaultView(RightViewModel.ParentFolders);
+                rightView.Filter = obj => FilterParentFolder(obj, RightParentFoldersSearch.Text);
+                RightParentFoldersList.ItemsSource = rightView;
+            };
+
             // Set up initial directories (UserProfile directory as specified in starting state)
             string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             LeftViewModel.LoadDirectory(startingPath);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            if (UseDarkTitleBar)
+            {
+                IntPtr hwnd = new WindowInteropHelper(this).Handle;
+                int useDark = 1;
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+            }
         }
 
         private void RightPaneOverlay_MouseDown(object sender, MouseButtonEventArgs e)
@@ -96,6 +130,28 @@ namespace Filey
                     }
                 }
             }
+        }
+
+        // --- Parent folder search -------------------------------------------------
+        private static bool FilterParentFolder(object obj, string search)
+        {
+            if (!(obj is FolderItem f)) return false;
+            if (string.IsNullOrEmpty(search)) return true;
+            return f.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void LeftParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            LeftParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(LeftParentFoldersSearch.Text)
+                ? Visibility.Visible : Visibility.Collapsed;
+            CollectionViewSource.GetDefaultView(LeftViewModel.ParentFolders)?.Refresh();
+        }
+
+        private void RightParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            RightParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(RightParentFoldersSearch.Text)
+                ? Visibility.Visible : Visibility.Collapsed;
+            CollectionViewSource.GetDefaultView(RightViewModel.ParentFolders)?.Refresh();
         }
 
         private void Header_Click(object sender, RoutedEventArgs e)
