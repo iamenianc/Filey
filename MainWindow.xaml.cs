@@ -27,6 +27,8 @@ namespace Filey
         public DirectoryViewModel RightViewModel { get; }
 
         private AppSettings _settings;
+
+        /// <summary>True once the right pane has been activated out of its inactive state.</summary>
         private bool _rightPaneActivated;
 
         public MainWindow()
@@ -72,28 +74,18 @@ namespace Filey
         }
 
         /// <summary>
-        /// Restores last-used paths and navigation history for both sides. Falls back to
-        /// the user profile when a persisted path no longer exists.
+        /// Opens the left pane at its configured Home path on startup. The last-visited
+        /// folder is intentionally not remembered. The right pane always starts inactive.
         /// </summary>
         private void RestorePersistedState()
         {
+            LeftViewModel.LoadDirectory(ResolveHomePath(_settings.LeftHomePath));
+        }
+
+        private static string ResolveHomePath(string home)
+        {
             string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-            string leftPath = ResolveStartPath(_settings.LeftRootPath, userProfile);
-            LeftViewModel.LoadDirectory(leftPath);
-
-            var history = HistoryService.Load();
-            LeftViewModel.RestoreBackStack(history.Left);
-
-            // Only activate the right pane if a path was persisted for it.
-            if (!string.IsNullOrEmpty(_settings.RightRootPath))
-            {
-                string rightPath = ResolveStartPath(_settings.RightRootPath, userProfile);
-                RightViewModel.LoadDirectory(rightPath);
-                RightViewModel.RestoreBackStack(history.Right);
-                RightPaneOverlay.Visibility = Visibility.Collapsed;
-                _rightPaneActivated = true;
-            }
+            return ResolveStartPath(home, userProfile);
         }
 
         private static string ResolveStartPath(string preferred, string fallback)
@@ -117,8 +109,8 @@ namespace Filey
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            _settings.LeftRootPath = LeftViewModel.CurrentDirectory;
-            _settings.RightRootPath = _rightPaneActivated ? RightViewModel.CurrentDirectory : null;
+            // The last-visited folder is intentionally not persisted; each pane reopens
+            // at its Home path next launch.
             _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
 
             // When the right pane is hidden its columns report zero width; keep the
@@ -135,12 +127,6 @@ namespace Filey
                 };
             }
             SettingsService.Save(_settings);
-
-            HistoryService.Save(new NavigationHistory
-            {
-                Left = LeftViewModel.GetBackStackSnapshot(),
-                Right = RightViewModel.GetBackStackSnapshot(),
-            });
 
             BookmarkStore.Instance.SaveToDisk();
         }

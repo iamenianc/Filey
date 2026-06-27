@@ -9,8 +9,10 @@ namespace Filey
     {
         public string Theme { get; set; } = "dark";
 
-        public string LeftRootPath { get; set; }
-        public string RightRootPath { get; set; }
+        /// <summary>Per-pane Home directories. Each pane opens here on startup and when
+        /// the Home button is clicked. Null/missing falls back to the user profile.</summary>
+        public string LeftHomePath { get; set; }
+        public string RightHomePath { get; set; }
 
         /// <summary>Whether the right pane is shown. Hiding it lets the left pane fill the width.</summary>
         public bool RightPaneVisible { get; set; } = true;
