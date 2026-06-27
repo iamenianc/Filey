@@ -1,0 +1,217 @@
+<UserControl x:Class="Filey.FavouritesPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Filey"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="150">
+    <UserControl.Resources>
+        <Style x:Key="FavFlatButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="4"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1E1E1E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#555555"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FavTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#121212"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="CaretBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#2D2D2D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4,3"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="FavListBox" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        </Style>
+
+        <ContextMenu x:Key="FavItemContextMenu">
+            <MenuItem Header="Open in Windows Explorer" Click="FavCtxOpenExplorer_Click"/>
+            <MenuItem Header="Copy path to clipboard" Click="FavCtxCopyPath_Click"/>
+            <MenuItem Header="Set as root for this side" Click="FavCtxSetRoot_Click"/>
+            <MenuItem Header="Add tags…" Click="FavCtxAddTags_Click"/>
+            <MenuItem Header="Remove from Favourites" Click="FavCtxRemove_Click"/>
+        </ContextMenu>
+
+        <Style TargetType="ListBoxItem" x:Key="FavListBoxItem">
+            <Setter Property="Padding" Value="4,3"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" CornerRadius="3" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#2A2D2E"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#094771"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3"
+            AllowDrop="True"
+            PreviewDragOver="Panel_DragOver"
+            Drop="Panel_Drop">
+        <Grid Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <TextBlock Grid.Row="0" Text="★ Favourites" Foreground="#CCCCCC"
+                       FontSize="12" FontWeight="SemiBold" Margin="2,2,2,6"/>
+
+            <!-- Tag filter bar -->
+            <Grid Grid.Row="1" Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TagFilterBox" Grid.Column="0" Style="{StaticResource FavTextBox}"
+                         ToolTip="Filter by tag" TextChanged="Filter_TextChanged"/>
+                <Button Grid.Column="1" Style="{StaticResource FavFlatButton}" Width="22"
+                        ToolTip="Clear tag filter" Click="ClearTagFilter_Click" Content="✕"/>
+                <TextBlock x:Name="TagFilterPlaceholder" Grid.Column="0" Text="tag filter…"
+                           Foreground="#666666" Margin="6,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+            </Grid>
+
+            <!-- Search bar -->
+            <Grid Grid.Row="2" Margin="0,0,0,6">
+                <TextBox x:Name="SearchBox" Style="{StaticResource FavTextBox}" Padding="22,3,4,3"
+                         ToolTip="Search name and tags" TextChanged="Filter_TextChanged"/>
+                <TextBlock Text="🔍" Foreground="#888888" Margin="5,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+                <TextBlock x:Name="SearchPlaceholder" Text="search…" Foreground="#666666" Margin="22,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+            </Grid>
+
+            <!-- Bookmark list -->
+            <ListBox x:Name="BookmarksList" Grid.Row="3"
+                     Style="{StaticResource FavListBox}"
+                     KeyDown="BookmarksList_KeyDown"
+                     PreviewMouseLeftButtonDown="BookmarksList_PreviewMouseLeftButtonDown"
+                     PreviewMouseMove="BookmarksList_PreviewMouseMove"
+                     PreviewMouseLeftButtonUp="BookmarksList_PreviewMouseLeftButtonUp">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource FavListBoxItem}">
+                        <Setter Property="ContextMenu" Value="{StaticResource FavItemContextMenu}"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBox x:Name="NameEdit"
+                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}"
+                                         Background="#121212" Foreground="#E0E0E0"
+                                         BorderBrush="#007ACC" BorderThickness="1" Padding="2,1"
+                                         Margin="-2" Visibility="Collapsed"
+                                         LostFocus="NameEdit_LostFocus"
+                                         KeyDown="NameEdit_KeyDown"
+                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Tags}" Margin="0,2,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#0E3A5C" CornerRadius="3"
+                                                Padding="4,1" Margin="0,0,3,2">
+                                            <TextBlock Text="{Binding}" Foreground="#9CDCFE" FontSize="10"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Add button -->
+            <Button x:Name="AddButton" Grid.Row="4" Style="{StaticResource FavFlatButton}" Margin="0,6,0,0"
+                    HorizontalAlignment="Stretch" Content="+ Add" Click="AddButton_Click"/>
+
+            <!-- Tag-edit popup (anchored above the Add button so it is always fully visible) -->
+            <Popup x:Name="AddPopup" Grid.Row="4" Placement="Top"
+                   PlacementTarget="{Binding ElementName=AddButton}" StaysOpen="False"
+                   AllowsTransparency="True" PopupAnimation="Fade">
+                <Border Background="#252526" BorderBrush="#3D3D3D" BorderThickness="1"
+                        CornerRadius="4" Padding="10" Width="220">
+                    <StackPanel>
+                        <TextBlock x:Name="PopupTitle" Text="Add to Favourites" Foreground="#E0E0E0"
+                                   FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <StackPanel x:Name="PopupNameSection">
+                            <TextBlock Text="Name" Foreground="#AAAAAA" FontSize="11"/>
+                            <TextBox x:Name="PopupNameBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,8"/>
+                        </StackPanel>
+                        <TextBlock Text="Tags (comma separated)" Foreground="#AAAAAA" FontSize="11"/>
+                        <TextBox x:Name="PopupTagsBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,10"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource FavFlatButton}" Content="Cancel"
+                                    Margin="0,0,6,0" Click="PopupCancel_Click"/>
+                            <Button x:Name="PopupConfirmButton" Style="{StaticResource FavFlatButton}" Content="Add"
+                                    Foreground="#4EC9B0" Click="PopupAdd_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Grid>
+    </Border>
+</UserControl>

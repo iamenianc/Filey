@@ -63,6 +63,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="FavouritesPanel.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -75,6 +79,13 @@
       <DependentUpon>AddressBar.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="FavouritesPanel.xaml.cs">
+      <DependentUpon>FavouritesPanel.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Bookmark.cs" />
+    <Compile Include="BookmarkStore.cs" />
+    <Compile Include="ContextActions.cs" />
     <Compile Include="ViewModelBase.cs" />
     <Compile Include="FolderItem.cs" />
     <Compile Include="DirectoryViewModel.cs" />

@@ -28,6 +28,12 @@ namespace Filey
             RightViewModel.PropertyChanged += RightViewModel_PropertyChanged;
             this.SizeChanged += Window_SizeChanged;
 
+            // Wire up Favourites panels: supply current dir + handle navigation per side.
+            LeftFavouritesPanel.CurrentPathProvider = () => LeftViewModel.CurrentPath;
+            LeftFavouritesPanel.NavigationRequested += (s, path) => LeftViewModel.LoadDirectory(path);
+            RightFavouritesPanel.CurrentPathProvider = () => RightViewModel.CurrentPath;
+            RightFavouritesPanel.NavigationRequested += (s, path) => RightViewModel.LoadDirectory(path);
+
             // Set up initial directories (UserProfile directory as specified in starting state)
             string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             LeftViewModel.LoadDirectory(startingPath);
@@ -252,11 +258,10 @@ namespace Filey
                     System.IO.File.Move(folderItem.FullPath, newPath);
                 }
 
-                var selector = FindAncestor<System.Windows.Controls.Primitives.Selector>(textBox);
-                if (selector?.DataContext is DirectoryViewModel vm)
-                {
-                    vm.LoadDirectory(vm.CurrentPath);
-                }
+                // Update the bound item in place so the UI reflects the new name
+                // immediately, without depending on a full directory reload.
+                folderItem.FullPath = newPath;
+                folderItem.Name = newName;
             }
             catch (Exception ex)
             {
@@ -351,6 +356,133 @@ namespace Filey
                     activeVm.GoForward();
                     e.Handled = true;
                 }
+            }
+        }
+
+        // --- Drag source: folders/files → Favourites panels ----------------------
+        private Point _itemDragStart;
+        private FolderItem _itemDragCandidate;
+
+        private void ItemList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _itemDragStart = e.GetPosition(null);
+            var src = e.OriginalSource as DependencyObject;
+            while (src != null && !(src is ListBoxItem) && !(src is ListViewItem))
+                src = VisualTreeHelper.GetParent(src);
+            _itemDragCandidate = (src as FrameworkElement)?.DataContext as FolderItem;
+        }
+
+        private void ItemList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _itemDragCandidate == null) return;
+            if (_itemDragCandidate.IsEditing) return;
+
+            Point pos = e.GetPosition(null);
+            if (Math.Abs(pos.X - _itemDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _itemDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            var data = new DataObject();
+            data.SetData(FavouritesPanel.FolderItemDragFormat, _itemDragCandidate);
+            DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Copy);
+            _itemDragCandidate = null;
+        }
+
+        // --- Right-click context menu (Folders / Contents / Parent panels) --------
+        private static FolderItem ItemFromMenu(object sender)
+        {
+            // The ContextMenu inherits the row's DataContext (a FolderItem).
+            if (sender is MenuItem mi) return mi.DataContext as FolderItem;
+            return null;
+        }
+
+        /// <summary>Resolve which side a context menu was raised on via its placement target.</summary>
+        private DirectoryViewModel SideViewModelFromMenu(object sender)
+        {
+            var mi = sender as MenuItem;
+            var menu = ItemsControl.ItemsControlFromItemContainer(mi) as ContextMenu
+                       ?? FindAncestor<ContextMenu>(mi);
+            var target = menu?.PlacementTarget as DependencyObject;
+            DependencyObject cur = target;
+            while (cur != null)
+            {
+                if (cur is FrameworkElement fe)
+                {
+                    if (fe.DataContext == LeftViewModel) return LeftViewModel;
+                    if (fe.DataContext == RightViewModel) return RightViewModel;
+                }
+                cur = VisualTreeHelper.GetParent(cur);
+            }
+            return GetActiveViewModel();
+        }
+
+        private void ItemContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is ContextMenu menu)) return;
+            var item = menu.DataContext as FolderItem;
+            // Find the "Add/Remove Favourites" item and update its label per side state.
+            foreach (var obj in menu.Items)
+            {
+                if (obj is MenuItem mi && (string.Equals(mi.Name, "CtxFavouriteItem")
+                    || (mi.Header as string)?.Contains("Favourites") == true))
+                {
+                    var side = SideForElement(menu.PlacementTarget as DependencyObject);
+                    bool exists = item != null && BookmarkStore.Instance.Contains(side, item.FullPath);
+                    mi.Header = exists ? "Remove from Favourites" : "Add to Favourites";
+                }
+            }
+        }
+
+        private Side SideForElement(DependencyObject target)
+        {
+            DependencyObject cur = target;
+            while (cur != null)
+            {
+                if (cur is FrameworkElement fe && fe.DataContext == RightViewModel)
+                    return Side.Right;
+                if (cur is FrameworkElement fe2 && fe2.DataContext == LeftViewModel)
+                    return Side.Left;
+                cur = VisualTreeHelper.GetParent(cur);
+            }
+            return Side.Left;
+        }
+
+        private void CtxOpenExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null) ContextActions.OpenInExplorer(item.FullPath);
+        }
+
+        private void CtxCopyPath_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null) ContextActions.CopyPath(item.FullPath);
+        }
+
+        private void CtxSetRoot_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item == null) return;
+            var vm = SideViewModelFromMenu(sender);
+            vm?.LoadDirectory(item.FullPath);
+        }
+
+        private void CtxToggleFavourite_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item == null) return;
+            var vm = SideViewModelFromMenu(sender);
+            var side = vm == RightViewModel ? Side.Right : Side.Left;
+
+            var existing = BookmarkStore.Instance.Find(side, item.FullPath);
+            if (existing != null)
+            {
+                BookmarkStore.Instance.Remove(side, existing);
+            }
+            else
+            {
+                var panel = side == Side.Right ? RightFavouritesPanel : LeftFavouritesPanel;
+                panel.AddFavourite(item.FullPath);
             }
         }
 

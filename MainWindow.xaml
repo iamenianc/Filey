@@ -9,6 +9,14 @@
         Background="#121212"
         Foreground="#E0E0E0">
     <Window.Resources>
+        <!-- Shared right-click context menu for all folder/file/bookmark items -->
+        <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
+            <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
+            <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
+            <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
+            <MenuItem Header="Set as root for this side" Click="CtxSetRoot_Click"/>
+        </ContextMenu>
+
         <!-- Modern Flat Button Style for Back Navigation in Parent Panel -->
         <Style x:Key="FlatButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -69,6 +77,7 @@
         <!-- ListBoxItem Style for Folders list -->
         <Style TargetType="ListBoxItem">
             <EventSetter Event="MouseDoubleClick" Handler="FoldersItem_MouseDoubleClick" />
+            <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -120,6 +129,7 @@
 
         <!-- ListViewItem Style for Contents grid -->
         <Style TargetType="ListViewItem">
+            <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -256,15 +266,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Favourites L -->
-                <Border Grid.Column="0" Background="#181818" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3">
-                    <Grid>
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="★" Foreground="#555555" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                            <TextBlock Text="Favourites" Foreground="#555555" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                            <TextBlock Text="(Placeholder)" Foreground="#444444" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Column="0" Side="Left"/>
 
                 <!-- GridSplitter 1 -->
                 <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
@@ -376,11 +378,13 @@
                     </Grid.RowDefinitions>
 
                     <!-- Folders L (Child Folders) -->
-                    <ListView x:Name="LeftFoldersListView" Grid.Row="0" 
+                    <ListView x:Name="LeftFoldersListView" Grid.Row="0"
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Folders}"
                               SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
+                              PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ItemList_PreviewMouseMove"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -437,11 +441,13 @@
                     <GridSplitter x:Name="LeftGridSplitter" Grid.Row="1" Style="{StaticResource ModernGridSplitter}" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
 
                     <!-- Files L (Child Files) -->
-                    <ListView x:Name="LeftFilesListView" Grid.Row="2" 
+                    <ListView x:Name="LeftFilesListView" Grid.Row="2"
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Contents}"
                               SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
+                              PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ItemList_PreviewMouseMove"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -538,11 +544,13 @@
                     </Grid.RowDefinitions>
 
                     <!-- Folders R (Child Folders) -->
-                    <ListView x:Name="RightFoldersListView" Grid.Row="0" 
+                    <ListView x:Name="RightFoldersListView" Grid.Row="0"
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Folders}"
                               SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
+                              PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ItemList_PreviewMouseMove"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -599,11 +607,13 @@
                     <GridSplitter x:Name="RightGridSplitter" Grid.Row="1" Style="{StaticResource ModernGridSplitter}" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
 
                     <!-- Files R (Child Files) -->
-                    <ListView x:Name="RightFilesListView" Grid.Row="2" 
+                    <ListView x:Name="RightFilesListView" Grid.Row="2"
                               Style="{StaticResource ModernListView}"
                               ItemsSource="{Binding Contents}"
                               SelectedItem="{Binding SelectedItem}"
                               GridViewColumnHeader.Click="Header_Click"
+                              PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ItemList_PreviewMouseMove"
                               KeyDown="List_KeyDown">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
@@ -759,15 +769,7 @@
                 <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
 
                 <!-- Favourites R -->
-                <Border Grid.Column="4" Background="#181818" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3">
-                    <Grid>
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="★" Foreground="#555555" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                            <TextBlock Text="Favourites" Foreground="#555555" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                            <TextBlock Text="(Placeholder)" Foreground="#444444" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <local:FavouritesPanel x:Name="RightFavouritesPanel" Grid.Column="4" Side="Right"/>
             </Grid>
 
             <!-- Overlay Placeholder for Inactive Right Pane -->

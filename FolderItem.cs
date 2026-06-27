@@ -6,9 +6,20 @@ namespace Filey
     public class FolderItem : ViewModelBase
     {
         private bool _isEditing;
-        
-        public string Name { get; set; }
-        public string FullPath { get; set; }
+        private string _name;
+        private string _fullPath;
+
+        public string Name
+        {
+            get => _name;
+            set => SetField(ref _name, value);
+        }
+
+        public string FullPath
+        {
+            get => _fullPath;
+            set => SetField(ref _fullPath, value);
+        }
         public bool IsDirectory { get; set; }
         public DateTime? DateModified { get; set; }
         public long? Size { get; set; }
