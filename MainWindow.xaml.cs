@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -43,27 +42,13 @@ namespace Filey
 
             this.Closing += MainWindow_Closing;
 
-            // Subscribe to ViewModel property changes to dynamically adjust folder pane heights
-            LeftViewModel.PropertyChanged += LeftViewModel_PropertyChanged;
-            RightViewModel.PropertyChanged += RightViewModel_PropertyChanged;
-            this.SizeChanged += Window_SizeChanged;
-
             // Wire up the (single, shared) Favourites panel. It adds bookmarks for the
             // active side's current path and navigates that side.
             LeftFavouritesPanel.CurrentPathProvider = () => GetActiveViewModel().CurrentPath;
             LeftFavouritesPanel.NavigationRequested += (s, path) => GetActiveViewModel().LoadDirectory(path);
 
-            // Wire up parent folder lists with filtered views.
             Loaded += (s, e) =>
             {
-                var leftView = CollectionViewSource.GetDefaultView(LeftViewModel.ParentFolders);
-                leftView.Filter = obj => FilterParentFolder(obj, LeftParentFoldersSearch.Text);
-                LeftParentFoldersList.ItemsSource = leftView;
-
-                var rightView = CollectionViewSource.GetDefaultView(RightViewModel.ParentFolders);
-                rightView.Filter = obj => FilterParentFolder(obj, RightParentFoldersSearch.Text);
-                RightParentFoldersList.ItemsSource = rightView;
-
                 ApplySplitterPositions();
 
                 RightPaneToggle.IsChecked = _settings.RightPaneVisible;
@@ -81,8 +66,7 @@ namespace Filey
         }
 
         /// <summary>
-        /// Opens the left pane at its configured Home path on startup. The last-visited
-        /// folder is intentionally not remembered. The right pane always starts inactive.
+        /// Opens the left pane at its configured Home path on startup.
         /// </summary>
         private void RestorePersistedState()
         {
@@ -108,31 +92,27 @@ namespace Filey
             if (widths == null || widths.Count != 5) return;
 
             LeftFavouritesCol.Width = new GridLength(widths[0]);
-            LeftParentFoldersCol.Width = new GridLength(widths[1]);
-            LeftContentsCol.Width = new GridLength(widths[2]);
-            RightContentsCol.Width = new GridLength(widths[3]);
-            RightParentFoldersCol.Width = new GridLength(widths[4]);
+            LeftDirectoryPane.ParentFoldersWidth = new GridLength(widths[1]);
+            LeftDirectoryPane.ContentsWidth = new GridLength(widths[2]);
+            RightDirectoryPane.ContentsWidth = new GridLength(widths[3]);
+            RightDirectoryPane.ParentFoldersWidth = new GridLength(widths[4]);
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            // The last-visited folder is intentionally not persisted; each pane reopens
-            // at its Home path next launch.
             _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
             _settings.ShowHidden = ShowHiddenToggle.IsChecked == true;
             _settings.CompactMode = CompactModeToggle.IsChecked == true;
 
-            // When the right pane is hidden its columns report zero width; keep the
-            // previously persisted positions rather than overwriting them with zeros.
             if (_settings.RightPaneVisible)
             {
                 _settings.SplitterPositions = new System.Collections.Generic.List<double>
                 {
                     LeftFavouritesCol.ActualWidth,
-                    LeftParentFoldersCol.ActualWidth,
-                    LeftContentsCol.ActualWidth,
-                    RightContentsCol.ActualWidth,
-                    RightParentFoldersCol.ActualWidth,
+                    LeftDirectoryPane.ParentFoldersActualWidth,
+                    LeftDirectoryPane.ContentsActualWidth,
+                    RightDirectoryPane.ContentsActualWidth,
+                    RightDirectoryPane.ParentFoldersActualWidth,
                 };
             }
             SettingsService.Save(_settings);
@@ -176,9 +156,6 @@ namespace Filey
             _rightPaneActivated = true;
         }
 
-        // Estimated per-row height used by the pane layout maths; tracks compact mode.
-        private double _estimatedRowHeight = 28;
-
         private void CompactModeToggle_Changed(object sender, RoutedEventArgs e)
         {
             if (LeftViewModel == null) return;
@@ -189,22 +166,19 @@ namespace Filey
         {
             Resources["RowItemPadding"] = compact ? new Thickness(4, 1, 4, 1) : new Thickness(4, 4, 4, 4);
             Resources["RowCellMargin"] = compact ? new Thickness(2, 0, 2, 0) : new Thickness(2);
-            _estimatedRowHeight = compact ? 22 : 28;
 
-            UpdateLeftPaneLayout();
-            UpdateRightPaneLayout();
+            double rowHeight = compact ? 22 : 28;
+            if (LeftDirectoryPane != null) LeftDirectoryPane.EstimatedRowHeight = rowHeight;
+            if (RightDirectoryPane != null) RightDirectoryPane.EstimatedRowHeight = rowHeight;
         }
 
         private void ShowHiddenToggle_Changed(object sender, RoutedEventArgs e)
         {
-            // Guard against running before the named panes exist (during InitializeComponent).
             if (LeftViewModel == null) return;
             DirectoryViewModel.ShowHidden = ShowHiddenToggle.IsChecked == true;
             ReloadBothPanes();
         }
 
-        /// <summary>Re-enumerates each pane's current directory in place, applying any
-        /// changed enumeration settings (e.g. hidden-item visibility) without altering history.</summary>
         private void ReloadBothPanes()
         {
             if (!string.IsNullOrEmpty(LeftViewModel.CurrentDirectory))
@@ -218,17 +192,10 @@ namespace Filey
 
         private void RightPaneToggle_Changed(object sender, RoutedEventArgs e)
         {
-            // Guard against running before the named columns exist (during InitializeComponent).
             if (RightPaneCol == null) return;
             SetRightPaneVisible(RightPaneToggle.IsChecked == true);
         }
 
-        /// <summary>
-        /// Shows or "hides" the right pane. The centre splitter is always kept so the
-        /// left pane stays resizable; hiding instead pushes the right pane to its
-        /// minimum width at the far edge, letting the left pane fill the rest. The
-        /// right pane's width is remembered and restored when shown again.
-        /// </summary>
         private void SetRightPaneVisible(bool visible)
         {
             if (visible)
@@ -249,333 +216,13 @@ namespace Filey
             }
         }
 
-        private void FoldersItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is ListBoxItem item && item.DataContext is FolderItem folderItem)
-            {
-                if (folderItem.IsEditing) return;
-
-                var listBox = FindAncestor<ListBox>(item);
-                if (listBox?.DataContext is DirectoryViewModel vm)
-                {
-                    if (folderItem.IsDirectory)
-                    {
-                        vm.LoadDirectory(folderItem.FullPath);
-                    }
-                }
-            }
-        }
-
-        private void ContentsItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is ListViewItem item && item.DataContext is FolderItem folderItem)
-            {
-                if (folderItem.IsEditing) return;
-
-                var listView = FindAncestor<ListView>(item);
-                if (listView?.DataContext is DirectoryViewModel vm)
-                {
-                    if (folderItem.IsDirectory)
-                    {
-                        vm.LoadDirectory(folderItem.FullPath);
-                    }
-                    else
-                    {
-                        // Double click a file: launch the process with default application
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(folderItem.FullPath)
-                            {
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Could not open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- Parent folder search -------------------------------------------------
-        private static bool FilterParentFolder(object obj, string search)
-        {
-            if (!(obj is FolderItem f)) return false;
-            if (string.IsNullOrEmpty(search)) return true;
-            return f.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private void LeftParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            LeftParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(LeftParentFoldersSearch.Text)
-                ? Visibility.Visible : Visibility.Collapsed;
-            CollectionViewSource.GetDefaultView(LeftViewModel.ParentFolders)?.Refresh();
-        }
-
-        private void RightParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            RightParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(RightParentFoldersSearch.Text)
-                ? Visibility.Visible : Visibility.Collapsed;
-            CollectionViewSource.GetDefaultView(RightViewModel.ParentFolders)?.Refresh();
-        }
-
-        private void Header_Click(object sender, RoutedEventArgs e)
-        {
-            if (e.OriginalSource is GridViewColumnHeader header && header.Column != null)
-            {
-                string sortBy = header.Tag as string;
-                if (string.IsNullOrEmpty(sortBy)) return;
-
-                var listView = FindAncestor<ListView>(header);
-                if (listView == null) return;
-
-                var dataView = CollectionViewSource.GetDefaultView(listView.ItemsSource);
-                if (dataView == null) return;
-
-                ListSortDirection direction = ListSortDirection.Ascending;
-                if (dataView.SortDescriptions.Count > 0 && dataView.SortDescriptions[0].PropertyName == sortBy)
-                {
-                    direction = dataView.SortDescriptions[0].Direction == ListSortDirection.Ascending 
-                        ? ListSortDirection.Descending 
-                        : ListSortDirection.Ascending;
-                }
-
-                dataView.SortDescriptions.Clear();
-                dataView.SortDescriptions.Add(new SortDescription(sortBy, direction));
-                dataView.Refresh();
-            }
-        }
-
-        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
-        {
-            do
-            {
-                if (current is T ancestor)
-                {
-                    return ancestor;
-                }
-                current = VisualTreeHelper.GetParent(current);
-            } while (current != null);
-            return null;
-        }
-
-        private void List_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.F2)
-            {
-                if (sender is System.Windows.Controls.Primitives.Selector selector && selector.SelectedItem is FolderItem selectedItem)
-                {
-                    selectedItem.IsEditing = true;
-                    e.Handled = true;
-                }
-            }
-        }
-
-        private void NameEdit_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (sender is TextBox textBox && textBox.IsVisible)
-            {
-                FocusAndSelectTextBox(textBox);
-            }
-        }
-
-        private void FocusAndSelectTextBox(TextBox textBox)
-        {
-            textBox.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (textBox.DataContext is FolderItem folderItem)
-                {
-                    var selector = FindAncestor<System.Windows.Controls.Primitives.Selector>(textBox);
-                    if (selector != null)
-                    {
-                        if (selector.SelectedItem != folderItem)
-                        {
-                            return;
-                        }
-                        if (!selector.IsKeyboardFocusWithin)
-                        {
-                            return;
-                        }
-                    }
-
-                    textBox.Focus();
-                    Keyboard.Focus(textBox);
-                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
-
-                    string text = textBox.Text;
-                    int lastDot = text.LastIndexOf('.');
-                    if (lastDot > 0 && !folderItem.IsDirectory)
-                    {
-                        textBox.Select(0, lastDot);
-                    }
-                    else
-                    {
-                        textBox.SelectAll();
-                    }
-                }
-            }), System.Windows.Threading.DispatcherPriority.Background);
-        }
-
-        private void NameEdit_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (sender is TextBox textBox && textBox.DataContext is FolderItem folderItem)
-            {
-                if (e.Key == Key.Enter)
-                {
-                    CommitRename(textBox, folderItem);
-                    e.Handled = true;
-                }
-                else if (e.Key == Key.Escape)
-                {
-                    CancelRename(textBox, folderItem);
-                    e.Handled = true;
-                }
-            }
-        }
-
-        private void NameEdit_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox textBox && textBox.DataContext is FolderItem folderItem)
-            {
-                CommitRename(textBox, folderItem);
-            }
-        }
-
-        private void CommitRename(TextBox textBox, FolderItem folderItem)
-        {
-            if (!folderItem.IsEditing) return;
-
-            folderItem.IsEditing = false;
-
-            string newName = textBox.Text.Trim();
-            if (string.IsNullOrEmpty(newName) || newName == folderItem.Name)
-            {
-                return;
-            }
-
-            string parentDir = System.IO.Path.GetDirectoryName(folderItem.FullPath);
-            if (parentDir == null) return;
-
-            string newPath = System.IO.Path.Combine(parentDir, newName);
-
-            try
-            {
-                if (folderItem.IsDirectory)
-                {
-                    if (System.IO.Directory.Exists(newPath))
-                    {
-                        MessageBox.Show("A folder with that name already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    System.IO.Directory.Move(folderItem.FullPath, newPath);
-                }
-                else
-                {
-                    if (System.IO.File.Exists(newPath))
-                    {
-                        MessageBox.Show("A file with that name already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    System.IO.File.Move(folderItem.FullPath, newPath);
-                }
-
-                // Update the bound item in place so the UI reflects the new name
-                // immediately, without depending on a full directory reload.
-                folderItem.FullPath = newPath;
-                folderItem.Name = newName;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to rename item: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                var selector = FindAncestor<System.Windows.Controls.Primitives.Selector>(textBox);
-                if (selector?.DataContext is DirectoryViewModel vm)
-                {
-                    vm.LoadDirectory(vm.CurrentPath);
-                }
-            }
-        }
-
-        private void CancelRename(TextBox textBox, FolderItem folderItem)
-        {
-            if (!folderItem.IsEditing) return;
-            folderItem.IsEditing = false;
-            textBox.Text = folderItem.Name;
-        }
-
-        private void AddressBar_NavigationRequested(object sender, string targetPath)
-        {
-            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
-            {
-                vm.LoadDirectory(targetPath);
-            }
-        }
-
-        private void AddressBar_GoBackRequested(object sender, EventArgs e)
-        {
-            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
-            {
-                vm.GoBack();
-            }
-        }
-
-        private void AddressBar_GoForwardRequested(object sender, EventArgs e)
-        {
-            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
-            {
-                vm.GoForward();
-            }
-        }
-
-        private void AddressBar_HomeRequested(object sender, EventArgs e)
-        {
-            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
-            {
-                string home = vm == RightViewModel ? _settings.RightHomePath : _settings.LeftHomePath;
-                vm.LoadDirectory(ResolveHomePath(home));
-            }
-        }
-
-        private void AddressBar_SetHomeRequested(object sender, EventArgs e)
-        {
-            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
-            {
-                string current = vm.CurrentDirectory;
-                if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
-
-                string side = vm == RightViewModel ? "right" : "left";
-                var confirm = MessageBox.Show(
-                    $"Set the {side} pane's Home folder to:\n\n{current}",
-                    "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-                if (confirm != MessageBoxResult.OK) return;
-
-                if (vm == RightViewModel)
-                    _settings.RightHomePath = current;
-                else
-                    _settings.LeftHomePath = current;
-
-                SettingsService.Save(_settings);
-            }
-        }
-
-        private void ParentBackButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.DataContext is DirectoryViewModel vm)
-            {
-                if (vm.CanGoToParent)
-                {
-                    vm.GoToParent();
-                }
-            }
-        }
-
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
             base.OnPreviewMouseDown(e);
 
             if (e.ChangedButton == MouseButton.XButton1)
             {
-                if (LeftParentFoldersPanel != null && LeftParentFoldersPanel.IsMouseOver)
+                if (LeftDirectoryPane != null && LeftDirectoryPane.IsMouseOverParentFolders)
                 {
                     if (LeftViewModel.CanGoToParent)
                     {
@@ -583,7 +230,7 @@ namespace Filey
                     }
                     e.Handled = true;
                 }
-                else if (RightParentFoldersPanel != null && RightParentFoldersPanel.IsMouseOver)
+                else if (RightDirectoryPane != null && RightDirectoryPane.IsMouseOverParentFolders)
                 {
                     if (RightViewModel.CanGoToParent)
                     {
@@ -612,44 +259,12 @@ namespace Filey
             }
         }
 
-        // --- Drag source: folders/files → Favourites panels ----------------------
-        private Point _itemDragStart;
-        private FolderItem _itemDragCandidate;
-
-        private void ItemList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _itemDragStart = e.GetPosition(null);
-            var src = e.OriginalSource as DependencyObject;
-            while (src != null && !(src is ListBoxItem) && !(src is ListViewItem))
-                src = VisualTreeHelper.GetParent(src);
-            _itemDragCandidate = (src as FrameworkElement)?.DataContext as FolderItem;
-        }
-
-        private void ItemList_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            if (e.LeftButton != MouseButtonState.Pressed || _itemDragCandidate == null) return;
-            if (_itemDragCandidate.IsEditing) return;
-
-            Point pos = e.GetPosition(null);
-            if (Math.Abs(pos.X - _itemDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(pos.Y - _itemDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
-                return;
-
-            var data = new DataObject();
-            data.SetData(FavouritesPanel.FolderItemDragFormat, _itemDragCandidate);
-            DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Copy);
-            _itemDragCandidate = null;
-        }
-
-        // --- Right-click context menu (Folders / Contents / Parent panels) --------
         private static FolderItem ItemFromMenu(object sender)
         {
-            // The ContextMenu inherits the row's DataContext (a FolderItem).
             if (sender is MenuItem mi) return mi.DataContext as FolderItem;
             return null;
         }
 
-        /// <summary>Resolve which side a context menu was raised on via its placement target.</summary>
         private DirectoryViewModel SideViewModelFromMenu(object sender)
         {
             var mi = sender as MenuItem;
@@ -673,7 +288,6 @@ namespace Filey
         {
             if (!(sender is ContextMenu menu)) return;
             var item = menu.DataContext as FolderItem;
-            // Find the "Add/Remove Favourites" item and update its label per side state.
             foreach (var obj in menu.Items)
             {
                 if (obj is MenuItem mi && (string.Equals(mi.Name, "CtxFavouriteItem")
@@ -726,7 +340,6 @@ namespace Filey
             }
             else
             {
-                // Bookmarks are global; there is a single shared Favourites panel.
                 LeftFavouritesPanel.AddFavourite(item.FullPath);
             }
         }
@@ -761,210 +374,57 @@ namespace Filey
             return LeftViewModel;
         }
 
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
         {
-            UpdateLeftPaneLayout();
-            UpdateRightPaneLayout();
+            do
+            {
+                if (current is T ancestor)
+                {
+                    return ancestor;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            } while (current != null);
+            return null;
         }
 
-        private void LeftViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        // --- Left/Right DirectoryPane Home Handlers ---
+        private void LeftDirectoryPane_HomeRequested(object sender, EventArgs e)
         {
-            if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
-            {
-                UpdateLeftPaneLayout();
-                LeftFavouritesPanel.SyncSelectionToPath(GetActiveViewModel().CurrentPath);
-            }
+            LeftViewModel.LoadDirectory(ResolveHomePath(_settings.LeftHomePath));
         }
 
-        private void RightViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void LeftDirectoryPane_SetHomeRequested(object sender, EventArgs e)
         {
-            if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
-            {
-                UpdateRightPaneLayout();
-                LeftFavouritesPanel.SyncSelectionToPath(GetActiveViewModel().CurrentPath);
-            }
+            string current = LeftViewModel.CurrentDirectory;
+            if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
+
+            var confirm = MessageBox.Show(
+                $"Set the left pane's Home folder to:\n\n{current}",
+                "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.OK) return;
+
+            _settings.LeftHomePath = current;
+            SettingsService.Save(_settings);
         }
 
-        private void UpdateLeftPaneLayout()
+        private void RightDirectoryPane_HomeRequested(object sender, EventArgs e)
         {
-            if (LeftFoldersRow == null || LeftFoldersListView == null || LeftGridSplitter == null || LeftSplitterRow == null || LeftFilesRow == null || LeftFilesListView == null)
-                return;
-
-            int folderCount = LeftViewModel.Folders.Count;
-            int fileCount = LeftViewModel.Contents.Count;
-
-            // Rule 1: hide If there are no subfolders.
-            if (folderCount == 0)
-            {
-                LeftFoldersRow.Height = new GridLength(0);
-                LeftFoldersRow.MinHeight = 0;
-                LeftFoldersRow.MaxHeight = 0;
-                
-                LeftSplitterRow.Height = new GridLength(0);
-                
-                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                LeftFilesRow.MinHeight = 0;
-
-                LeftFoldersListView.Visibility = Visibility.Collapsed;
-                LeftGridSplitter.Visibility = Visibility.Collapsed;
-                LeftFilesListView.Visibility = Visibility.Visible;
-                return;
-            }
-
-            // Rule 4: If no files, then the sub panel shall expand fully and the files subpanel shall hide.
-            if (fileCount == 0)
-            {
-                LeftFoldersRow.Height = new GridLength(1, GridUnitType.Star);
-                LeftFoldersRow.MinHeight = 0;
-                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
-                
-                LeftSplitterRow.Height = new GridLength(0);
-                
-                LeftFilesRow.Height = new GridLength(0);
-                LeftFilesRow.MinHeight = 0;
-
-                LeftFoldersListView.Visibility = Visibility.Visible;
-                LeftGridSplitter.Visibility = Visibility.Collapsed;
-                LeftFilesListView.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            // Both folders and files exist.
-            // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
-            double estimatedFoldersHeight = 36 + folderCount * _estimatedRowHeight;
-            double estimatedFilesHeight = 36 + fileCount * _estimatedRowHeight;
-            double splitterHeight = 6;
-
-            FrameworkElement parentGrid = LeftFoldersListView.Parent as FrameworkElement;
-            double availableHeight = parentGrid != null && parentGrid.ActualHeight > 0 
-                ? parentGrid.ActualHeight 
-                : this.Height - 150; // Fallback if not yet rendered
-
-            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
-            {
-                // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
-                LeftFoldersRow.Height = new GridLength(1, GridUnitType.Star);
-                LeftFoldersRow.MinHeight = 0;
-                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
-
-                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                LeftFilesRow.MinHeight = 0;
-
-                LeftSplitterRow.Height = new GridLength(splitterHeight);
-
-                LeftFoldersListView.Visibility = Visibility.Visible;
-                LeftGridSplitter.Visibility = Visibility.Visible;
-                LeftFilesListView.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                // Rules 2 & 3:
-                // - If one subfolder, shorten height of panel to fit exactly.
-                // - If more than one subfolder, the height of subpanel shall autofit to show all folders.
-                LeftFoldersRow.Height = GridLength.Auto;
-                LeftFoldersRow.MinHeight = 0;
-                LeftFoldersRow.MaxHeight = double.PositiveInfinity;
-
-                LeftFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                LeftFilesRow.MinHeight = 0;
-
-                LeftSplitterRow.Height = new GridLength(splitterHeight);
-
-                LeftFoldersListView.Visibility = Visibility.Visible;
-                LeftGridSplitter.Visibility = Visibility.Visible;
-                LeftFilesListView.Visibility = Visibility.Visible;
-            }
+            string home = _settings.RightHomePath;
+            RightViewModel.LoadDirectory(ResolveHomePath(home));
         }
 
-        private void UpdateRightPaneLayout()
+        private void RightDirectoryPane_SetHomeRequested(object sender, EventArgs e)
         {
-            if (RightFoldersRow == null || RightFoldersListView == null || RightGridSplitter == null || RightSplitterRow == null || RightFilesRow == null || RightFilesListView == null)
-                return;
+            string current = RightViewModel.CurrentDirectory;
+            if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
 
-            int folderCount = RightViewModel.Folders.Count;
-            int fileCount = RightViewModel.Contents.Count;
+            var confirm = MessageBox.Show(
+                $"Set the right pane's Home folder to:\n\n{current}",
+                "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.OK) return;
 
-            // Rule 1: hide If there are no subfolders.
-            if (folderCount == 0)
-            {
-                RightFoldersRow.Height = new GridLength(0);
-                RightFoldersRow.MinHeight = 0;
-                RightFoldersRow.MaxHeight = 0;
-                
-                RightSplitterRow.Height = new GridLength(0);
-                
-                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                RightFilesRow.MinHeight = 0;
-
-                RightFoldersListView.Visibility = Visibility.Collapsed;
-                RightGridSplitter.Visibility = Visibility.Collapsed;
-                RightFilesListView.Visibility = Visibility.Visible;
-                return;
-            }
-
-            // Rule 4: If no files, then the sub panel shall expand fully and the files subpanel shall hide.
-            if (fileCount == 0)
-            {
-                RightFoldersRow.Height = new GridLength(1, GridUnitType.Star);
-                RightFoldersRow.MinHeight = 0;
-                RightFoldersRow.MaxHeight = double.PositiveInfinity;
-                
-                RightSplitterRow.Height = new GridLength(0);
-                
-                RightFilesRow.Height = new GridLength(0);
-                RightFilesRow.MinHeight = 0;
-
-                RightFoldersListView.Visibility = Visibility.Visible;
-                RightGridSplitter.Visibility = Visibility.Collapsed;
-                RightFilesListView.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            // Both folders and files exist.
-            // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
-            double estimatedFoldersHeight = 36 + folderCount * _estimatedRowHeight;
-            double estimatedFilesHeight = 36 + fileCount * _estimatedRowHeight;
-            double splitterHeight = 6;
-
-            FrameworkElement parentGrid = RightFoldersListView.Parent as FrameworkElement;
-            double availableHeight = parentGrid != null && parentGrid.ActualHeight > 0 
-                ? parentGrid.ActualHeight 
-                : this.Height - 150; // Fallback if not yet rendered
-
-            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
-            {
-                // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
-                RightFoldersRow.Height = new GridLength(1, GridUnitType.Star);
-                RightFoldersRow.MinHeight = 0;
-                RightFoldersRow.MaxHeight = double.PositiveInfinity;
-
-                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                RightFilesRow.MinHeight = 0;
-
-                RightSplitterRow.Height = new GridLength(splitterHeight);
-
-                RightFoldersListView.Visibility = Visibility.Visible;
-                RightGridSplitter.Visibility = Visibility.Visible;
-                RightFilesListView.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                // Rules 2 & 3:
-                // - If one subfolder, shorten height of panel to fit exactly.
-                // - If more than one subfolder, the height of subpanel shall autofit to show all folders.
-                RightFoldersRow.Height = GridLength.Auto;
-                RightFoldersRow.MinHeight = 0;
-                RightFoldersRow.MaxHeight = double.PositiveInfinity;
-
-                RightFilesRow.Height = new GridLength(1, GridUnitType.Star);
-                RightFilesRow.MinHeight = 0;
-
-                RightSplitterRow.Height = new GridLength(splitterHeight);
-
-                RightFoldersListView.Visibility = Visibility.Visible;
-                RightGridSplitter.Visibility = Visibility.Visible;
-                RightFilesListView.Visibility = Visibility.Visible;
-            }
+            _settings.RightHomePath = current;
+            SettingsService.Save(_settings);
         }
     }
 }

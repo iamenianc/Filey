@@ -1,0 +1,566 @@
+using System;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
+
+namespace Filey
+{
+    /// <summary>
+    /// Interaction logic for DirectoryPane.xaml
+    /// </summary>
+    public partial class DirectoryPane : UserControl
+    {
+        public static readonly DependencyProperty ViewModelProperty =
+            DependencyProperty.Register("ViewModel", typeof(DirectoryViewModel), typeof(DirectoryPane),
+                new PropertyMetadata(null, OnViewModelChanged));
+
+        public DirectoryViewModel ViewModel
+        {
+            get => (DirectoryViewModel)GetValue(ViewModelProperty);
+            set => SetValue(ViewModelProperty, value);
+        }
+
+        public static readonly DependencyProperty SideProperty =
+            DependencyProperty.Register("Side", typeof(Side), typeof(DirectoryPane), new PropertyMetadata(Side.Left));
+
+        public Side Side
+        {
+            get => (Side)GetValue(SideProperty);
+            set => SetValue(SideProperty, value);
+        }
+
+        public static readonly DependencyProperty EstimatedRowHeightProperty =
+            DependencyProperty.Register("EstimatedRowHeight", typeof(double), typeof(DirectoryPane),
+                new PropertyMetadata(28.0, OnEstimatedRowHeightChanged));
+
+        public double EstimatedRowHeight
+        {
+            get => (double)GetValue(EstimatedRowHeightProperty);
+            set => SetValue(EstimatedRowHeightProperty, value);
+        }
+
+        public GridLength ParentFoldersWidth
+        {
+            get => ParentFoldersCol.Width;
+            set => ParentFoldersCol.Width = value;
+        }
+
+        public double ParentFoldersActualWidth => ParentFoldersCol.ActualWidth;
+
+        public GridLength ContentsWidth
+        {
+            get => ContentsCol.Width;
+            set => ContentsCol.Width = value;
+        }
+
+        public double ContentsActualWidth => ContentsCol.ActualWidth;
+
+        public bool IsMouseOverParentFolders => ParentFoldersPanel != null && ParentFoldersPanel.IsMouseOver;
+
+        public event EventHandler HomeRequested;
+        public event EventHandler SetHomeRequested;
+
+        private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DirectoryPane pane)
+            {
+                if (e.OldValue is DirectoryViewModel oldVm)
+                {
+                    oldVm.PropertyChanged -= pane.ViewModel_PropertyChanged;
+                }
+                if (e.NewValue is DirectoryViewModel newVm)
+                {
+                    newVm.PropertyChanged += pane.ViewModel_PropertyChanged;
+                }
+                pane.SetupParentFoldersFilter();
+                pane.UpdatePaneLayout();
+            }
+        }
+
+        private static void OnEstimatedRowHeightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DirectoryPane pane)
+            {
+                pane.UpdatePaneLayout();
+            }
+        }
+
+        private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+            {
+                UpdatePaneLayout();
+            }
+        }
+
+        public DirectoryPane()
+        {
+            InitializeComponent();
+            this.SizeChanged += (s, e) => UpdatePaneLayout();
+            this.Loaded += (s, e) => {
+                SetupParentFoldersFilter();
+                UpdatePaneLayout();
+            };
+        }
+
+        public void UpdatePaneLayout()
+        {
+            if (FoldersRow == null || FoldersListView == null || GridSplitter == null || SplitterRow == null || FilesRow == null || FilesListView == null)
+                return;
+
+            if (ViewModel == null) return;
+
+            int folderCount = ViewModel.Folders.Count;
+            int fileCount = ViewModel.Contents.Count;
+
+            // Rule 1: hide If there are no subfolders.
+            if (folderCount == 0)
+            {
+                FoldersRow.Height = new GridLength(0);
+                FoldersRow.MinHeight = 0;
+                FoldersRow.MaxHeight = 0;
+                
+                SplitterRow.Height = new GridLength(0);
+                
+                FilesRow.Height = new GridLength(1, GridUnitType.Star);
+                FilesRow.MinHeight = 0;
+
+                FoldersListView.Visibility = Visibility.Collapsed;
+                GridSplitter.Visibility = Visibility.Collapsed;
+                FilesListView.Visibility = Visibility.Visible;
+                return;
+            }
+
+            // Rule 4: If no files, then the sub panel shall expand fully and the files subpanel shall hide.
+            if (fileCount == 0)
+            {
+                FoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                FoldersRow.MinHeight = 0;
+                FoldersRow.MaxHeight = double.PositiveInfinity;
+                
+                SplitterRow.Height = new GridLength(0);
+                
+                FilesRow.Height = new GridLength(0);
+                FilesRow.MinHeight = 0;
+
+                FoldersListView.Visibility = Visibility.Visible;
+                GridSplitter.Visibility = Visibility.Collapsed;
+                FilesListView.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            // Both folders and files exist.
+            double estimatedFoldersHeight = 36 + folderCount * EstimatedRowHeight;
+            double estimatedFilesHeight = 36 + fileCount * EstimatedRowHeight;
+            double splitterHeight = 6;
+
+            FrameworkElement parentGrid = FoldersListView.Parent as FrameworkElement;
+            double availableHeight = parentGrid != null && parentGrid.ActualHeight > 0 
+                ? parentGrid.ActualHeight 
+                : 300; // Fallback
+
+            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
+            {
+                // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
+                FoldersRow.Height = new GridLength(1, GridUnitType.Star);
+                FoldersRow.MinHeight = 0;
+                FoldersRow.MaxHeight = double.PositiveInfinity;
+
+                FilesRow.Height = new GridLength(1, GridUnitType.Star);
+                FilesRow.MinHeight = 0;
+
+                SplitterRow.Height = new GridLength(splitterHeight);
+
+                FoldersListView.Visibility = Visibility.Visible;
+                GridSplitter.Visibility = Visibility.Visible;
+                FilesListView.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // Rules 2 & 3:
+                // - If one subfolder, shorten height of panel to fit exactly.
+                // - If more than one subfolder, the height of subpanel shall autofit to show all folders.
+                FoldersRow.Height = GridLength.Auto;
+                FoldersRow.MinHeight = 0;
+                FoldersRow.MaxHeight = double.PositiveInfinity;
+
+                FilesRow.Height = new GridLength(1, GridUnitType.Star);
+                FilesRow.MinHeight = 0;
+
+                SplitterRow.Height = new GridLength(splitterHeight);
+
+                FoldersListView.Visibility = Visibility.Visible;
+                GridSplitter.Visibility = Visibility.Visible;
+                FilesListView.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void SetupParentFoldersFilter()
+        {
+            if (ViewModel == null) return;
+
+            var view = CollectionViewSource.GetDefaultView(ViewModel.ParentFolders);
+            if (view != null)
+            {
+                view.Filter = obj => FilterParentFolder(obj, ParentFoldersSearch.Text);
+                ParentFoldersList.ItemsSource = view;
+            }
+        }
+
+        private static bool FilterParentFolder(object obj, string search)
+        {
+            if (!(obj is FolderItem f)) return false;
+            if (string.IsNullOrEmpty(search)) return true;
+            return f.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void ParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            ParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(ParentFoldersSearch.Text)
+                ? Visibility.Visible : Visibility.Collapsed;
+            if (ViewModel != null)
+            {
+                CollectionViewSource.GetDefaultView(ViewModel.ParentFolders)?.Refresh();
+            }
+        }
+
+        private void ParentBackButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel != null && ViewModel.CanGoToParent)
+            {
+                ViewModel.GoToParent();
+            }
+        }
+
+        private void AddressBar_NavigationRequested(object sender, string targetPath)
+        {
+            ViewModel?.LoadDirectory(targetPath);
+        }
+
+        private void AddressBar_GoBackRequested(object sender, EventArgs e)
+        {
+            ViewModel?.GoBack();
+        }
+
+        private void AddressBar_GoForwardRequested(object sender, EventArgs e)
+        {
+            ViewModel?.GoForward();
+        }
+
+        private void AddressBar_HomeRequested(object sender, EventArgs e)
+        {
+            HomeRequested?.Invoke(this, e);
+        }
+
+        private void AddressBar_SetHomeRequested(object sender, EventArgs e)
+        {
+            SetHomeRequested?.Invoke(this, e);
+        }
+
+        private void FoldersItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListBoxItem item && item.DataContext is FolderItem folderItem)
+            {
+                if (folderItem.IsEditing) return;
+
+                if (ViewModel != null && folderItem.IsDirectory)
+                {
+                    ViewModel.LoadDirectory(folderItem.FullPath);
+                }
+            }
+        }
+
+        private void ContentsItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListViewItem item && item.DataContext is FolderItem folderItem)
+            {
+                if (folderItem.IsEditing) return;
+
+                if (ViewModel != null)
+                {
+                    if (folderItem.IsDirectory)
+                    {
+                        ViewModel.LoadDirectory(folderItem.FullPath);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(folderItem.FullPath)
+                            {
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Could not open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void Header_Click(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is GridViewColumnHeader header && header.Column != null)
+            {
+                string sortBy = header.Tag as string;
+                if (string.IsNullOrEmpty(sortBy)) return;
+
+                var listView = FindAncestor<ListView>(header);
+                if (listView == null) return;
+
+                var dataView = CollectionViewSource.GetDefaultView(listView.ItemsSource);
+                if (dataView == null) return;
+
+                ListSortDirection direction = ListSortDirection.Ascending;
+                if (dataView.SortDescriptions.Count > 0 && dataView.SortDescriptions[0].PropertyName == sortBy)
+                {
+                    direction = dataView.SortDescriptions[0].Direction == ListSortDirection.Ascending 
+                        ? ListSortDirection.Descending 
+                        : ListSortDirection.Ascending;
+                }
+
+                dataView.SortDescriptions.Clear();
+                dataView.SortDescriptions.Add(new SortDescription(sortBy, direction));
+                dataView.Refresh();
+            }
+        }
+
+        private void List_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F2)
+            {
+                if (sender is System.Windows.Controls.Primitives.Selector selector && selector.SelectedItem is FolderItem selectedItem)
+                {
+                    selectedItem.IsEditing = true;
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void NameEdit_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.IsVisible)
+            {
+                FocusAndSelectTextBox(textBox);
+            }
+        }
+
+        private void FocusAndSelectTextBox(TextBox textBox)
+        {
+            textBox.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (textBox.DataContext is FolderItem folderItem)
+                {
+                    var selector = FindAncestor<System.Windows.Controls.Primitives.Selector>(textBox);
+                    if (selector != null)
+                    {
+                        if (selector.SelectedItem != folderItem)
+                        {
+                            return;
+                        }
+                        if (!selector.IsKeyboardFocusWithin)
+                        {
+                            return;
+                        }
+                    }
+
+                    textBox.Focus();
+                    Keyboard.Focus(textBox);
+                    FocusManager.SetFocusedElement(FocusManager.GetFocusScope(textBox), textBox);
+
+                    string text = textBox.Text;
+                    int lastDot = text.LastIndexOf('.');
+                    if (lastDot > 0 && !folderItem.IsDirectory)
+                    {
+                        textBox.Select(0, lastDot);
+                    }
+                    else
+                    {
+                        textBox.SelectAll();
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void NameEdit_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.DataContext is FolderItem folderItem)
+            {
+                if (e.Key == Key.Enter)
+                {
+                    CommitRename(textBox, folderItem);
+                    e.Handled = true;
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    CancelRename(textBox, folderItem);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void NameEdit_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.DataContext is FolderItem folderItem)
+            {
+                CommitRename(textBox, folderItem);
+            }
+        }
+
+        private void CommitRename(TextBox textBox, FolderItem folderItem)
+        {
+            if (!folderItem.IsEditing) return;
+
+            folderItem.IsEditing = false;
+
+            string newName = textBox.Text.Trim();
+            if (string.IsNullOrEmpty(newName) || newName == folderItem.Name)
+            {
+                return;
+            }
+
+            string parentDir = System.IO.Path.GetDirectoryName(folderItem.FullPath);
+            if (parentDir == null) return;
+
+            string newPath = System.IO.Path.Combine(parentDir, newName);
+
+            try
+            {
+                if (folderItem.IsDirectory)
+                {
+                    if (System.IO.Directory.Exists(newPath))
+                    {
+                        MessageBox.Show("A folder with that name already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    System.IO.Directory.Move(folderItem.FullPath, newPath);
+                }
+                else
+                {
+                    if (System.IO.File.Exists(newPath))
+                    {
+                        MessageBox.Show("A file with that name already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    System.IO.File.Move(folderItem.FullPath, newPath);
+                }
+
+                folderItem.FullPath = newPath;
+                folderItem.Name = newName;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to rename item: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (ViewModel != null)
+                {
+                    ViewModel.LoadDirectory(ViewModel.CurrentPath);
+                }
+            }
+        }
+
+        private void CancelRename(TextBox textBox, FolderItem folderItem)
+        {
+            if (!folderItem.IsEditing) return;
+            folderItem.IsEditing = false;
+            textBox.Text = folderItem.Name;
+        }
+
+        private Point _itemDragStart;
+        private FolderItem _itemDragCandidate;
+
+        private void ItemList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _itemDragStart = e.GetPosition(null);
+            var src = e.OriginalSource as DependencyObject;
+            while (src != null && !(src is ListBoxItem) && !(src is ListViewItem))
+                src = VisualTreeHelper.GetParent(src);
+            _itemDragCandidate = (src as FrameworkElement)?.DataContext as FolderItem;
+        }
+
+        private void ItemList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _itemDragCandidate == null) return;
+            if (_itemDragCandidate.IsEditing) return;
+
+            Point pos = e.GetPosition(null);
+            if (Math.Abs(pos.X - _itemDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _itemDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            var data = new DataObject();
+            data.SetData(FavouritesPanel.FolderItemDragFormat, _itemDragCandidate);
+            DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Copy);
+            _itemDragCandidate = null;
+        }
+
+        private static FolderItem ItemFromMenu(object sender)
+        {
+            if (sender is MenuItem mi) return mi.DataContext as FolderItem;
+            return null;
+        }
+
+        private void ItemContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is ContextMenu menu)) return;
+            var item = menu.DataContext as FolderItem;
+            foreach (var obj in menu.Items)
+            {
+                if (obj is MenuItem mi && (string.Equals(mi.Name, "CtxFavouriteItem")
+                    || (mi.Header as string)?.Contains("Favourites") == true))
+                {
+                    bool exists = item != null && BookmarkStore.Instance.Contains(Side, item.FullPath);
+                    mi.Header = exists ? "Remove from Favourites" : "Add to Favourites";
+                }
+            }
+        }
+
+        private void CtxOpenExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null) ContextActions.OpenInExplorer(item.FullPath);
+        }
+
+        private void CtxCopyPath_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null) ContextActions.CopyPath(item.FullPath);
+        }
+
+        private void CtxToggleFavourite_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item == null) return;
+
+            var existing = BookmarkStore.Instance.Find(Side, item.FullPath);
+            if (existing != null)
+            {
+                BookmarkStore.Instance.Remove(Side, existing);
+            }
+            else
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    mainWindow.LeftFavouritesPanel.AddFavourite(item.FullPath);
+                }
+            }
+        }
+
+        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            do
+            {
+                if (current is T ancestor)
+                {
+                    return ancestor;
+                }
+                current = VisualTreeHelper.GetParent(current);
+            } while (current != null);
+            return null;
+        }
+    }
+}

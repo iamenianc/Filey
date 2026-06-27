@@ -4,8 +4,13 @@
              xmlns:local="clr-namespace:Filey"
              Startup="Application_Startup">
     <Application.Resources>
-        <!-- Style for RepeatButtons (Page Up/Down, Page Left/Right) -->
-        <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Style for RepeatButtons (Page Up/Down, Page Left/Right) -->
+            <Style x:Key="ScrollBarPageButton" TargetType="{x:Type RepeatButton}">
             <Setter Property="OverridesDefaultStyle" Value="true"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Focusable" Value="false"/>
@@ -123,5 +128,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
