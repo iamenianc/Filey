@@ -42,37 +42,12 @@ namespace Filey
 
             var source = BookmarkStore.Instance.ForSide(Side);
             _view = CollectionViewSource.GetDefaultView(source);
-            _view.Filter = FilterBookmark;
 
             // Group by FolderGroup; ungrouped items appear first under a null/empty key.
             _view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Bookmark.FolderGroup)));
 
             BookmarksList.ItemsSource = _view;
-            UpdatePlaceholders();
             RefreshDrives();
-        }
-
-        // --- Filtering ------------------------------------------------------------
-        private bool FilterBookmark(object obj)
-        {
-            if (!(obj is Bookmark b)) return false;
-            string search = SearchBox.Text?.Trim();
-            if (string.IsNullOrEmpty(search)) return true;
-            return !string.IsNullOrEmpty(b.Name) &&
-                   b.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private void Filter_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            _view?.Refresh();
-            UpdatePlaceholders();
-        }
-
-        private void UpdatePlaceholders()
-        {
-            if (SearchPlaceholder != null)
-                SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchBox.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // --- Activation / navigation ---------------------------------------------
@@ -262,6 +237,12 @@ namespace Filey
                     BookmarkStore.Instance.Copy(dragged, Side);
                     _view?.Refresh();
                 }
+                else if (TryGetDropGroup(e, out string targetGroup) &&
+                         !string.Equals(dragged.FolderGroup, targetGroup, StringComparison.Ordinal))
+                {
+                    dragged.FolderGroup = targetGroup;
+                    _view?.Refresh();
+                }
                 else
                 {
                     var list = BookmarkStore.Instance.ForSide(Side);
@@ -273,6 +254,36 @@ namespace Filey
                 }
                 e.Handled = true;
             }
+        }
+
+        /// <summary>
+        /// Resolves the group the bookmark was dropped onto: the group of the target
+        /// bookmark, or a group header dropped directly onto. Returns false when the
+        /// drop lands on empty space (caller falls back to reorder).
+        /// </summary>
+        private bool TryGetDropGroup(DragEventArgs e, out string group)
+        {
+            group = null;
+            var pos = e.GetPosition(BookmarksList);
+            var hit = BookmarksList.InputHitTest(pos) as DependencyObject;
+            if (hit == null) return false;
+
+            var target = GetBookmarkFromContainer(hit);
+            if (target != null) { group = target.FolderGroup; return true; }
+
+            var header = FindGroupHeaderText(hit);
+            if (header != null) { group = string.IsNullOrEmpty(header) ? null : header; return true; }
+
+            return false;
+        }
+
+        private static string FindGroupHeaderText(DependencyObject d)
+        {
+            while (d != null && !(d is GroupItem))
+                d = VisualTreeHelper.GetParent(d);
+            if (d is GroupItem gi && gi.DataContext is CollectionViewGroup g)
+                return g.Name as string;
+            return null;
         }
 
         private int GetDropIndex(DragEventArgs e)
