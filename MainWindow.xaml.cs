@@ -191,19 +191,18 @@ namespace Filey
         }
 
         /// <summary>
-        /// Shows or hides the right pane (and the centre splitter). When hidden the left
-        /// pane expands to fill the freed width; the right pane's width is remembered.
+        /// Shows or "hides" the right pane. The centre splitter is always kept so the
+        /// left pane stays resizable; hiding instead pushes the right pane to its
+        /// minimum width at the far edge, letting the left pane fill the rest. The
+        /// right pane's width is remembered and restored when shown again.
         /// </summary>
         private void SetRightPaneVisible(bool visible)
         {
             if (visible)
             {
-                CentreSplitterCol.Width = new GridLength(12);
                 RightPaneCol.MinWidth = 300;
                 RightPaneCol.Width = _savedRightPaneWidth;
                 LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
-                CentreSplitter.Visibility = Visibility.Visible;
-                RightPaneGrid.Visibility = Visibility.Visible;
             }
             else
             {
@@ -211,9 +210,6 @@ namespace Filey
                 {
                     _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth);
                 }
-                CentreSplitter.Visibility = Visibility.Collapsed;
-                RightPaneGrid.Visibility = Visibility.Collapsed;
-                CentreSplitterCol.Width = new GridLength(0);
                 RightPaneCol.MinWidth = 0;
                 RightPaneCol.Width = new GridLength(0);
                 LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
