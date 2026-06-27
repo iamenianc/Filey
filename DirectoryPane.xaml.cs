@@ -204,7 +204,6 @@ namespace Filey
 
             // Both folders and files exist.
             double estimatedFoldersHeight = 36 + folderCount * EstimatedRowHeight;
-            double estimatedFilesHeight = 36 + fileCount * EstimatedRowHeight;
             double splitterHeight = 6;
 
             FrameworkElement parentGrid = FoldersListView.Parent as FrameworkElement;
@@ -212,7 +211,13 @@ namespace Filey
                 ? parentGrid.ActualHeight 
                 : 300; // Fallback
 
-            if (estimatedFoldersHeight + estimatedFilesHeight + splitterHeight > availableHeight)
+            // The folders panel auto-fits to its folders (shrinking when few) and
+            // files take the rest. Only fall back to an equal split when the
+            // folders alone would consume more than half the available height —
+            // i.e. there are genuinely too many folders, not merely many files.
+            bool foldersFitInHalf = estimatedFoldersHeight + splitterHeight <= availableHeight / 2;
+
+            if (!foldersFitInHalf)
             {
                 // Rule 5: If there are too many of both folders and files to show without scrolling then the subpanels shall be equal in height.
                 FoldersRow.Height = new GridLength(1, GridUnitType.Star);
