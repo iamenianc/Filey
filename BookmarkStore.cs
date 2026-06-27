@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -31,11 +30,10 @@ namespace Filey
             return side == Side.Left ? Left : Right;
         }
 
-        public Bookmark Add(Side side, string path, string name, IEnumerable<string> tags)
+        public Bookmark Add(Side side, string path, string name, string folderGroup = null)
         {
             if (string.IsNullOrEmpty(path)) return null;
 
-            // Duplicate paths are not allowed on a side — return the existing entry.
             var existing = Find(side, path);
             if (existing != null) return existing;
 
@@ -43,10 +41,7 @@ namespace Filey
             {
                 Path = path,
                 Name = string.IsNullOrWhiteSpace(name) ? GetDefaultName(path) : name.Trim(),
-                Tags = new ObservableCollection<string>(
-                    (tags ?? Enumerable.Empty<string>())
-                        .Select(t => t?.Trim())
-                        .Where(t => !string.IsNullOrEmpty(t)))
+                FolderGroup = string.IsNullOrWhiteSpace(folderGroup) ? null : folderGroup.Trim()
             };
 
             ForSide(side).Add(bookmark);

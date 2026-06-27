@@ -109,7 +109,7 @@
                                     <Condition Property="IsSelected" Value="true" />
                                     <Condition Property="Selector.IsSelectionActive" Value="false" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Bd" Property="Background" Value="#37373D" />
+                                <Setter TargetName="Bd" Property="Background" Value="#094771" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
@@ -227,7 +227,7 @@
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left Side Pane -->
-            <ColumnDefinition Width="900" MinWidth="300" />
+            <ColumnDefinition Width="1000" MinWidth="200" />
             <!-- Centre Splitter -->
             <ColumnDefinition Width="12" />
             <!-- Right Side Pane -->
@@ -336,24 +336,21 @@
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="2">
-                                        <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                        <Grid VerticalAlignment="Center">
-                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                            <TextBox x:Name="NameEdit" 
-                                                     Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                     Background="#121212" 
-                                                     Foreground="#E0E0E0" 
-                                                     BorderBrush="#007ACC" 
-                                                     BorderThickness="1" 
-                                                     Padding="2,1"
-                                                     Margin="-2,-2,-2,-2"
-                                                     Visibility="Collapsed"
-                                                     LostFocus="NameEdit_LostFocus"
-                                                     KeyDown="NameEdit_KeyDown"
-                                                     IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                        </Grid>
-                                    </StackPanel>
+                                    <Grid VerticalAlignment="Center" Margin="2">
+                                        <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                        <TextBox x:Name="NameEdit"
+                                                 Text="{Binding Name, UpdateSourceTrigger=Explicit}"
+                                                 Background="#121212"
+                                                 Foreground="#E0E0E0"
+                                                 BorderBrush="#007ACC"
+                                                 BorderThickness="1"
+                                                 Padding="2,1"
+                                                 Margin="-2,-2,-2,-2"
+                                                 Visibility="Collapsed"
+                                                 LostFocus="NameEdit_LostFocus"
+                                                 KeyDown="NameEdit_KeyDown"
+                                                 IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                    </Grid>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                             <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
@@ -735,24 +732,21 @@
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="2">
-                                        <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
-                                        <Grid VerticalAlignment="Center">
-                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
-                                            <TextBox x:Name="NameEdit" 
-                                                     Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                     Background="#121212" 
-                                                     Foreground="#E0E0E0" 
-                                                     BorderBrush="#007ACC" 
-                                                     BorderThickness="1" 
-                                                     Padding="2,1"
-                                                     Margin="-2,-2,-2,-2"
-                                                     Visibility="Collapsed"
-                                                     LostFocus="NameEdit_LostFocus"
-                                                     KeyDown="NameEdit_KeyDown"
-                                                     IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                                        </Grid>
-                                    </StackPanel>
+                                    <Grid VerticalAlignment="Center" Margin="2">
+                                        <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                        <TextBox x:Name="NameEdit"
+                                                 Text="{Binding Name, UpdateSourceTrigger=Explicit}"
+                                                 Background="#121212"
+                                                 Foreground="#E0E0E0"
+                                                 BorderBrush="#007ACC"
+                                                 BorderThickness="1"
+                                                 Padding="2,1"
+                                                 Margin="-2,-2,-2,-2"
+                                                 Visibility="Collapsed"
+                                                 LostFocus="NameEdit_LostFocus"
+                                                 KeyDown="NameEdit_KeyDown"
+                                                 IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                                    </Grid>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                             <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>

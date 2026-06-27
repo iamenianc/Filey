@@ -527,6 +527,7 @@ namespace Filey
             if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
             {
                 UpdateLeftPaneLayout();
+                LeftFavouritesPanel.SyncSelectionToPath(LeftViewModel.CurrentPath);
             }
         }
 
@@ -535,6 +536,7 @@ namespace Filey
             if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
             {
                 UpdateRightPaneLayout();
+                RightFavouritesPanel.SyncSelectionToPath(RightViewModel.CurrentPath);
             }
         }
 

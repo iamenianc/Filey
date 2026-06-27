@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +19,7 @@ namespace Filey
         private Point _dragStart;
         private Bookmark _dragCandidate;
         private bool _dragStarted;
+        private Bookmark _groupTarget;
 
         /// <summary>Which side this panel represents (set from MainWindow XAML).</summary>
         public Side Side { get; set; } = Side.Left;
@@ -42,35 +43,23 @@ namespace Filey
             var source = BookmarkStore.Instance.ForSide(Side);
             _view = CollectionViewSource.GetDefaultView(source);
             _view.Filter = FilterBookmark;
+
+            // Group by FolderGroup; ungrouped items appear first under a null/empty key.
+            _view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Bookmark.FolderGroup)));
+
             BookmarksList.ItemsSource = _view;
             UpdatePlaceholders();
+            RefreshDrives();
         }
 
         // --- Filtering ------------------------------------------------------------
         private bool FilterBookmark(object obj)
         {
             if (!(obj is Bookmark b)) return false;
-
-            string tagFilter = TagFilterBox.Text?.Trim();
             string search = SearchBox.Text?.Trim();
-
-            if (!string.IsNullOrEmpty(tagFilter))
-            {
-                bool anyTag = b.Tags != null && b.Tags.Any(
-                    t => t.IndexOf(tagFilter, StringComparison.OrdinalIgnoreCase) >= 0);
-                if (!anyTag) return false;
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                bool nameMatch = !string.IsNullOrEmpty(b.Name) &&
-                    b.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
-                bool tagMatch = b.Tags != null && b.Tags.Any(
-                    t => t.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0);
-                if (!nameMatch && !tagMatch) return false;
-            }
-
-            return true;
+            if (string.IsNullOrEmpty(search)) return true;
+            return !string.IsNullOrEmpty(b.Name) &&
+                   b.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void Filter_TextChanged(object sender, TextChangedEventArgs e)
@@ -81,30 +70,28 @@ namespace Filey
 
         private void UpdatePlaceholders()
         {
-            if (TagFilterPlaceholder != null)
-                TagFilterPlaceholder.Visibility = string.IsNullOrEmpty(TagFilterBox.Text)
-                    ? Visibility.Visible : Visibility.Collapsed;
             if (SearchPlaceholder != null)
                 SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchBox.Text)
                     ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void ClearTagFilter_Click(object sender, RoutedEventArgs e)
-        {
-            TagFilterBox.Clear();
-        }
-
         // --- Activation / navigation ---------------------------------------------
-        // Single click navigates (unless the click began a drag or the item is being renamed).
         private void BookmarksList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (_dragStarted) return;
             var hit = e.OriginalSource as DependencyObject;
             var b = hit != null ? GetBookmarkFromContainer(hit) : null;
             if (b != null && !b.IsEditing)
-            {
                 NavigationRequested?.Invoke(this, b.Path);
-            }
+        }
+
+        public void SyncSelectionToPath(string path)
+        {
+            var match = string.IsNullOrEmpty(path)
+                ? null
+                : BookmarkStore.Instance.ForSide(Side).FirstOrDefault(
+                    b => string.Equals(b.Path, path, StringComparison.OrdinalIgnoreCase));
+            BookmarksList.SelectedItem = match;
         }
 
         // --- Add ------------------------------------------------------------------
@@ -114,66 +101,52 @@ namespace Filey
             AddFavourite(path);
         }
 
-        /// <summary>Add a favourite immediately using the path's name as the default.
-        /// Name and tags can be changed afterwards via the right-click menu.</summary>
         public void AddFavourite(string path)
         {
             if (string.IsNullOrEmpty(path)) return;
             if (BookmarkStore.Instance.Find(Side, path) != null) return;
-
             string defaultName = path;
             try { defaultName = new System.IO.DirectoryInfo(path).Name; } catch { }
-
-            BookmarkStore.Instance.Add(Side, path, defaultName, Enumerable.Empty<string>());
+            BookmarkStore.Instance.Add(Side, path, defaultName);
             _view?.Refresh();
         }
 
-        /// <summary>Open the form in tag-only mode to add tags to an existing bookmark.</summary>
-        private void OpenTagPopup(Bookmark target)
+        // --- Group assignment -----------------------------------------------------
+        private void FavCtxSetGroup_Click(object sender, RoutedEventArgs e)
         {
-            _pendingAddPath = null;
-            _tagTarget = target;
-            PopupTitle.Text = "Add tags";
-            PopupNameSection.Visibility = Visibility.Collapsed;
-            PopupConfirmButton.Content = "Add";
-            PopupTagsBox.Text = string.Empty;
-            AddPopup.IsOpen = true;
-            PopupTagsBox.Focus();
+            _groupTarget = BookmarkFromMenu(sender);
+            if (_groupTarget == null) return;
+            GroupNameBox.Text = _groupTarget.FolderGroup ?? string.Empty;
+            GroupPopup.IsOpen = true;
+            GroupNameBox.Focus();
+            GroupNameBox.SelectAll();
         }
 
-        private string _pendingAddPath;
-        private Bookmark _tagTarget;
-
-        private static IEnumerable<string> ParseTags(string text)
+        private void FavCtxClearGroup_Click(object sender, RoutedEventArgs e)
         {
-            return (text ?? string.Empty)
-                .Split(',')
-                .Select(t => t.Trim())
-                .Where(t => !string.IsNullOrEmpty(t));
+            var b = BookmarkFromMenu(sender);
+            if (b == null) return;
+            b.FolderGroup = null;
+            _view?.Refresh();
         }
 
-        private void PopupAdd_Click(object sender, RoutedEventArgs e)
+        private void GroupPopupConfirm_Click(object sender, RoutedEventArgs e) => CommitGroup();
+        private void GroupPopupCancel_Click(object sender, RoutedEventArgs e) => GroupPopup.IsOpen = false;
+
+        private void GroupNameBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (_tagTarget != null)
-            {
-                foreach (var tag in ParseTags(PopupTagsBox.Text))
-                {
-                    if (!_tagTarget.Tags.Any(t => string.Equals(t, tag, StringComparison.OrdinalIgnoreCase)))
-                        _tagTarget.Tags.Add(tag);
-                }
-                _view?.Refresh();
-            }
-            else if (!string.IsNullOrEmpty(_pendingAddPath))
-            {
-                BookmarkStore.Instance.Add(Side, _pendingAddPath, PopupNameBox.Text, ParseTags(PopupTagsBox.Text));
-                _view?.Refresh();
-            }
-            AddPopup.IsOpen = false;
+            if (e.Key == Key.Enter) { CommitGroup(); e.Handled = true; }
+            else if (e.Key == Key.Escape) { GroupPopup.IsOpen = false; e.Handled = true; }
         }
 
-        private void PopupCancel_Click(object sender, RoutedEventArgs e)
+        private void CommitGroup()
         {
-            AddPopup.IsOpen = false;
+            if (_groupTarget == null) { GroupPopup.IsOpen = false; return; }
+            string g = GroupNameBox.Text.Trim();
+            _groupTarget.FolderGroup = string.IsNullOrEmpty(g) ? null : g;
+            GroupPopup.IsOpen = false;
+            _view?.Refresh();
+            _groupTarget = null;
         }
 
         // --- Delete ---------------------------------------------------------------
@@ -269,11 +242,10 @@ namespace Filey
 
         private void Panel_Drop(object sender, DragEventArgs e)
         {
-            // Folder dragged in from Folders/Contents → new bookmark.
             if (e.Data.GetDataPresent(FolderItemDragFormat) &&
                 e.Data.GetData(FolderItemDragFormat) is FolderItem item)
             {
-                BookmarkStore.Instance.Add(Side, item.FullPath, item.Name, Enumerable.Empty<string>());
+                BookmarkStore.Instance.Add(Side, item.FullPath, item.Name);
                 _view?.Refresh();
                 e.Handled = true;
                 return;
@@ -287,13 +259,11 @@ namespace Filey
 
                 if (sourceSide != Side)
                 {
-                    // Cross-side: copy into this panel.
                     BookmarkStore.Instance.Copy(dragged, Side);
                     _view?.Refresh();
                 }
                 else
                 {
-                    // Same side: reorder to dropped position.
                     var list = BookmarkStore.Instance.ForSide(Side);
                     int from = list.IndexOf(dragged);
                     int to = GetDropIndex(e);
@@ -315,7 +285,7 @@ namespace Filey
             return -1;
         }
 
-        // --- Favourites context menu ---------------------------------------------
+        // --- Context menu helpers -------------------------------------------------
         private static Bookmark BookmarkFromMenu(object sender)
         {
             return (sender as MenuItem)?.DataContext as Bookmark;
@@ -339,12 +309,6 @@ namespace Filey
             if (b != null) NavigationRequested?.Invoke(this, b.Path);
         }
 
-        private void FavCtxAddTags_Click(object sender, RoutedEventArgs e)
-        {
-            var b = BookmarkFromMenu(sender);
-            if (b != null) OpenTagPopup(b);
-        }
-
         private void FavCtxRemove_Click(object sender, RoutedEventArgs e)
         {
             var b = BookmarkFromMenu(sender);
@@ -356,6 +320,34 @@ namespace Filey
             while (d != null && !(d is ListBoxItem))
                 d = VisualTreeHelper.GetParent(d);
             return (d as ListBoxItem)?.DataContext as Bookmark;
+        }
+
+        // --- Drives ---------------------------------------------------------------
+        private void RefreshDrives()
+        {
+            var drives = DriveInfo.GetDrives()
+                .Where(d => d.IsReady)
+                .Select(d =>
+                {
+                    string name = string.IsNullOrWhiteSpace(d.VolumeLabel)
+                        ? d.Name
+                        : $"{d.VolumeLabel} ({d.Name})";
+                    return new DriveEntry { Root = d.RootDirectory.FullName, Label = name };
+                })
+                .ToList();
+            DrivesList.ItemsSource = drives;
+        }
+
+        private void Drive_Click(object sender, MouseButtonEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is DriveEntry drive)
+                NavigationRequested?.Invoke(this, drive.Root);
+        }
+
+        private class DriveEntry
+        {
+            public string Root { get; set; }
+            public string Label { get; set; }
         }
     }
 }

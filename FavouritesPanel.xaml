@@ -61,7 +61,8 @@
             <MenuItem Header="Open in Windows Explorer" Click="FavCtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="FavCtxCopyPath_Click"/>
             <MenuItem Header="Set as root for this side" Click="FavCtxSetRoot_Click"/>
-            <MenuItem Header="Add tags…" Click="FavCtxAddTags_Click"/>
+            <MenuItem Header="Set group…" Click="FavCtxSetGroup_Click"/>
+            <MenuItem Header="Clear group" Click="FavCtxClearGroup_Click"/>
             <MenuItem Header="Remove from Favourites" Click="FavCtxRemove_Click"/>
         </ContextMenu>
 
@@ -87,6 +88,22 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Group header style -->
+        <Style x:Key="GroupHeaderStyle" TargetType="GroupItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupItem">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" Foreground="#666666"
+                                       FontSize="10" FontWeight="SemiBold"
+                                       Margin="4,6,0,2"/>
+                            <ItemsPresenter/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Border Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3"
@@ -97,8 +114,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -106,25 +123,10 @@
             <TextBlock Grid.Row="0" Text="★ Favourites" Foreground="#CCCCCC"
                        FontSize="12" FontWeight="SemiBold" Margin="2,2,2,6"/>
 
-            <!-- Tag filter bar -->
-            <Grid Grid.Row="1" Margin="0,0,0,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="TagFilterBox" Grid.Column="0" Style="{StaticResource FavTextBox}"
-                         ToolTip="Filter by tag" TextChanged="Filter_TextChanged"/>
-                <Button Grid.Column="1" Style="{StaticResource FavFlatButton}" Width="22"
-                        ToolTip="Clear tag filter" Click="ClearTagFilter_Click" Content="✕"/>
-                <TextBlock x:Name="TagFilterPlaceholder" Grid.Column="0" Text="tag filter…"
-                           Foreground="#666666" Margin="6,0"
-                           VerticalAlignment="Center" IsHitTestVisible="False"/>
-            </Grid>
-
             <!-- Search bar -->
-            <Grid Grid.Row="2" Margin="0,0,0,6">
+            <Grid Grid.Row="1" Margin="0,0,0,6">
                 <TextBox x:Name="SearchBox" Style="{StaticResource FavTextBox}" Padding="22,3,4,3"
-                         ToolTip="Search name and tags" TextChanged="Filter_TextChanged"/>
+                         ToolTip="Search by name" TextChanged="Filter_TextChanged"/>
                 <TextBlock Text="🔍" Foreground="#888888" Margin="5,0,0,0"
                            VerticalAlignment="Center" IsHitTestVisible="False"/>
                 <TextBlock x:Name="SearchPlaceholder" Text="search…" Foreground="#666666" Margin="22,0,0,0"
@@ -132,12 +134,15 @@
             </Grid>
 
             <!-- Bookmark list -->
-            <ListBox x:Name="BookmarksList" Grid.Row="3"
+            <ListBox x:Name="BookmarksList" Grid.Row="2"
                      Style="{StaticResource FavListBox}"
                      KeyDown="BookmarksList_KeyDown"
                      PreviewMouseLeftButtonDown="BookmarksList_PreviewMouseLeftButtonDown"
                      PreviewMouseMove="BookmarksList_PreviewMouseMove"
                      PreviewMouseLeftButtonUp="BookmarksList_PreviewMouseLeftButtonUp">
+                <ListBox.GroupStyle>
+                    <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
+                </ListBox.GroupStyle>
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource FavListBoxItem}">
                         <Setter Property="ContextMenu" Value="{StaticResource FavItemContextMenu}"/>
@@ -145,35 +150,18 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel>
-                            <Grid>
-                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBox x:Name="NameEdit"
-                                         Text="{Binding Name, UpdateSourceTrigger=Explicit}"
-                                         Background="#121212" Foreground="#E0E0E0"
-                                         BorderBrush="#007ACC" BorderThickness="1" Padding="2,1"
-                                         Margin="-2" Visibility="Collapsed"
-                                         LostFocus="NameEdit_LostFocus"
-                                         KeyDown="NameEdit_KeyDown"
-                                         IsVisibleChanged="NameEdit_IsVisibleChanged"/>
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding Tags}" Margin="0,2,0,0">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#0E3A5C" CornerRadius="3"
-                                                Padding="4,1" Margin="0,0,3,2">
-                                            <TextBlock Text="{Binding}" Foreground="#9CDCFE" FontSize="10"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
+                        <Grid>
+                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBox x:Name="NameEdit"
+                                     Text="{Binding Name, UpdateSourceTrigger=Explicit}"
+                                     Background="#121212" Foreground="#E0E0E0"
+                                     BorderBrush="#007ACC" BorderThickness="1" Padding="2,1"
+                                     Margin="-2" Visibility="Collapsed"
+                                     LostFocus="NameEdit_LostFocus"
+                                     KeyDown="NameEdit_KeyDown"
+                                     IsVisibleChanged="NameEdit_IsVisibleChanged"/>
+                        </Grid>
                         <DataTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                 <Setter TargetName="NameText" Property="Visibility" Value="Collapsed"/>
@@ -184,30 +172,53 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
+            <!-- Drives group -->
+            <StackPanel Grid.Row="3" x:Name="DrivesSection" Margin="0,6,0,0">
+                <Border BorderBrush="#333333" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
+                <TextBlock Text="DRIVES" Foreground="#666666"
+                           FontSize="10" FontWeight="SemiBold" Margin="2,0,0,4"/>
+                <ItemsControl x:Name="DrivesList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="3" Padding="4,3" Background="Transparent"
+                                    Cursor="Hand" MouseLeftButtonUp="Drive_Click">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#2A2D2E"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding Label}" Foreground="#C0C0C0"
+                                           TextTrimming="CharacterEllipsis" FontSize="12"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- Add button -->
             <Button x:Name="AddButton" Grid.Row="4" Style="{StaticResource FavFlatButton}" Margin="0,6,0,0"
                     HorizontalAlignment="Stretch" Content="+ Add" Click="AddButton_Click"/>
 
-            <!-- Tag-edit popup (anchored above the Add button so it is always fully visible) -->
-            <Popup x:Name="AddPopup" Grid.Row="4" Placement="Top"
+            <!-- Set-group popup -->
+            <Popup x:Name="GroupPopup" Grid.Row="4" Placement="Top"
                    PlacementTarget="{Binding ElementName=AddButton}" StaysOpen="False"
                    AllowsTransparency="True" PopupAnimation="Fade">
                 <Border Background="#252526" BorderBrush="#3D3D3D" BorderThickness="1"
-                        CornerRadius="4" Padding="10" Width="220">
+                        CornerRadius="4" Padding="10" Width="200">
                     <StackPanel>
-                        <TextBlock x:Name="PopupTitle" Text="Add to Favourites" Foreground="#E0E0E0"
+                        <TextBlock Text="Set group" Foreground="#E0E0E0"
                                    FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <StackPanel x:Name="PopupNameSection">
-                            <TextBlock Text="Name" Foreground="#AAAAAA" FontSize="11"/>
-                            <TextBox x:Name="PopupNameBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,8"/>
-                        </StackPanel>
-                        <TextBlock Text="Tags (comma separated)" Foreground="#AAAAAA" FontSize="11"/>
-                        <TextBox x:Name="PopupTagsBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,10"/>
+                        <TextBox x:Name="GroupNameBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,10"
+                                 KeyDown="GroupNameBox_KeyDown"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource FavFlatButton}" Content="Cancel"
-                                    Margin="0,0,6,0" Click="PopupCancel_Click"/>
-                            <Button x:Name="PopupConfirmButton" Style="{StaticResource FavFlatButton}" Content="Add"
-                                    Foreground="#4EC9B0" Click="PopupAdd_Click"/>
+                                    Margin="0,0,6,0" Click="GroupPopupCancel_Click"/>
+                            <Button Style="{StaticResource FavFlatButton}" Content="Set"
+                                    Foreground="#4EC9B0" Click="GroupPopupConfirm_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

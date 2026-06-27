@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace Filey
 {
     public class Bookmark : ViewModelBase
     {
         private string _name;
+        private string _folderGroup;
         private bool _isEditing;
 
         public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -20,18 +19,20 @@ namespace Filey
             set => SetField(ref _name, value);
         }
 
-        public ObservableCollection<string> Tags { get; set; } = new ObservableCollection<string>();
+        /// <summary>Optional group name. Bookmarks with the same group are shown together.</summary>
+        public string FolderGroup
+        {
+            get => _folderGroup;
+            set => SetField(ref _folderGroup, value);
+        }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // Transient UI state (not persisted) — drives inline rename, same pattern as FolderItem.
         public bool IsEditing
         {
             get => _isEditing;
             set => SetField(ref _isEditing, value);
         }
-
-        public bool HasTags => Tags != null && Tags.Count > 0;
 
         public Bookmark Clone()
         {
@@ -40,7 +41,7 @@ namespace Filey
                 Id = Guid.NewGuid().ToString(),
                 Path = Path,
                 Name = Name,
-                Tags = new ObservableCollection<string>(Tags ?? new ObservableCollection<string>()),
+                FolderGroup = FolderGroup,
                 CreatedAt = DateTime.Now
             };
         }
