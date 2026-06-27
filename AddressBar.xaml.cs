@@ -52,6 +52,24 @@ namespace Filey
             // Capture the canonical resting brushes so error state always reverts to them.
             _restingBackground = MainBarBorder.Background;
             _restingBorderBrush = MainBarBorder.BorderBrush;
+
+            // Pasting a path navigates immediately, with no Enter required.
+            DataObject.AddPastingHandler(PathTextBox, PathTextBox_Pasting);
+        }
+
+        private void PathTextBox_Pasting(object sender, DataObjectPastingEventArgs e)
+        {
+            // Let the paste complete first, then navigate if it produced a valid directory.
+            // Deferring avoids racing the TextBox's own text insertion.
+            PathTextBox.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                string targetPath = PathTextBox.Text.Trim();
+                if (!string.IsNullOrEmpty(targetPath) && Directory.Exists(targetPath))
+                {
+                    NavigationRequested?.Invoke(this, targetPath);
+                    ExitEditMode();
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         public string CurrentPath
