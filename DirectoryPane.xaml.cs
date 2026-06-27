@@ -24,7 +24,16 @@ namespace Filey
         }
 
         public static readonly DependencyProperty SideProperty =
-            DependencyProperty.Register("Side", typeof(Side), typeof(DirectoryPane), new PropertyMetadata(Side.Left));
+            DependencyProperty.Register("Side", typeof(Side), typeof(DirectoryPane),
+                new PropertyMetadata(Side.Left, OnSideChanged));
+
+        private static void OnSideChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DirectoryPane pane)
+            {
+                pane.ApplySideLayout();
+            }
+        }
 
         public Side Side
         {
@@ -42,21 +51,30 @@ namespace Filey
             set => SetValue(EstimatedRowHeightProperty, value);
         }
 
+        // The two column definitions are fixed in the grid (col 0 and col 2), but
+        // which panel each one hosts flips with Side. Resolve by role so the
+        // cross-pane width sync stays correct on both sides.
+        private ColumnDefinition ParentFoldersColumn =>
+            Side == Side.Right ? ContentsCol : ParentFoldersCol;
+
+        private ColumnDefinition ContentsColumn =>
+            Side == Side.Right ? ParentFoldersCol : ContentsCol;
+
         public GridLength ParentFoldersWidth
         {
-            get => ParentFoldersCol.Width;
-            set => ParentFoldersCol.Width = value;
+            get => ParentFoldersColumn.Width;
+            set => ParentFoldersColumn.Width = value;
         }
 
-        public double ParentFoldersActualWidth => ParentFoldersCol.ActualWidth;
+        public double ParentFoldersActualWidth => ParentFoldersColumn.ActualWidth;
 
         public GridLength ContentsWidth
         {
-            get => ContentsCol.Width;
-            set => ContentsCol.Width = value;
+            get => ContentsColumn.Width;
+            set => ContentsColumn.Width = value;
         }
 
-        public double ContentsActualWidth => ContentsCol.ActualWidth;
+        public double ContentsActualWidth => ContentsColumn.ActualWidth;
 
         public bool IsMouseOverParentFolders => ParentFoldersPanel != null && ParentFoldersPanel.IsMouseOver;
 
@@ -102,8 +120,40 @@ namespace Filey
             this.SizeChanged += (s, e) => UpdatePaneLayout();
             this.Loaded += (s, e) => {
                 SetupParentFoldersFilter();
+                ApplySideLayout();
                 UpdatePaneLayout();
             };
+        }
+
+        // Mirror the layout for the right pane: parent-folders list sits on the
+        // outer edge (rightmost), contents on the inner edge (leftmost).
+        private void ApplySideLayout()
+        {
+            if (ParentFoldersPanel == null || ContentsPanel == null ||
+                ParentFoldersCol == null || ContentsCol == null)
+                return;
+
+            // Column 0's definition is ParentFoldersCol; column 2's is ContentsCol.
+            // The definitions stay put; the panels and their widths move so the
+            // contents (star-sized) panel sits on the inner edge.
+            if (Side == Side.Right)
+            {
+                Grid.SetColumn(ContentsPanel, 0);
+                Grid.SetColumn(ParentFoldersPanel, 2);
+                ParentFoldersCol.Width = new GridLength(2, GridUnitType.Star);
+                ParentFoldersCol.MinWidth = 150;
+                ContentsCol.Width = new GridLength(150);
+                ContentsCol.MinWidth = 100;
+            }
+            else
+            {
+                Grid.SetColumn(ParentFoldersPanel, 0);
+                Grid.SetColumn(ContentsPanel, 2);
+                ParentFoldersCol.Width = new GridLength(150);
+                ParentFoldersCol.MinWidth = 100;
+                ContentsCol.Width = new GridLength(2, GridUnitType.Star);
+                ContentsCol.MinWidth = 150;
+            }
         }
 
         public void UpdatePaneLayout()

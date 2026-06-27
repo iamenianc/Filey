@@ -238,7 +238,7 @@
             <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
             <!-- Contents (Split: Top = Folders, Bottom = Files) -->
-            <Grid Grid.Column="2">
+            <Grid x:Name="ContentsPanel" Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition x:Name="FoldersRow" Height="*" MinHeight="100"/>
                     <RowDefinition x:Name="SplitterRow" Height="6"/>
