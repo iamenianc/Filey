@@ -83,8 +83,6 @@
             <ColumnDefinition Width="Auto"/>
             <!-- Forward Button -->
             <ColumnDefinition Width="Auto"/>
-            <!-- Folders-on-top toggle (left pane only) -->
-            <ColumnDefinition Width="Auto"/>
             <!-- Spacer -->
             <ColumnDefinition Width="4"/>
             <!-- Address Bar Box -->
@@ -129,39 +127,9 @@
                   Data="M 4,2 L 8,5 L 4,8 M 8,5 L 2,5"/>
         </Button>
 
-        <!-- Folders-on-top toggle (shown only on the left AddressBar) -->
-        <ToggleButton x:Name="FoldersOnTopToggle"
-                      Grid.Column="2"
-                      Width="30" Height="30"
-                      Visibility="Collapsed"
-                      Background="Transparent"
-                      BorderThickness="0"
-                      Foreground="#E0E0E0"
-                      ToolTip="Pin folders to top of Contents panel"
-                      Checked="FoldersOnTopToggle_Changed"
-                      Unchecked="FoldersOnTopToggle_Changed">
-            <ToggleButton.Template>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="border" CornerRadius="4" Background="{TemplateBinding Background}">
-                        <TextBlock Text="▤" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{TemplateBinding Foreground}"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#094771"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </ToggleButton.Template>
-        </ToggleButton>
-
         <!-- Main Bar Area -->
         <Border x:Name="MainBarBorder"
-                Grid.Column="4"
+                Grid.Column="3"
                 Background="#121212"
                 BorderBrush="#2D2D2D"
                 BorderThickness="1"

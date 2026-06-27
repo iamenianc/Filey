@@ -16,13 +16,6 @@ namespace Filey
         private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
         private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
 
-        /// <summary>
-        /// When true (default) subfolders render in their own panel above the files
-        /// panel. When false, subfolders are folded into the Contents list and sorted
-        /// in alongside files. Shared across both sides; persisted in settings.json.
-        /// </summary>
-        public static bool FoldersOnTop { get; set; } = true;
-
         public DirectoryViewModel()
         {
             _folders = new ObservableCollection<FolderItem>();
@@ -274,23 +267,13 @@ namespace Filey
 
                 // Sort folders alphabetically
                 folderList.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-
-                // When "folders on top" is on, subfolders get their own panel. When off,
-                // they fold into the Contents list and sort in alongside files.
-                if (FoldersOnTop)
+                foreach (var item in folderList)
                 {
-                    foreach (var item in folderList)
-                    {
-                        Folders.Add(item);
-                    }
+                    Folders.Add(item);
                 }
 
                 // 2. Load Contents (for contents list, including only files now)
                 var contentList = new System.Collections.Generic.List<FolderItem>();
-                if (!FoldersOnTop)
-                {
-                    contentList.AddRange(folderList);
-                }
 
                 // Add files to contents (sorted alphabetically ascending)
                 var fileList = new System.Collections.Generic.List<FolderItem>();
