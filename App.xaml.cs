@@ -15,6 +15,7 @@ namespace Filey
         private const string UniqueWindowTitle = "Filey — Dual Pane File Manager";
 
         private Mutex _singleInstanceMutex;
+        private bool _ownsMutex;
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
@@ -32,6 +33,7 @@ namespace Filey
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             _singleInstanceMutex = new Mutex(true, MutexName, out bool createdNew);
+            _ownsMutex = createdNew;
             if (!createdNew)
             {
                 ActivateExistingInstance();
@@ -55,7 +57,8 @@ namespace Filey
 
         protected override void OnExit(ExitEventArgs e)
         {
-            _singleInstanceMutex?.ReleaseMutex();
+            if (_ownsMutex)
+                _singleInstanceMutex?.ReleaseMutex();
             _singleInstanceMutex?.Dispose();
             base.OnExit(e);
         }
