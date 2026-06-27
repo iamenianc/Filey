@@ -70,6 +70,9 @@ namespace Filey
                 SetRightPaneVisible(_settings.RightPaneVisible);
 
                 ShowHiddenToggle.IsChecked = _settings.ShowHidden;
+
+                CompactModeToggle.IsChecked = _settings.CompactMode;
+                ApplyCompactMode(_settings.CompactMode);
             };
 
             DirectoryViewModel.ShowHidden = _settings.ShowHidden;
@@ -117,6 +120,7 @@ namespace Filey
             // at its Home path next launch.
             _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
             _settings.ShowHidden = ShowHiddenToggle.IsChecked == true;
+            _settings.CompactMode = CompactModeToggle.IsChecked == true;
 
             // When the right pane is hidden its columns report zero width; keep the
             // previously persisted positions rather than overwriting them with zeros.
@@ -170,6 +174,25 @@ namespace Filey
             RightViewModel.LoadDirectory(syncPath);
             RightPaneOverlay.Visibility = Visibility.Collapsed;
             _rightPaneActivated = true;
+        }
+
+        // Estimated per-row height used by the pane layout maths; tracks compact mode.
+        private double _estimatedRowHeight = 28;
+
+        private void CompactModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (LeftViewModel == null) return;
+            ApplyCompactMode(CompactModeToggle.IsChecked == true);
+        }
+
+        private void ApplyCompactMode(bool compact)
+        {
+            Resources["RowItemPadding"] = compact ? new Thickness(4, 1, 4, 1) : new Thickness(4, 4, 4, 4);
+            Resources["RowCellMargin"] = compact ? new Thickness(2, 0, 2, 0) : new Thickness(2);
+            _estimatedRowHeight = compact ? 22 : 28;
+
+            UpdateLeftPaneLayout();
+            UpdateRightPaneLayout();
         }
 
         private void ShowHiddenToggle_Changed(object sender, RoutedEventArgs e)
@@ -777,8 +800,8 @@ namespace Filey
 
             // Both folders and files exist.
             // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
-            double estimatedFoldersHeight = 36 + folderCount * 28;
-            double estimatedFilesHeight = 36 + fileCount * 28;
+            double estimatedFoldersHeight = 36 + folderCount * _estimatedRowHeight;
+            double estimatedFilesHeight = 36 + fileCount * _estimatedRowHeight;
             double splitterHeight = 6;
 
             FrameworkElement parentGrid = LeftFoldersListView.Parent as FrameworkElement;
@@ -868,8 +891,8 @@ namespace Filey
 
             // Both folders and files exist.
             // Estimate layout heights (headers ~36px, each item ~28px, splitter 6px).
-            double estimatedFoldersHeight = 36 + folderCount * 28;
-            double estimatedFilesHeight = 36 + fileCount * 28;
+            double estimatedFoldersHeight = 36 + folderCount * _estimatedRowHeight;
+            double estimatedFilesHeight = 36 + fileCount * _estimatedRowHeight;
             double splitterHeight = 6;
 
             FrameworkElement parentGrid = RightFoldersListView.Parent as FrameworkElement;

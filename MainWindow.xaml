@@ -9,6 +9,10 @@
         Background="#121212"
         Foreground="#E0E0E0">
     <Window.Resources>
+        <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
+        <Thickness x:Key="RowItemPadding">4,4,4,4</Thickness>
+        <Thickness x:Key="RowCellMargin">2</Thickness>
+
         <!-- Shared right-click context menu for all folder/file/bookmark items -->
         <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
@@ -108,7 +112,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6,4,6,4" />
+            <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
@@ -176,7 +180,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="4,4,4,4" />
+            <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListViewItem">
@@ -299,6 +303,12 @@
                               ToolTip="Show or hide hidden and system items"
                               Checked="ShowHiddenToggle_Changed"
                               Unchecked="ShowHiddenToggle_Changed"/>
+                <ToggleButton x:Name="CompactModeToggle"
+                              Style="{StaticResource TopBarToggleStyle}"
+                              Content="Compact"
+                              ToolTip="Reduce row spacing in the file lists"
+                              Checked="CompactModeToggle_Changed"
+                              Unchecked="CompactModeToggle_Changed"/>
             </StackPanel>
         </Border>
 
@@ -426,7 +436,7 @@
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid VerticalAlignment="Center" Margin="2">
+                                    <Grid VerticalAlignment="Center" Margin="{DynamicResource RowCellMargin}">
                                         <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
                                         <TextBox x:Name="NameEdit"
                                                  Text="{Binding Name, UpdateSourceTrigger=Explicit}"
@@ -484,7 +494,7 @@
                                     <GridViewColumnHeader Content="Folders" Tag="Name"/>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                            <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                                 <Grid VerticalAlignment="Center">
                                                     <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
@@ -547,7 +557,7 @@
                                     <GridViewColumnHeader Content="Files" Tag="Name"/>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                            <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                                 <Grid VerticalAlignment="Center">
                                                     <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
@@ -646,7 +656,7 @@
                                     <GridViewColumnHeader Content="Folders" Tag="Name"/>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                            <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                                 <Grid VerticalAlignment="Center">
                                                     <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
@@ -709,7 +719,7 @@
                                     <GridViewColumnHeader Content="Files" Tag="Name"/>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                            <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                                 <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                                 <Grid VerticalAlignment="Center">
                                                     <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
@@ -830,7 +840,7 @@
                                  KeyDown="List_KeyDown">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid VerticalAlignment="Center" Margin="2">
+                                    <Grid VerticalAlignment="Center" Margin="{DynamicResource RowCellMargin}">
                                         <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
                                         <TextBox x:Name="NameEdit"
                                                  Text="{Binding Name, UpdateSourceTrigger=Explicit}"
