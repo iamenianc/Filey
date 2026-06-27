@@ -156,6 +156,18 @@ namespace Filey
             _rightPaneActivated = true;
         }
 
+        private void SwapPanesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_rightPaneActivated) return;
+
+            string leftPath = LeftViewModel.CurrentDirectory;
+            string rightPath = RightViewModel.CurrentDirectory;
+            if (string.IsNullOrEmpty(leftPath) || string.IsNullOrEmpty(rightPath)) return;
+
+            LeftViewModel.LoadDirectory(rightPath);
+            RightViewModel.LoadDirectory(leftPath);
+        }
+
         private void CompactModeToggle_Changed(object sender, RoutedEventArgs e)
         {
             if (LeftViewModel == null) return;

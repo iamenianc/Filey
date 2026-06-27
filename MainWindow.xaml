@@ -59,6 +59,12 @@
                               ToolTip="Reduce row spacing in the file lists"
                               Checked="CompactModeToggle_Changed"
                               Unchecked="CompactModeToggle_Changed"/>
+                <Button x:Name="SwapPanesButton"
+                        Style="{StaticResource FlatButtonStyle}"
+                        Content="⇄ Swap"
+                        ToolTip="Swap the paths shown in the left and right panes"
+                        Padding="8,0"
+                        Click="SwapPanesButton_Click"/>
             </StackPanel>
         </Border>
 
