@@ -35,6 +35,12 @@ namespace Filey
         public event EventHandler GoBackRequested;
         public event EventHandler GoForwardRequested;
 
+        /// <summary>Raised on left-click of the Home button: navigate this pane to its Home.</summary>
+        public event EventHandler HomeRequested;
+
+        /// <summary>Raised on right-click of the Home button: set this pane's Home to its current path.</summary>
+        public event EventHandler SetHomeRequested;
+
         private bool _isEditMode;
         private Brush _restingBackground;
         private Brush _restingBorderBrush;
@@ -186,6 +192,17 @@ namespace Filey
         private void ForwardButton_Click(object sender, RoutedEventArgs e)
         {
             GoForwardRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        {
+            HomeRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void HomeButton_RightClick(object sender, MouseButtonEventArgs e)
+        {
+            SetHomeRequested?.Invoke(this, EventArgs.Empty);
+            e.Handled = true;
         }
 
         private void SegmentButton_Click(object sender, RoutedEventArgs e)

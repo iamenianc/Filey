@@ -83,6 +83,8 @@
             <ColumnDefinition Width="Auto"/>
             <!-- Forward Button -->
             <ColumnDefinition Width="Auto"/>
+            <!-- Home Button -->
+            <ColumnDefinition Width="Auto"/>
             <!-- Spacer -->
             <ColumnDefinition Width="4"/>
             <!-- Address Bar Box -->
@@ -127,9 +129,28 @@
                   Data="M 4,2 L 8,5 L 4,8 M 8,5 L 2,5"/>
         </Button>
 
+        <!-- Home Button: left-click navigates to this pane's Home, right-click sets it -->
+        <Button Grid.Column="2"
+                Width="30"
+                Height="30"
+                Style="{StaticResource FlatButtonStyle}"
+                ToolTip="Home (right-click to set this pane's Home folder)"
+                Click="HomeButton_Click"
+                MouseRightButtonUp="HomeButton_RightClick">
+            <Path Width="11"
+                  Height="11"
+                  Stretch="Uniform"
+                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                  StrokeThickness="1.5"
+                  StrokeStartLineCap="Round"
+                  StrokeEndLineCap="Round"
+                  StrokeLineJoin="Round"
+                  Data="M 2,5 L 6,1.5 L 10,5 M 3,4.2 L 3,9.5 L 9,9.5 L 9,4.2"/>
+        </Button>
+
         <!-- Main Bar Area -->
         <Border x:Name="MainBarBorder"
-                Grid.Column="3"
+                Grid.Column="4"
                 Background="#121212"
                 BorderBrush="#2D2D2D"
                 BorderThickness="1"

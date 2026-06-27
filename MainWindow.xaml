@@ -337,7 +337,9 @@
                               CanGoForward="{Binding CanGoForward}"
                               NavigationRequested="AddressBar_NavigationRequested"
                               GoBackRequested="AddressBar_GoBackRequested"
-                              GoForwardRequested="AddressBar_GoForwardRequested"/>
+                              GoForwardRequested="AddressBar_GoForwardRequested"
+                              HomeRequested="AddressBar_HomeRequested"
+                              SetHomeRequested="AddressBar_SetHomeRequested"/>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
@@ -618,7 +620,9 @@
                               CanGoForward="{Binding CanGoForward}"
                               NavigationRequested="AddressBar_NavigationRequested"
                               GoBackRequested="AddressBar_GoBackRequested"
-                              GoForwardRequested="AddressBar_GoForwardRequested"/>
+                              GoForwardRequested="AddressBar_GoForwardRequested"
+                              HomeRequested="AddressBar_HomeRequested"
+                              SetHomeRequested="AddressBar_SetHomeRequested"/>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>

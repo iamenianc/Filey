@@ -527,6 +527,37 @@ namespace Filey
             }
         }
 
+        private void AddressBar_HomeRequested(object sender, EventArgs e)
+        {
+            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
+            {
+                string home = vm == RightViewModel ? _settings.RightHomePath : _settings.LeftHomePath;
+                vm.LoadDirectory(ResolveHomePath(home));
+            }
+        }
+
+        private void AddressBar_SetHomeRequested(object sender, EventArgs e)
+        {
+            if (sender is AddressBar bar && bar.DataContext is DirectoryViewModel vm)
+            {
+                string current = vm.CurrentDirectory;
+                if (string.IsNullOrEmpty(current) || !System.IO.Directory.Exists(current)) return;
+
+                string side = vm == RightViewModel ? "right" : "left";
+                var confirm = MessageBox.Show(
+                    $"Set the {side} pane's Home folder to:\n\n{current}",
+                    "Set Home Folder", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+                if (confirm != MessageBoxResult.OK) return;
+
+                if (vm == RightViewModel)
+                    _settings.RightHomePath = current;
+                else
+                    _settings.LeftHomePath = current;
+
+                SettingsService.Save(_settings);
+            }
+        }
+
         private void ParentBackButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.DataContext is DirectoryViewModel vm)
