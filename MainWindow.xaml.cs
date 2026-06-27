@@ -26,12 +26,24 @@ namespace Filey
         public DirectoryViewModel LeftViewModel { get; }
         public DirectoryViewModel RightViewModel { get; }
 
+        private AppSettings _settings;
+        private bool _rightPaneActivated;
+
         public MainWindow()
         {
             LeftViewModel = new DirectoryViewModel();
             RightViewModel = new DirectoryViewModel();
 
+            _settings = SettingsService.Load();
+            DirectoryViewModel.FoldersOnTop = _settings.FoldersOnTop;
+            BookmarkStore.Instance.LoadFromDisk();
+
             InitializeComponent();
+
+            this.Closing += MainWindow_Closing;
+
+            LeftAddressBar.EnableFoldersOnTopToggle(DirectoryViewModel.FoldersOnTop);
+            LeftAddressBar.FoldersOnTopChanged += OnFoldersOnTopChanged;
 
             // Subscribe to ViewModel property changes to dynamically adjust folder pane heights
             LeftViewModel.PropertyChanged += LeftViewModel_PropertyChanged;
@@ -54,11 +66,92 @@ namespace Filey
                 var rightView = CollectionViewSource.GetDefaultView(RightViewModel.ParentFolders);
                 rightView.Filter = obj => FilterParentFolder(obj, RightParentFoldersSearch.Text);
                 RightParentFoldersList.ItemsSource = rightView;
+
+                ApplySplitterPositions();
             };
 
-            // Set up initial directories (UserProfile directory as specified in starting state)
-            string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            LeftViewModel.LoadDirectory(startingPath);
+            RestorePersistedState();
+        }
+
+        /// <summary>
+        /// Restores last-used paths and navigation history for both sides. Falls back to
+        /// the user profile when a persisted path no longer exists.
+        /// </summary>
+        private void RestorePersistedState()
+        {
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            string leftPath = ResolveStartPath(_settings.LeftRootPath, userProfile);
+            LeftViewModel.LoadDirectory(leftPath);
+
+            var history = HistoryService.Load();
+            LeftViewModel.RestoreBackStack(history.Left);
+
+            // Only activate the right pane if a path was persisted for it.
+            if (!string.IsNullOrEmpty(_settings.RightRootPath))
+            {
+                string rightPath = ResolveStartPath(_settings.RightRootPath, userProfile);
+                RightViewModel.LoadDirectory(rightPath);
+                RightViewModel.RestoreBackStack(history.Right);
+                RightPaneOverlay.Visibility = Visibility.Collapsed;
+                _rightPaneActivated = true;
+            }
+        }
+
+        private void OnFoldersOnTopChanged(object sender, bool isChecked)
+        {
+            if (DirectoryViewModel.FoldersOnTop == isChecked) return;
+            DirectoryViewModel.FoldersOnTop = isChecked;
+
+            // Reload in place so both panes re-partition folders vs. files immediately.
+            LeftViewModel.LoadDirectory(LeftViewModel.CurrentDirectory, pushToHistory: false);
+            if (_rightPaneActivated)
+                RightViewModel.LoadDirectory(RightViewModel.CurrentDirectory, pushToHistory: false);
+        }
+
+        private static string ResolveStartPath(string preferred, string fallback)
+        {
+            return !string.IsNullOrEmpty(preferred) && System.IO.Directory.Exists(preferred)
+                ? preferred
+                : fallback;
+        }
+
+        private void ApplySplitterPositions()
+        {
+            var widths = _settings.SplitterPositions;
+            if (widths == null || widths.Count != 6) return;
+
+            LeftFavouritesCol.Width = new GridLength(widths[0]);
+            LeftParentFoldersCol.Width = new GridLength(widths[1]);
+            LeftContentsCol.Width = new GridLength(widths[2]);
+            RightFavouritesCol.Width = new GridLength(widths[3]);
+            RightParentFoldersCol.Width = new GridLength(widths[4]);
+            RightContentsCol.Width = new GridLength(widths[5]);
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            _settings.LeftRootPath = LeftViewModel.CurrentDirectory;
+            _settings.RightRootPath = _rightPaneActivated ? RightViewModel.CurrentDirectory : null;
+            _settings.FoldersOnTop = DirectoryViewModel.FoldersOnTop;
+            _settings.SplitterPositions = new System.Collections.Generic.List<double>
+            {
+                LeftFavouritesCol.ActualWidth,
+                LeftParentFoldersCol.ActualWidth,
+                LeftContentsCol.ActualWidth,
+                RightFavouritesCol.ActualWidth,
+                RightParentFoldersCol.ActualWidth,
+                RightContentsCol.ActualWidth,
+            };
+            SettingsService.Save(_settings);
+
+            HistoryService.Save(new NavigationHistory
+            {
+                Left = LeftViewModel.GetBackStackSnapshot(),
+                Right = RightViewModel.GetBackStackSnapshot(),
+            });
+
+            BookmarkStore.Instance.SaveToDisk();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -80,6 +173,7 @@ namespace Filey
                 string startingPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 RightViewModel.LoadDirectory(startingPath);
                 RightPaneOverlay.Visibility = Visibility.Collapsed;
+                _rightPaneActivated = true;
             }
         }
 

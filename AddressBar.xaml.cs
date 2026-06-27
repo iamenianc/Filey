@@ -35,6 +35,16 @@ namespace Filey
         public event EventHandler GoBackRequested;
         public event EventHandler GoForwardRequested;
 
+        /// <summary>Raised when the folders-on-top toggle changes (left AddressBar only).</summary>
+        public event EventHandler<bool> FoldersOnTopChanged;
+
+        /// <summary>Shows the folders-on-top toggle and sets its initial state.</summary>
+        public void EnableFoldersOnTopToggle(bool isChecked)
+        {
+            FoldersOnTopToggle.Visibility = Visibility.Visible;
+            FoldersOnTopToggle.IsChecked = isChecked;
+        }
+
         private bool _isEditMode;
         private Brush _restingBackground;
         private Brush _restingBorderBrush;
@@ -186,6 +196,11 @@ namespace Filey
         private void ForwardButton_Click(object sender, RoutedEventArgs e)
         {
             GoForwardRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void FoldersOnTopToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            FoldersOnTopChanged?.Invoke(this, FoldersOnTopToggle.IsChecked == true);
         }
 
         private void SegmentButton_Click(object sender, RoutedEventArgs e)

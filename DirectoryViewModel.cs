@@ -16,6 +16,13 @@ namespace Filey
         private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
         private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
 
+        /// <summary>
+        /// When true (default) subfolders render in their own panel above the files
+        /// panel. When false, subfolders are folded into the Contents list and sorted
+        /// in alongside files. Shared across both sides; persisted in settings.json.
+        /// </summary>
+        public static bool FoldersOnTop { get; set; } = true;
+
         public DirectoryViewModel()
         {
             _folders = new ObservableCollection<FolderItem>();
@@ -34,6 +41,9 @@ namespace Filey
                 }
             }
         }
+
+        /// <summary>The loaded directory, ignoring any selected file (unlike CurrentPath).</summary>
+        public string CurrentDirectory => _currentPath;
 
         public bool CanGoBack => _backStack.Count > 0;
         public bool CanGoForward => _forwardStack.Count > 0;
@@ -116,6 +126,34 @@ namespace Filey
                     return string.Empty;
                 }
             }
+        }
+
+        /// <summary>Snapshot of the back stack (oldest first) for persistence.</summary>
+        public System.Collections.Generic.List<string> GetBackStackSnapshot()
+        {
+            return new System.Collections.Generic.List<string>(_backStack);
+        }
+
+        /// <summary>
+        /// Replaces the back stack with persisted history (oldest first). The forward
+        /// stack is intentionally left empty across sessions.
+        /// </summary>
+        public void RestoreBackStack(System.Collections.Generic.IEnumerable<string> paths)
+        {
+            _backStack.Clear();
+            _forwardStack.Clear();
+            if (paths != null)
+            {
+                foreach (var p in paths)
+                {
+                    if (!string.IsNullOrEmpty(p))
+                        _backStack.Add(p);
+                }
+                if (_backStack.Count > 50)
+                    _backStack.RemoveRange(0, _backStack.Count - 50);
+            }
+            OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CanGoForward));
         }
 
         public void GoToParent()
@@ -236,13 +274,23 @@ namespace Filey
 
                 // Sort folders alphabetically
                 folderList.Sort((x, y) => string.Compare(x.Name, y.Name, StringComparison.OrdinalIgnoreCase));
-                foreach (var item in folderList)
+
+                // When "folders on top" is on, subfolders get their own panel. When off,
+                // they fold into the Contents list and sort in alongside files.
+                if (FoldersOnTop)
                 {
-                    Folders.Add(item);
+                    foreach (var item in folderList)
+                    {
+                        Folders.Add(item);
+                    }
                 }
 
                 // 2. Load Contents (for contents list, including only files now)
                 var contentList = new System.Collections.Generic.List<FolderItem>();
+                if (!FoldersOnTop)
+                {
+                    contentList.AddRange(folderList);
+                }
 
                 // Add files to contents (sorted alphabetically ascending)
                 var fileList = new System.Collections.Generic.List<FolderItem>();

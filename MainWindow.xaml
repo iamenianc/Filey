@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
         mc:Ignorable="d"
-        Title="Filey" Height="787" Width="1555"
+        Title="Filey — Dual Pane File Manager" Height="787" Width="1555"
         Background="#121212"
         Foreground="#E0E0E0">
     <Window.Resources>
@@ -14,7 +14,6 @@
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
             <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
-            <MenuItem Header="Set as root for this side" Click="CtxSetRoot_Click"/>
         </ContextMenu>
 
         <!-- Modern Flat Button Style for Back Navigation in Parent Panel -->
@@ -57,11 +56,6 @@
             <Setter Property="Background" Value="#2D2D2D" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#007ACC" />
-                </Trigger>
-            </Style.Triggers>
         </Style>
 
         <!-- Modern ListBox Style -->
@@ -224,7 +218,28 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="8">
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Top Menu Bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Pane Layout -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Global Top Menu Bar: slim container for toggles/buttons added in later patches -->
+        <Border x:Name="TopMenuBar"
+                Grid.Row="0"
+                Background="#1B1B1B"
+                BorderBrush="#2D2D2D"
+                BorderThickness="0,0,0,1"
+                Height="28">
+            <StackPanel x:Name="TopMenuBarItems"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="6,0"/>
+        </Border>
+
+    <Grid Grid.Row="1" Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left Side Pane -->
             <ColumnDefinition Width="1000" MinWidth="200" />
@@ -254,15 +269,15 @@
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <!-- Col 0: Favourites L -->
-                    <ColumnDefinition Width="150" MinWidth="50"/>
+                    <ColumnDefinition x:Name="LeftFavouritesCol" Width="150" MinWidth="50"/>
                     <!-- Divider 1 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 1: Folders L -->
-                    <ColumnDefinition Width="150" MinWidth="100"/>
+                    <ColumnDefinition x:Name="LeftParentFoldersCol" Width="150" MinWidth="100"/>
                     <!-- Divider 2 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 2: Contents L -->
-                    <ColumnDefinition Width="2*" MinWidth="150"/>
+                    <ColumnDefinition x:Name="LeftContentsCol" Width="2*" MinWidth="150"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Favourites L -->
@@ -535,15 +550,11 @@
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <!-- Col 0: Contents R -->
-                    <ColumnDefinition Width="2*" MinWidth="150"/>
+                    <ColumnDefinition x:Name="RightContentsCol" Width="2*" MinWidth="150"/>
                     <!-- Divider 1 -->
                     <ColumnDefinition Width="4" />
                     <!-- Col 1: Folders R -->
-                    <ColumnDefinition Width="150" MinWidth="100"/>
-                    <!-- Divider 2 -->
-                    <ColumnDefinition Width="4" />
-                    <!-- Col 2: Favourites R -->
-                    <ColumnDefinition Width="150" MinWidth="50"/>
+                    <ColumnDefinition x:Name="RightParentFoldersCol" Width="150" MinWidth="100"/>
                 </Grid.ColumnDefinitions>                <!-- Contents R (Split: Top = Folders, Bottom = Files) -->
                 <Grid Grid.Column="0">
                     <Grid.RowDefinitions>
@@ -782,12 +793,6 @@
                         </ListBox>
                     </Grid>
                 </Border>
-
-                <!-- GridSplitter 2 -->
-                <GridSplitter Grid.Column="3" Style="{StaticResource ModernGridSplitter}" />
-
-                <!-- Favourites R -->
-                <local:FavouritesPanel x:Name="RightFavouritesPanel" Grid.Column="4" Side="Right"/>
             </Grid>
 
             <!-- Overlay Placeholder for Inactive Right Pane -->
@@ -807,5 +812,6 @@
                 </Grid>
             </Border>
         </Grid>
+    </Grid>
     </Grid>
 </Window>

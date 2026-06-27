@@ -1,7 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace Filey
 {
@@ -26,7 +31,30 @@ namespace Filey
         public ObservableCollection<Bookmark> Left { get; } = new ObservableCollection<Bookmark>();
         public ObservableCollection<Bookmark> Right { get; } = new ObservableCollection<Bookmark>();
 
-        private BookmarkStore() { }
+        /// <summary>Suppresses auto-save while bulk-loading from disk.</summary>
+        private bool _suppressSave;
+
+        private BookmarkStore()
+        {
+            Left.CollectionChanged += OnSideChanged;
+            Right.CollectionChanged += OnSideChanged;
+        }
+
+        private void OnSideChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+                foreach (Bookmark b in e.NewItems) b.PropertyChanged += OnBookmarkChanged;
+            if (e.OldItems != null)
+                foreach (Bookmark b in e.OldItems) b.PropertyChanged -= OnBookmarkChanged;
+            SaveToDisk();
+        }
+
+        private void OnBookmarkChanged(object sender, PropertyChangedEventArgs e)
+        {
+            // IsEditing is transient UI state; persist only durable fields.
+            if (e.PropertyName == nameof(Bookmark.IsEditing)) return;
+            SaveToDisk();
+        }
 
         public ObservableCollection<Bookmark> ForSide(Side side)
         {
@@ -133,20 +161,85 @@ namespace Filey
             }
         }
 
-        // --- Persistence (deferred to Bullet 4) -----------------------------------
-        private static string StorePath =>
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Filey", "bookmarks.json");
+        // --- Persistence ----------------------------------------------------------
+        private const string FileName = "bookmarks.json";
+
+        /// <summary>Flat on-disk shape: both sides share one file, separated by Side.</summary>
+        private class BookmarkRecord
+        {
+            public string Id { get; set; }
+            public string Path { get; set; }
+            public string Name { get; set; }
+            public string FolderGroup { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public Side Side { get; set; }
+        }
 
         public void LoadFromDisk()
         {
-            // TODO (Bullet 4): read StorePath via Newtonsoft.Json into Left/Right.
+            string json = AppStorage.ReadAllTextOrNull(AppStorage.PathFor(FileName));
+            if (string.IsNullOrEmpty(json)) return;
+
+            List<BookmarkRecord> records;
+            try
+            {
+                records = JsonConvert.DeserializeObject<List<BookmarkRecord>>(json);
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"bookmarks.json parse failed: {ex.Message}");
+                return;
+            }
+            if (records == null) return;
+
+            _suppressSave = true;
+            try
+            {
+                Left.Clear();
+                Right.Clear();
+                foreach (var r in records)
+                {
+                    if (string.IsNullOrEmpty(r.Path)) continue;
+                    var bookmark = new Bookmark
+                    {
+                        Id = string.IsNullOrEmpty(r.Id) ? Guid.NewGuid().ToString() : r.Id,
+                        Path = r.Path,
+                        Name = string.IsNullOrWhiteSpace(r.Name) ? GetDefaultName(r.Path) : r.Name,
+                        FolderGroup = string.IsNullOrWhiteSpace(r.FolderGroup) ? DefaultGroup : r.FolderGroup,
+                        CreatedAt = r.CreatedAt == default(DateTime) ? DateTime.Now : r.CreatedAt
+                    };
+                    ForSide(r.Side).Add(bookmark);
+                }
+            }
+            finally
+            {
+                _suppressSave = false;
+            }
         }
 
         public void SaveToDisk()
         {
-            // TODO (Bullet 4): serialise Left/Right to StorePath via Newtonsoft.Json.
+            if (_suppressSave) return;
+
+            var records = new List<BookmarkRecord>();
+            records.AddRange(ToRecords(Left, Side.Left));
+            records.AddRange(ToRecords(Right, Side.Right));
+
+            string json = JsonConvert.SerializeObject(records, Formatting.Indented);
+            AppStorage.WriteAllTextAtomic(AppStorage.PathFor(FileName), json);
+        }
+
+        private static IEnumerable<BookmarkRecord> ToRecords(IEnumerable<Bookmark> source, Side side)
+        {
+            return source.Select(b => new BookmarkRecord
+            {
+                Id = b.Id,
+                Path = b.Path,
+                Name = b.Name,
+                FolderGroup = b.FolderGroup,
+                CreatedAt = b.CreatedAt,
+                Side = side
+            });
         }
     }
 }
