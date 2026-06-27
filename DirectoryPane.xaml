@@ -262,7 +262,9 @@
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Width="220">
-                                <GridViewColumnHeader Content="Folders" Tag="Name"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Folders" Tag="Name"/>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
@@ -293,13 +295,19 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
-                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
-                                <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
-                                <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
                     </ListView.View>
@@ -325,7 +333,9 @@
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Width="220">
-                                <GridViewColumnHeader Content="Files" Tag="Name"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Files" Tag="Name"/>
+                                </GridViewColumn.Header>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
@@ -356,13 +366,19 @@
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateModifiedFormatted}">
-                                <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
-                                <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Size" Tag="Size"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                             <GridViewColumn Width="100" DisplayMemberBinding="{Binding Type}">
-                                <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Type" Tag="Type"/>
+                                </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
                     </ListView.View>
