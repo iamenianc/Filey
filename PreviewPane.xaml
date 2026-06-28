@@ -106,8 +106,8 @@
         <ScrollViewer
             x:Name="FolderScrollViewer"
             Grid.Row="0"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Disabled"
+            HorizontalScrollBarVisibility="Hidden"
+            VerticalScrollBarVisibility="Hidden"
             Background="#1E1E1E"
             Padding="16"
             Visibility="Collapsed"

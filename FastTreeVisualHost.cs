@@ -31,11 +31,16 @@ namespace Filey
             _children.Add(_drawingVisual);
         }
 
-        public void RenderTree(List<FastNode> nodes)
+        public void RenderTree(List<FastNode> nodes, double verticalOffset = 0, double viewportHeight = 0)
         {
             using (DrawingContext dc = _drawingVisual.RenderOpen())
             {
                 if (nodes == null || nodes.Count == 0) return;
+
+                // Virtualization boundaries (offset by 50px buffer top/bottom)
+                bool enableVirtualization = viewportHeight > 0;
+                double minY = verticalOffset - 50;
+                double maxY = verticalOffset + viewportHeight + 50;
 
                 // Premium colors for lines and text in dark theme
                 var linePen = new Pen(new SolidColorBrush(Color.FromRgb(71, 85, 105)), 1); // Slate 600
@@ -85,69 +90,78 @@ namespace Filey
 
                         if (parentNode != null)
                         {
-                            if (node.IsHistory)
+                            double lineYStart = parentNode.Y + (node.IsHistory ? 8 : (parentNode.IsHistory ? 8 : 12));
+                            double lineYEnd = node.Y + 8;
+
+                            // Only draw the lines if they intersect with the visible vertical viewport
+                            if (!enableVirtualization || (lineYStart <= maxY && lineYEnd >= minY))
                             {
-                                // History L-connector
-                                double lineX = parentNode.X + 10;
-                                dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X - 1, node.Y + 8));
-                                dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 8), new Point(lineX, node.Y + 8));
-                            }
-                            else
-                            {
-                                if (node.Level == activeRootLevel)
+                                if (node.IsHistory)
                                 {
-                                    // Active root connects back to parent history node
+                                    // History L-connector
                                     double lineX = parentNode.X + 10;
-                                    dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
+                                    dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X - 1, node.Y + 8));
                                     dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 8), new Point(lineX, node.Y + 8));
                                 }
-                                else // Active folder subdirectories
+                                else
                                 {
-                                    // Subdirectory L-connector, starting from the parent folder's bottom edge (parentNode.Y + 12)
-                                    // at the horizontal center of the parent folder (parentNode.X + 7) to prevent overlapping the parent icon
-                                    double lineX = parentNode.X + 7;
-                                    dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
-                                    dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 12), new Point(lineX, node.Y + 8));
+                                    if (node.Level == activeRootLevel)
+                                    {
+                                        // Active root connects back to parent history node
+                                        double lineX = parentNode.X + 10;
+                                        dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
+                                        dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 8), new Point(lineX, node.Y + 8));
+                                    }
+                                    else // Active folder subdirectories
+                                    {
+                                        // Subdirectory L-connector, starting from the parent folder's bottom edge (parentNode.Y + 12)
+                                        // at the horizontal center of the parent folder (parentNode.X + 7) to prevent overlapping the parent icon
+                                        double lineX = parentNode.X + 7;
+                                        dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
+                                        dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 12), new Point(lineX, node.Y + 8));
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // 2. Draw text and folder icons on top of the lines
-                    Brush textBrush;
-                    Typeface nodeFont;
-                    
-                    if (node.IsPlaceholder)
+                    // Only draw text and folder icons if they are visible in the viewport
+                    if (!enableVirtualization || (node.Y >= minY && node.Y <= maxY))
                     {
-                        textBrush = placeholderTextBrush;
-                        nodeFont = italicFont;
+                        // 2. Draw text and folder icons on top of the lines
+                        Brush textBrush;
+                        Typeface nodeFont;
+                        
+                        if (node.IsPlaceholder)
+                        {
+                            textBrush = placeholderTextBrush;
+                            nodeFont = italicFont;
+                        }
+                        else if (node.IsHistory)
+                        {
+                            textBrush = fileTextBrush;
+                            nodeFont = font;
+                        }
+                        else // Active folders
+                        {
+                            textBrush = (node.Level == activeRootLevel) ? rootTextBrush : folderTextBrush;
+                            nodeFont = (node.Level == activeRootLevel) ? boldFont : font;
+                            DrawFolderIcon(dc, node.X, node.Y, folderBrush);
+                        }
+
+                        var formattedText = new FormattedText(
+                            node.Name,
+                            CultureInfo.InvariantCulture,
+                            FlowDirection.LeftToRight,
+                            nodeFont,
+                            12,
+                            textBrush,
+                            dpiScale);
+
+                        // Offset text: history nodes and placeholders don't have folder icons.
+                        double textXOffset = (node.IsHistory || node.IsPlaceholder) ? 0 : 20;
+                        dc.DrawText(formattedText, new Point(node.X + textXOffset, node.Y));
                     }
-                    else if (node.IsHistory)
-                    {
-                        textBrush = fileTextBrush;
-                        nodeFont = font;
-                    }
-                    else // Active folders
-                    {
-                        textBrush = (node.Level == activeRootLevel) ? rootTextBrush : folderTextBrush;
-                        nodeFont = (node.Level == activeRootLevel) ? boldFont : font;
-                        DrawFolderIcon(dc, node.X, node.Y, folderBrush);
-                    }
-
-                    var formattedText = new FormattedText(
-                        node.Name,
-                        CultureInfo.InvariantCulture,
-                        FlowDirection.LeftToRight,
-                        nodeFont,
-                        12,
-                        textBrush,
-                        dpiScale);
-
-                    // Offset text: history nodes and placeholders don't have folder icons.
-                    double textXOffset = (node.IsHistory || node.IsPlaceholder) ? 0 : 20;
-                    dc.DrawText(formattedText, new Point(node.X + textXOffset, node.Y));
-
-
                 }
             }
         }

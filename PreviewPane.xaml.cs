@@ -215,6 +215,14 @@ namespace Filey
                 _cts = new CancellationTokenSource();
                 var dirToken = _cts.Token;
                 EmptyStateBorder.Visibility = Visibility.Collapsed;
+                FolderScrollViewer.Visibility = Visibility.Visible;
+                DepthSelectorPanel.Visibility = Visibility.Visible;
+                if (ScrollPromptTextBlock != null)
+                {
+                    ScrollPromptTextBlock.Visibility = Visibility.Visible;
+                }
+                UpdateDepthButtonHighlights();
+
                 Task.Run(() => LoadDirectoryPreviewAsync(filePath, dirToken), dirToken);
                 return;
             }
@@ -314,6 +322,14 @@ namespace Filey
                 {
                     ChangeDepth(Math.Max(1, _previewDepth - 1));
                 }
+            }
+        }
+
+        private void FolderScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (_currentRenderedNodes != null && (e.VerticalChange != 0 || e.ViewportHeightChange != 0))
+            {
+                FolderTreeVisualHost.RenderTree(_currentRenderedNodes, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
             }
         }
 
@@ -454,7 +470,6 @@ namespace Filey
                 {
                     if (token.IsCancellationRequested) return;
 
-                    RecyclePreview();
                     EmptyStateBorder.Visibility = Visibility.Collapsed;
                     FolderScrollViewer.Visibility = Visibility.Visible;
                     DepthSelectorPanel.Visibility = Visibility.Visible;
@@ -465,7 +480,7 @@ namespace Filey
                     UpdateDepthButtonHighlights();
 
                     _currentRenderedNodes = nodes;
-                    FolderTreeVisualHost.RenderTree(nodes);
+                    FolderTreeVisualHost.RenderTree(nodes, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
                     FolderTreeVisualHost.Height = currentY[0] + 50; // Set explicit size for ScrollViewer bounds
                     FolderTreeVisualHost.Width = 800; 
 
@@ -517,17 +532,22 @@ namespace Filey
             });
             currentY[0] += rowHeight;
 
-            // Batch update UI for Level 2 (200 items per batch, 10 batches/sec = 100ms delay)
-            if (_previewDepth == 2 && list.Count % 200 == 0)
+            // Progressive batch sizes to keep UI thread responsive while avoiding sudden jumps
+            int batchSize = 200;
+            if (list.Count > 5000) batchSize = 2000;
+            else if (list.Count > 1000) batchSize = 1000;
+
+            if (list.Count % batchSize == 0)
             {
                 var currentSnapshot = new List<FastNode>(list);
                 _ = Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (token.IsCancellationRequested) return;
-                    _currentRenderedNodes = currentSnapshot;
-                    FolderTreeVisualHost.RenderTree(currentSnapshot);
-                }));
+                        _currentRenderedNodes = currentSnapshot;
+                        FolderTreeVisualHost.RenderTree(currentSnapshot, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
+                    }));
 
+                // Delay rate: 100ms (10 batches/sec) for all levels
                 await Task.Delay(100, token);
             }
 
