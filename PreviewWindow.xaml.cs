@@ -840,7 +840,7 @@ namespace Filey
 
                                         Dispatcher.BeginInvoke(new Action(() =>
                                         {
-                                            if (!scrollToken.IsCancellationRequested && !_pdfCts.IsCancellationRequested && page.DisplayWidth == targetWidth)
+                                            if (!scrollToken.IsCancellationRequested && !_pdfCts.IsCancellationRequested && (uint)page.DisplayWidth == targetWidth)
                                             {
                                                 page.Image = bitmap;
                                             }
