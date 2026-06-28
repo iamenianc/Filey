@@ -2,42 +2,17 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Modern Flat Button Style for Back Navigation in Parent Panel -->
-    <Style x:Key="FlatButtonStyle" TargetType="Button">
+    <Style x:Key="FlatButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Foreground" Value="#E0E0E0"/>
         <Setter Property="Padding" Value="6,4,6,4"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" 
-                            CornerRadius="4" 
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}" 
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#1E1E1E"/>
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#555555"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Slim flat toggle button for the top menu bar -->
-    <Style x:Key="TopBarToggleStyle" TargetType="ToggleButton">
+    <Style x:Key="TopBarToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="#CCCCCC"/>
         <Setter Property="BorderThickness" Value="0"/>
@@ -46,38 +21,17 @@
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="border"
-                            CornerRadius="3"
-                            Background="{TemplateBinding Background}"
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#094771"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Modern Grid Splitter Style -->
-    <Style x:Key="ModernGridSplitter" TargetType="GridSplitter">
+    <Style x:Key="ModernGridSplitter" TargetType="GridSplitter" BasedOn="{StaticResource {x:Type GridSplitter}}">
         <Setter Property="Background" Value="#2D2D2D" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
     </Style>
 
     <!-- Modern ListBox Style -->
-    <Style x:Key="ModernListBox" TargetType="ListBox">
+    <Style x:Key="ModernListBox" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
         <Setter Property="Background" Value="#1E1E1E" />
         <Setter Property="BorderBrush" Value="#2D2D2D" />
         <Setter Property="BorderThickness" Value="1" />
@@ -87,92 +41,23 @@
     </Style>
 
     <!-- Modern ListView Style -->
-    <Style x:Key="ModernListView" TargetType="ListView">
+    <Style x:Key="ModernListView" TargetType="ListView" BasedOn="{StaticResource {x:Type ListView}}">
         <Setter Property="Background" Value="#1E1E1E" />
         <Setter Property="BorderBrush" Value="#2D2D2D" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="#E0E0E0" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListView">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="3"
-                            SnapsToDevicePixels="True">
-                        <DockPanel>
-                            <GridViewHeaderRowPresenter DockPanel.Dock="Top"
-                                                        Columns="{Binding View.Columns, RelativeSource={RelativeSource TemplatedParent}}"
-                                                        ColumnHeaderContainerStyle="{Binding View.ColumnHeaderContainerStyle, RelativeSource={RelativeSource TemplatedParent}}"
-                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                            <ScrollViewer Padding="{TemplateBinding Padding}"
-                                          Focusable="False">
-                                <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                            </ScrollViewer>
-                        </DockPanel>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Style for the Column Header Gripper (Resize handle) -->
-    <Style x:Key="GridViewColumnHeaderGripper" TargetType="{x:Type Thumb}">
-        <Setter Property="Width" Value="8"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Cursor" Value="SizeWE"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type Thumb}">
-                    <Border Background="{TemplateBinding Background}"/>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Modern Column Header Style -->
-    <Style TargetType="GridViewColumnHeader">
+    <Style TargetType="GridViewColumnHeader" BasedOn="{StaticResource {x:Type GridViewColumnHeader}}">
         <Setter Property="Background" Value="#1E1E1E" />
         <Setter Property="Foreground" Value="#D4D4D4" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="6,8,6,8" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="GridViewColumnHeader">
-                    <Grid>
-                        <Border BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Background="{TemplateBinding Background}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                        <Thumb x:Name="PART_HeaderGripper"
-                               HorizontalAlignment="Right"
-                               Margin="0,0,-4,0"
-                               Width="8"
-                               Style="{StaticResource GridViewColumnHeaderGripper}"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="true">
-                            <Setter Property="Background" Value="#2A2D2E" />
-                            <Setter Property="Foreground" Value="#FFFFFF" />
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="true">
-                            <Setter Property="Background" Value="#252526" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Premium Accent Button Style for Depth L1-L5 selection -->
-    <Style x:Key="DepthButtonStyle" TargetType="Button">
+    <Style x:Key="DepthButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="#858585" />
@@ -181,20 +66,6 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Margin" Value="4,0,0,0" />
         <Setter Property="Padding" Value="4,2" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="#F1F5F9" />
-            </Trigger>
-        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

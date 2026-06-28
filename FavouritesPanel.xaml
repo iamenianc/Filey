@@ -7,50 +7,21 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="150">
     <UserControl.Resources>
-        <Style x:Key="FavFlatButton" TargetType="Button">
+        <Style x:Key="FavFlatButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" CornerRadius="4"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#2A2D2E"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1E1E1E"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#555555"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
-        <Style x:Key="FavTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#121212"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="CaretBrush" Value="#E0E0E0"/>
-            <Setter Property="BorderBrush" Value="#2D2D2D"/>
-            <Setter Property="BorderThickness" Value="1"/>
+        <Style x:Key="FavTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Padding" Value="4,3"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
-        <Style x:Key="FavListBox" TargetType="ListBox">
+        <Style x:Key="FavListBox" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
@@ -65,27 +36,9 @@
             <MenuItem Header="Remove from Favourites" Click="FavCtxRemove_Click"/>
         </ContextMenu>
 
-        <Style TargetType="ListBoxItem" x:Key="FavListBoxItem">
+        <Style TargetType="ListBoxItem" x:Key="FavListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
             <Setter Property="Padding" Value="4,3"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="bd" CornerRadius="3" Padding="{TemplateBinding Padding}"
-                                Background="{TemplateBinding Background}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#2A2D2E"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#094771"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <!-- Group header style -->

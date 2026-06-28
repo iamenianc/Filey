@@ -1,13 +1,15 @@
-<Window x:Class="Filey.MainWindow"
+<ui:FluentWindow x:Class="Filey.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
         Title="Filey — Dual Pane File Manager" Height="787" Width="1555"
-        Background="#121212"
-        Foreground="#E0E0E0">
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
         <Thickness x:Key="RowItemPadding">4,4,4,4</Thickness>
@@ -23,15 +25,25 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <!-- Title Bar -->
+            <RowDefinition Height="Auto"/>
             <!-- Top Menu Bar -->
             <RowDefinition Height="Auto"/>
             <!-- Main Pane Layout -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Custom Title Bar -->
+        <ui:TitleBar
+            Grid.Row="0"
+            Title="Filey — Dual Pane File Manager"
+            ShowMaximize="True"
+            ShowMinimize="True"
+            ShowClose="True" />
+
         <!-- Global Top Menu Bar: slim container for toggles/buttons added in later patches -->
         <Border x:Name="TopMenuBar"
-                Grid.Row="0"
+                Grid.Row="1"
                 Background="#1B1B1B"
                 BorderBrush="#2D2D2D"
                 BorderThickness="0,0,0,1"
@@ -71,7 +83,7 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="8">
+        <Grid Grid.Row="2" Margin="8">
             <Grid.ColumnDefinitions>
                 <!-- Col 0: Favourites L -->
                 <ColumnDefinition x:Name="LeftFavouritesCol" Width="150" MinWidth="50"/>
@@ -123,4 +135,4 @@
             <local:PreviewPane x:Name="RightPreviewControl" Grid.Column="4" Visibility="Collapsed"/>
         </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>

@@ -1,6 +1,7 @@
 <Window x:Class="Filey.RenameDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Rename" Height="160" Width="350"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
@@ -30,16 +31,10 @@
 
             <!-- Input -->
             <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                <TextBox x:Name="NameTextBox" 
-                         Background="#121212" 
-                         Foreground="#E0E0E0" 
-                         BorderBrush="#2D2D2D" 
-                         BorderThickness="1" 
-                         Padding="8,6" 
-                         SelectionBrush="#007ACC"
-                         FontFamily="Segoe UI"
-                         FontSize="12"
-                         KeyDown="NameTextBox_KeyDown"/>
+                <ui:TextBox x:Name="NameTextBox" 
+                            Padding="8,6" 
+                            FontSize="12"
+                            KeyDown="NameTextBox_KeyDown"/>
             </StackPanel>
 
             <!-- Buttons -->
@@ -47,67 +42,20 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Right" 
                         Margin="0,12,0,0">
-                <Button x:Name="CancelButton" 
-                        Content="Cancel" 
-                        Click="CancelButton_Click" 
-                        Width="75" 
-                        Height="26" 
-                        Background="Transparent" 
-                        Foreground="#E0E0E0" 
-                        BorderBrush="#2D2D2D" 
-                        BorderThickness="1" 
-                        Margin="0,0,8,0">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                  </Setter.Value>
-                              </Setter>
-                              <Style.Triggers>
-                                  <Trigger Property="IsMouseOver" Value="True">
-                                      <Setter Property="Background" Value="#2D2D30"/>
-                                  </Trigger>
-                              </Style.Triggers>
-                          </Style>
-                      </Button.Style>
-                  </Button>
-                  <Button x:Name="RenameBtn" 
-                          Content="Rename" 
-                          Click="RenameBtn_Click" 
-                          Width="75" 
-                          Height="26" 
-                          Background="#007ACC" 
-                          Foreground="#FFFFFF" 
-                          BorderThickness="0">
-                      <Button.Style>
-                          <Style TargetType="Button">
-                              <Setter Property="Template">
-                                  <Setter.Value>
-                                      <ControlTemplate TargetType="Button">
-                                          <Border Background="{TemplateBinding Background}"
-                                                  CornerRadius="4">
-                                              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                          </Border>
-                                      </ControlTemplate>
-                                  </Setter.Value>
-                              </Setter>
-                              <Style.Triggers>
-                                  <Trigger Property="IsMouseOver" Value="True">
-                                      <Setter Property="Background" Value="#0098FF"/>
-                                  </Trigger>
-                              </Style.Triggers>
-                          </Style>
-                      </Button.Style>
-                  </Button>
-              </StackPanel>
-          </Grid>
-      </Border>
-  </Window>
+                <ui:Button x:Name="CancelButton" 
+                           Content="Cancel" 
+                           Click="CancelButton_Click" 
+                           Width="75" 
+                           Height="26" 
+                           Appearance="Secondary"
+                           Margin="0,0,8,0"/>
+                <ui:Button x:Name="RenameBtn" 
+                           Content="Rename" 
+                           Click="RenameBtn_Click" 
+                           Width="75" 
+                           Height="26" 
+                           Appearance="Primary"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

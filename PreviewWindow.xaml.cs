@@ -20,7 +20,7 @@ namespace Filey
     /// <summary>
     /// Interaction logic for PreviewWindow.xaml
     /// </summary>
-    public partial class PreviewWindow : Window
+    public partial class PreviewWindow : Wpf.Ui.Controls.FluentWindow
     {
         private const bool UseDarkTitleBar = true;
 

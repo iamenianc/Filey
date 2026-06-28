@@ -12,7 +12,7 @@ namespace Filey
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         // Set false to keep the native (light) Windows title bar.
         private const bool UseDarkTitleBar = true;
