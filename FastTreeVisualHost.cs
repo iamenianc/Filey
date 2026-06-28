@@ -66,8 +66,54 @@ namespace Filey
                 int activeRootLevel = nodes.FindIndex(n => !n.IsHistory);
                 if (activeRootLevel < 0) activeRootLevel = 0;
 
-                foreach (var node in nodes)
+                for (int i = 0; i < nodes.Count; i++)
                 {
+                    var node = nodes[i];
+
+                    // 1. Draw simple structural connector lines back to the parent level (L-shaped) using parent coordinates
+                    if (node.Level > 0)
+                    {
+                        FastNode parentNode = null;
+                        for (int j = i - 1; j >= 0; j--)
+                        {
+                            if (nodes[j].Level == node.Level - 1)
+                            {
+                                parentNode = nodes[j];
+                                break;
+                            }
+                        }
+
+                        if (parentNode != null)
+                        {
+                            if (node.IsHistory)
+                            {
+                                // History L-connector
+                                double lineX = parentNode.X + 10;
+                                dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X - 1, node.Y + 8));
+                                dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 8), new Point(lineX, node.Y + 8));
+                            }
+                            else
+                            {
+                                if (node.Level == activeRootLevel)
+                                {
+                                    // Active root connects back to parent history node
+                                    double lineX = parentNode.X + 10;
+                                    dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
+                                    dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 8), new Point(lineX, node.Y + 8));
+                                }
+                                else // Active folder subdirectories
+                                {
+                                    // Subdirectory L-connector, starting from the parent folder's bottom edge (parentNode.Y + 12)
+                                    // at the horizontal center of the parent folder (parentNode.X + 7) to prevent overlapping the parent icon
+                                    double lineX = parentNode.X + 7;
+                                    dc.DrawLine(linePen, new Point(lineX, node.Y + 8), new Point(node.X, node.Y + 8));
+                                    dc.DrawLine(linePen, new Point(lineX, parentNode.Y + 12), new Point(lineX, node.Y + 8));
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Draw text and folder icons on top of the lines
                     Brush textBrush;
                     Typeface nodeFont;
                     
@@ -101,47 +147,7 @@ namespace Filey
                     double textXOffset = (node.IsHistory || node.IsPlaceholder) ? 0 : 20;
                     dc.DrawText(formattedText, new Point(node.X + textXOffset, node.Y));
 
-                    // If active folder node has a file count, draw it with a subtle muted color next to the name
-                    if (!node.IsHistory && !node.IsPlaceholder && node.FileCount >= 0)
-                    {
-                        string countText = $" ({node.FileCount} file{(node.FileCount == 1 ? "" : "s")})";
-                        var formattedCount = new FormattedText(
-                            countText,
-                            CultureInfo.InvariantCulture,
-                            FlowDirection.LeftToRight,
-                            font,
-                            12,
-                            placeholderTextBrush,
-                            dpiScale);
 
-                        dc.DrawText(formattedCount, new Point(node.X + textXOffset + formattedText.Width, node.Y));
-                    }
-
-                    // 3. Draw simple structural connector lines back to the parent level (L-shaped)
-                    if (node.Level > 0)
-                    {
-                        if (node.IsHistory)
-                        {
-                            // History L-connector
-                            dc.DrawLine(linePen, new Point(node.X - 5, node.Y + 10), new Point(node.X - 1, node.Y + 10));
-                            dc.DrawLine(linePen, new Point(node.X - 5, node.Y - 10), new Point(node.X - 5, node.Y + 10));
-                        }
-                        else
-                        {
-                            if (node.Level == activeRootLevel)
-                            {
-                                // Active root connects back to parent history node
-                                dc.DrawLine(linePen, new Point(node.X - 5, node.Y + 10), new Point(node.X - 1, node.Y + 10));
-                                dc.DrawLine(linePen, new Point(node.X - 5, node.Y - 10), new Point(node.X - 5, node.Y + 10));
-                            }
-                            else // Active folder subdirectories
-                            {
-                                // Subdirectory L-connector
-                                dc.DrawLine(linePen, new Point(node.X - 15, node.Y + 10), new Point(node.X - 2, node.Y + 10));
-                                dc.DrawLine(linePen, new Point(node.X - 15, node.Y - 10), new Point(node.X - 15, node.Y + 10));
-                            }
-                        }
-                    }
                 }
             }
         }

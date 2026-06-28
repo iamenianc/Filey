@@ -29,7 +29,7 @@ namespace Filey
 
         private string _currentFilePath;
         private CancellationTokenSource _cts;
-        private int _previewDepth = 4;
+        private int _previewDepth = 1;
         private List<FastNode> _currentRenderedNodes;
 
         #region Win32 FindFirstFileEx Declarations
@@ -256,6 +256,7 @@ namespace Filey
         {
             ContentTextBox.Visibility = Visibility.Collapsed;
             ContentTextBox.Text = string.Empty;
+            ContentTextBox.ScrollToHome();
 
             ImageScrollViewer.Visibility = Visibility.Collapsed;
             ContentImage.Source = null;
@@ -265,10 +266,14 @@ namespace Filey
             ImageScale.ScaleX = 1.0;
             ImageScale.ScaleY = 1.0;
             _hasManuallyZoomed = false;
+            ImageScrollViewer.ScrollToTop();
+            ImageScrollViewer.ScrollToHorizontalOffset(0);
 
             if (FolderScrollViewer != null)
             {
                 FolderScrollViewer.Visibility = Visibility.Collapsed;
+                FolderScrollViewer.ScrollToTop();
+                FolderScrollViewer.ScrollToHorizontalOffset(0);
             }
 
             if (DepthSelectorPanel != null)
@@ -352,10 +357,10 @@ namespace Filey
                 if (!Directory.Exists(folderPath)) return;
 
                 var nodes = new List<FastNode>();
-                double currentY = 10;
-                double rowHeight = 20; // Explicit spacing
-                double indentWidth = 20;
-                double historyIndent = 6;
+                double currentY         = 10;
+                double rowHeight        = 20; // Explicit spacing
+                double indentWidth      = 40;
+                double historyIndent    = 40;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool wasLimited = false;
@@ -418,6 +423,31 @@ namespace Filey
                     currentY += rowHeight;
                 }
 
+                int activeFileCount = 0;
+                try
+                {
+                    if (DirectoryViewModel.ShowHidden)
+                    {
+                        activeFileCount = Directory.GetFiles(folderPath).Length;
+                    }
+                    else
+                    {
+                        var dirInfo = new DirectoryInfo(folderPath);
+                        foreach (var file in dirInfo.EnumerateFiles())
+                        {
+                            if (token.IsCancellationRequested) return;
+                            if ((file.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0)
+                            {
+                                activeFileCount++;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore access permissions
+                }
+
                 if (token.IsCancellationRequested) return;
 
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -441,11 +471,10 @@ namespace Filey
 
                     PathTextBlock.Text = folderPath;
                     EncodingTextBlock.Text = $"Directory Tree ({_previewDepth} Level{(_previewDepth == 1 ? "" : "s")})";
-                    SizeTextBlock.Text = $"{nodes.Count - activeRootLevel} folders";
+                    
+                    int folderCount = nodes.Count - activeRootLevel;
+                    SizeTextBlock.Text = $"{folderCount} folder{(folderCount == 1 ? "" : "s")} • {activeFileCount} file{(activeFileCount == 1 ? "" : "s")}";
                 }));
-
-                // Start counting files asynchronously on the background thread
-                Task.Run(() => UpdateFileCountsAsync(nodes, token), token);
             }
             catch (Exception ex)
             {
@@ -462,16 +491,6 @@ namespace Filey
         private void BuildFastTree(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, ref double currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, ref bool wasLimited, CancellationToken token)
         {
             if (token.IsCancellationRequested) return;
-
-            // Guardrails: Node limit and Time limit
-            const int MaxNodesLimit = 2000;
-            const long MaxTimeLimitMs = 2000;
-
-            if (list.Count >= MaxNodesLimit || stopwatch.ElapsedMilliseconds > MaxTimeLimitMs)
-            {
-                wasLimited = true;
-                return;
-            }
 
             // Calculate X coordinate based on whether it is history or active tree
             double xCoord = (activeRootLevel * historyIndent) + (level - activeRootLevel) * indent;
@@ -512,36 +531,12 @@ namespace Filey
                     subDirsList.Add(sd);
                 }
 
-                int maxSubDirsToRender = (level == activeRootLevel) ? int.MaxValue : 10;
-                int renderedCount = 0;
-
                 for (int i = 0; i < subDirsList.Count; i++)
                 {
                     if (token.IsCancellationRequested) return;
 
                     var subDir = subDirsList[i];
-
-                    if (renderedCount < maxSubDirsToRender)
-                    {
-                        BuildFastTree(subDir.FullPath, subDir.Name, level + 1, activeRootLevel, historyIndent, indent, ref currentY, rowHeight, list, stopwatch, ref wasLimited, token);
-                        renderedCount++;
-                    }
-                    else
-                    {
-                        int remaining = subDirsList.Count - renderedCount;
-                        list.Add(new FastNode
-                        {
-                            Name = $"+ {remaining} more folder{(remaining == 1 ? "" : "s")}...",
-                            Level = level + 1,
-                            X = (activeRootLevel * historyIndent) + ((level + 1) - activeRootLevel) * indent,
-                            Y = currentY,
-                            IsFile = false,
-                            IsPlaceholder = true,
-                            IsHistory = false
-                        });
-                        currentY += rowHeight;
-                        break;
-                    }
+                    BuildFastTree(subDir.FullPath, subDir.Name, level + 1, activeRootLevel, historyIndent, indent, ref currentY, rowHeight, list, stopwatch, ref wasLimited, token);
                 }
             }
             catch (Exception)
@@ -550,54 +545,7 @@ namespace Filey
             }
         }
 
-        private void UpdateFileCountsAsync(List<FastNode> nodes, CancellationToken token)
-        {
-            List<FastNode> targets;
-            lock (nodes)
-            {
-                targets = new List<FastNode>();
-                foreach (var n in nodes)
-                {
-                    if (!n.IsHistory && !n.IsPlaceholder && !string.IsNullOrEmpty(n.FullPath))
-                    {
-                        targets.Add(n);
-                    }
-                }
-            }
 
-            var lastRedrawStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-            for (int i = 0; i < targets.Count; i++)
-            {
-                if (token.IsCancellationRequested) return;
-
-                var node = targets[i];
-                try
-                {
-                    int fileCount = Directory.GetFiles(node.FullPath).Length;
-                    node.FileCount = fileCount;
-
-                    // Redraw at most once every 150ms to prevent dispatcher queue flooding
-                    if (lastRedrawStopwatch.ElapsedMilliseconds > 150 || i == targets.Count - 1)
-                    {
-                        lastRedrawStopwatch.Restart();
-
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            if (token.IsCancellationRequested) return;
-                            if (_currentRenderedNodes == nodes)
-                            {
-                                FolderTreeVisualHost.RenderTree(nodes);
-                            }
-                        }));
-                    }
-                }
-                catch (Exception)
-                {
-                    // Ignore locked folders or permission exceptions
-                }
-            }
-        }
 
 
 
