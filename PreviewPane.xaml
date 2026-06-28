@@ -203,6 +203,36 @@
                         Click="DepthButton_Click"
                         Tag="5"
                         Style="{StaticResource DepthButtonStyle}" />
+                    <Button
+                        x:Name="DepthButton6"
+                        Content="L6"
+                        Click="DepthButton_Click"
+                        Tag="6"
+                        Style="{StaticResource DepthButtonStyle}" />
+                    <Button
+                        x:Name="DepthButton7"
+                        Content="L7"
+                        Click="DepthButton_Click"
+                        Tag="7"
+                        Style="{StaticResource DepthButtonStyle}" />
+                    <Button
+                        x:Name="DepthButton8"
+                        Content="L8"
+                        Click="DepthButton_Click"
+                        Tag="8"
+                        Style="{StaticResource DepthButtonStyle}" />
+                    <Button
+                        x:Name="DepthButton9"
+                        Content="L9"
+                        Click="DepthButton_Click"
+                        Tag="9"
+                        Style="{StaticResource DepthButtonStyle}" />
+                    <Button
+                        x:Name="DepthButton10"
+                        Content="L10"
+                        Click="DepthButton_Click"
+                        Tag="10"
+                        Style="{StaticResource DepthButtonStyle}" />
                 </StackPanel>
 
                 <TextBlock

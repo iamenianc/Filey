@@ -316,7 +316,7 @@ namespace Filey
                 e.Handled = true;
                 if (e.Delta > 0)
                 {
-                    ChangeDepth(Math.Min(5, _previewDepth + 1));
+                    ChangeDepth(Math.Min(10, _previewDepth + 1));
                 }
                 else if (e.Delta < 0)
                 {
@@ -394,6 +394,11 @@ namespace Filey
             if (DepthButton3 != null) DepthButton3.Foreground = (_previewDepth == 3) ? activeBrush : inactiveBrush;
             if (DepthButton4 != null) DepthButton4.Foreground = (_previewDepth == 4) ? activeBrush : inactiveBrush;
             if (DepthButton5 != null) DepthButton5.Foreground = (_previewDepth == 5) ? activeBrush : inactiveBrush;
+            if (DepthButton6 != null) DepthButton6.Foreground = (_previewDepth == 6) ? activeBrush : inactiveBrush;
+            if (DepthButton7 != null) DepthButton7.Foreground = (_previewDepth == 7) ? activeBrush : inactiveBrush;
+            if (DepthButton8 != null) DepthButton8.Foreground = (_previewDepth == 8) ? activeBrush : inactiveBrush;
+            if (DepthButton9 != null) DepthButton9.Foreground = (_previewDepth == 9) ? activeBrush : inactiveBrush;
+            if (DepthButton10 != null) DepthButton10.Foreground = (_previewDepth == 10) ? activeBrush : inactiveBrush;
         }
 
         private async void LoadDirectoryPreviewAsync(string folderPath, CancellationToken token)
