@@ -558,8 +558,8 @@ namespace Filey
 
                         if (isFirstBatch || isBatchBoundary || isLast)
                         {
-                            var snapshot = pages.ToList();
-                            var thumbSnapshot = thumbnails.ToList();
+                            var snapshot = new System.Collections.Generic.List<PdfPageViewModel>(pages);
+                            var thumbSnapshot = new System.Collections.Generic.List<PdfThumbnailViewModel>(thumbnails);
                             bool firstBatch = isFirstBatch;
 
                             Dispatcher.BeginInvoke(new Action(() =>
