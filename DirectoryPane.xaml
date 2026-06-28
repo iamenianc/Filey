@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Filey"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="self">
@@ -27,7 +28,7 @@
         </Style>
 
         <!-- ListViewItem Style for Contents grid -->
-        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+        <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource ListViewItemStyle}">
             <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />
         </Style>
@@ -177,7 +178,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Folders (Child Folders) -->
-                <ListView x:Name="FoldersListView" Grid.Row="0"
+                <ui:ListView x:Name="FoldersListView" Grid.Row="0"
                           Style="{StaticResource ModernListView}"
                           ItemsSource="{Binding Folders}"
                           SelectedItem="{Binding SelectedItem}"
@@ -185,12 +186,12 @@
                           PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
                           PreviewMouseMove="ItemList_PreviewMouseMove"
                           KeyDown="List_KeyDown">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <ui:ListView.ItemContainerStyle>
+                        <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource ListViewItemStyle}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
                         </Style>
-                    </ListView.ItemContainerStyle>
-                    <ListView.View>
+                    </ui:ListView.ItemContainerStyle>
+                    <ui:ListView.View>
                         <GridView>
                             <GridViewColumn Width="220">
                                 <GridViewColumn.Header>
@@ -241,14 +242,14 @@
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
-                    </ListView.View>
-                </ListView>
+                    </ui:ListView.View>
+                </ui:ListView>
 
                 <!-- Horizontal Grid Splitter -->
                 <GridSplitter x:Name="GridSplitter" Grid.Row="1" Style="{StaticResource ModernGridSplitter}" Height="4" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
 
                 <!-- Files (Child Files) -->
-                <ListView x:Name="FilesListView" Grid.Row="2"
+                <ui:ListView x:Name="FilesListView" Grid.Row="2"
                           Style="{StaticResource ModernListView}"
                           ItemsSource="{Binding Contents}"
                           SelectedItem="{Binding SelectedItem}"
@@ -256,12 +257,12 @@
                           PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
                           PreviewMouseMove="ItemList_PreviewMouseMove"
                           KeyDown="List_KeyDown">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <ui:ListView.ItemContainerStyle>
+                        <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource ListViewItemStyle}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
                         </Style>
-                    </ListView.ItemContainerStyle>
-                    <ListView.View>
+                    </ui:ListView.ItemContainerStyle>
+                    <ui:ListView.View>
                         <GridView>
                             <GridViewColumn Width="220">
                                 <GridViewColumn.Header>
@@ -312,8 +313,8 @@
                                 </GridViewColumn.Header>
                             </GridViewColumn>
                         </GridView>
-                    </ListView.View>
-                </ListView>
+                    </ui:ListView.View>
+                </ui:ListView>
             </Grid>
         </Grid>
     </Grid>
