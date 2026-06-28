@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     Title="File Preview"
     Height="700"
-    Width="700"
+    Width="1300"
     Background="#121212"
     Foreground="#E0E0E0"
     WindowStartupLocation="CenterOwner">

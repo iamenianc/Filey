@@ -219,7 +219,8 @@ namespace Filey
         }
 
         private RightPaneMode _currentRightPaneMode = RightPaneMode.RightPane;
-        private GridLength _savedRightPaneWidth = new GridLength(1, GridUnitType.Star);
+        private GridLength _savedLeftPaneWidth = new GridLength(1000, GridUnitType.Star);
+        private GridLength _savedRightPaneWidth = new GridLength(440, GridUnitType.Star);
 
         private void OnLeftSelectionChanged()
         {
@@ -274,9 +275,10 @@ namespace Filey
             switch (_currentRightPaneMode)
             {
                 case RightPaneMode.Off:
-                    if (RightPaneCol.ActualWidth > 0)
+                    if (RightPaneCol.ActualWidth > 0 && LeftPaneCol.ActualWidth > 0)
                     {
-                        _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth);
+                        _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth, GridUnitType.Star);
+                        _savedLeftPaneWidth = new GridLength(LeftPaneCol.ActualWidth, GridUnitType.Star);
                     }
                     RightPaneCol.MinWidth = 0;
                     RightPaneCol.Width = new GridLength(0);
@@ -290,9 +292,9 @@ namespace Filey
                     break;
 
                 case RightPaneMode.PreviewPane:
-                    RightPaneCol.MinWidth = 300;
+                    RightPaneCol.MinWidth = 440;
                     RightPaneCol.Width = _savedRightPaneWidth;
-                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+                    LeftPaneCol.Width = _savedLeftPaneWidth;
 
                     CentreSplitter.Visibility = Visibility.Visible;
                     RightPaneGrid.Visibility = Visibility.Collapsed;
@@ -303,9 +305,9 @@ namespace Filey
                     break;
 
                 case RightPaneMode.RightPane:
-                    RightPaneCol.MinWidth = 300;
+                    RightPaneCol.MinWidth = 440;
                     RightPaneCol.Width = _savedRightPaneWidth;
-                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+                    LeftPaneCol.Width = _savedLeftPaneWidth;
 
                     CentreSplitter.Visibility = Visibility.Visible;
                     RightPaneGrid.Visibility = Visibility.Visible;

@@ -78,11 +78,11 @@
                 <!-- Divider 1 -->
                 <ColumnDefinition Width="4" />
                 <!-- Col 2: Left Side Pane -->
-                <ColumnDefinition x:Name="LeftPaneCol" Width="1000" MinWidth="200" />
+                <ColumnDefinition x:Name="LeftPaneCol" Width="1000*" MinWidth="200" />
                 <!-- Centre Splitter -->
                 <ColumnDefinition x:Name="CentreSplitterCol" Width="12" />
                 <!-- Col 4: Right Side Pane -->
-                <ColumnDefinition x:Name="RightPaneCol" Width="*" MinWidth="300" />
+                <ColumnDefinition x:Name="RightPaneCol" Width="440*" MinWidth="440" />
             </Grid.ColumnDefinitions>
 
             <!-- Favourites panel on the far left -->
