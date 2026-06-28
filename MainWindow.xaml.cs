@@ -68,10 +68,6 @@ namespace Filey
 
                 CompactModeToggle.IsChecked = _settings.CompactMode;
                 ApplyCompactMode(_settings.CompactMode);
-
-                double fontSize = _settings.ListFontSize;
-                if (fontSize < 9.0 || fontSize > 16.0) fontSize = 11.5;
-                ApplyListFontSize(fontSize);
             };
 
             DirectoryViewModel.ShowHidden = _settings.ShowHidden;
@@ -596,37 +592,6 @@ namespace Filey
             }
 
             return path;
-        }
-
-        private void ApplyListFontSize(double size)
-        {
-            Resources["ListFontSize"] = size;
-        }
-
-        private void FontSizeIncreaseButton_Click(object sender, RoutedEventArgs e)
-        {
-            double currentSize = Resources["ListFontSize"] is double d ? d : 11.5;
-            if (currentSize < 16.0)
-            {
-                double newSize = currentSize + 0.5;
-                if (newSize > 16.0) newSize = 16.0;
-                ApplyListFontSize(newSize);
-                _settings.ListFontSize = newSize;
-                SettingsService.Save(_settings);
-            }
-        }
-
-        private void FontSizeDecreaseButton_Click(object sender, RoutedEventArgs e)
-        {
-            double currentSize = Resources["ListFontSize"] is double d ? d : 11.5;
-            if (currentSize > 9.0)
-            {
-                double newSize = currentSize - 0.5;
-                if (newSize < 9.0) newSize = 9.0;
-                ApplyListFontSize(newSize);
-                _settings.ListFontSize = newSize;
-                SettingsService.Save(_settings);
-            }
         }
     }
 }

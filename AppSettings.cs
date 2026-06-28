@@ -26,9 +26,6 @@ namespace Filey
         /// <summary>Whether list views use reduced row spacing (compact density).</summary>
         public bool CompactMode { get; set; } = false;
 
-        /// <summary>The base font size for all lists in the application.</summary>
-        public double ListFontSize { get; set; } = 11.5;
-
         /// <summary>
         /// Pixel widths for the six resizable content columns, in order:
         /// Left[Favourites, ParentFolders, Contents], Right[Favourites, ParentFolders, Contents].
