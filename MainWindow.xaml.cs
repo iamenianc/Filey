@@ -41,6 +41,7 @@ namespace Filey
             InitializeComponent();
 
             this.Closing += MainWindow_Closing;
+            this.SizeChanged += MainWindow_SizeChanged;
 
             // Track left selection and path updates to trigger preview load
             LeftViewModel.PropertyChanged += (s, ev) =>
@@ -62,6 +63,10 @@ namespace Filey
                 ApplySplitterPositions();
 
                 _currentRightPaneMode = (RightPaneMode)_settings.RightPaneMode;
+                if (_currentRightPaneMode == RightPaneMode.Off)
+                {
+                    _currentRightPaneMode = RightPaneMode.RightPane;
+                }
                 SetRightPaneMode(_currentRightPaneMode);
 
                 ShowHiddenToggle.IsChecked = _settings.ShowHidden;
@@ -247,12 +252,10 @@ namespace Filey
             switch (_currentRightPaneMode)
             {
                 case RightPaneMode.RightPane:
-                    SetRightPaneMode(RightPaneMode.Off);
-                    break;
-                case RightPaneMode.Off:
                     SetRightPaneMode(RightPaneMode.PreviewPane);
                     break;
                 case RightPaneMode.PreviewPane:
+                default:
                     SetRightPaneMode(RightPaneMode.RightPane);
                     break;
             }
@@ -316,6 +319,14 @@ namespace Filey
                     RightPaneCycleButton.Content = "Pane: Dual";
                     break;
             }
+
+            if (RightAddressBar != null)
+            {
+                RightAddressBar.Visibility = _currentRightPaneMode == RightPaneMode.RightPane
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+            UpdateRightPaneMaxWidth();
         }
 
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
@@ -592,6 +603,61 @@ namespace Filey
             }
 
             return path;
+        }
+
+        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateRightPaneMaxWidth();
+        }
+
+        private void UpdateRightPaneMaxWidth()
+        {
+            if (RightPaneCol == null) return;
+
+            if (_currentRightPaneMode == RightPaneMode.PreviewPane)
+            {
+                RightPaneCol.MaxWidth = this.ActualWidth / 2;
+            }
+            else
+            {
+                RightPaneCol.MaxWidth = double.PositiveInfinity;
+            }
+        }
+
+        public void OpenPathInRightPane(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            bool isDir = System.IO.Directory.Exists(path);
+            string targetDir = isDir ? path : System.IO.Path.GetDirectoryName(path);
+
+            if (_currentRightPaneMode != RightPaneMode.RightPane)
+            {
+                SetRightPaneMode(RightPaneMode.RightPane);
+            }
+
+            if (System.IO.Directory.Exists(targetDir))
+            {
+                RightViewModel.LoadDirectory(targetDir);
+
+                if (!isDir)
+                {
+                    foreach (var item in RightViewModel.Contents)
+                    {
+                        if (string.Equals(item.FullPath, path, StringComparison.OrdinalIgnoreCase))
+                        {
+                            RightViewModel.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CtxOpenRightPane_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null) OpenPathInRightPane(item.FullPath);
         }
     }
 }

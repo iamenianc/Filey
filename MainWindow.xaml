@@ -17,6 +17,9 @@
 
         <!-- Shared right-click context menu for all folder/file/bookmark items in MainWindow (e.g. Favourites) -->
         <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
+            <MenuItem
+                Header="Open in Right Pane"
+                Click="CtxOpenRightPane_Click" />
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
             <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
@@ -52,34 +55,32 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="6,0">
-                <Button x:Name="RightPaneCycleButton"
-                        Style="{StaticResource FlatButtonStyle}"
-                        FontSize="11"
-                        Padding="8,2"
-                        Margin="0,0,4,0"
-                        Height="20"
-                        VerticalAlignment="Center"
-                        Content="Pane: Dual"
-                        ToolTip="Cycle right pane: Off ➔ Preview ➔ Dual"
-                        Click="RightPaneCycleButton_Click"/>
-                <ToggleButton x:Name="ShowHiddenToggle"
-                              Style="{StaticResource TopBarToggleStyle}"
-                              Content="Hidden"
-                              ToolTip="Show or hide hidden and system items"
-                              Checked="ShowHiddenToggle_Changed"
-                              Unchecked="ShowHiddenToggle_Changed"/>
-                <ToggleButton x:Name="CompactModeToggle"
-                              Style="{StaticResource TopBarToggleStyle}"
-                              Content="Compact"
-                              ToolTip="Reduce row spacing in the file lists"
-                              Checked="CompactModeToggle_Changed"
-                              Unchecked="CompactModeToggle_Changed"/>
-                <Button x:Name="SwapPanesButton"
-                        Style="{StaticResource FlatButtonStyle}"
-                        Content="⇄ Swap"
-                        ToolTip="Swap the paths shown in the left and right panes"
-                        Padding="8,0"
-                        Click="SwapPanesButton_Click"/>
+                <Button
+                    x:Name="RightPaneCycleButton"
+                    Style="{StaticResource TopBarButtonStyle}"
+                    Content="Pane: Dual"
+                    ToolTip="Toggle right pane layout: Preview ➔ Dual"
+                    Click="RightPaneCycleButton_Click" />
+                <ToggleButton
+                    x:Name="ShowHiddenToggle"
+                    Style="{StaticResource TopBarToggleStyle}"
+                    Content="Show hidden"
+                    ToolTip="Show or hide hidden and system items"
+                    Checked="ShowHiddenToggle_Changed"
+                    Unchecked="ShowHiddenToggle_Changed" />
+                <ToggleButton
+                    x:Name="CompactModeToggle"
+                    Style="{StaticResource TopBarToggleStyle}"
+                    Content="Compact"
+                    ToolTip="Reduce row spacing in the file lists"
+                    Checked="CompactModeToggle_Changed"
+                    Unchecked="CompactModeToggle_Changed" />
+                <Button
+                    x:Name="SwapPanesButton"
+                    Style="{StaticResource TopBarButtonStyle}"
+                    Content="⇄ Swap"
+                    ToolTip="Swap the paths shown in the left and right panes"
+                    Click="SwapPanesButton_Click" />
             </StackPanel>
         </Border>
 

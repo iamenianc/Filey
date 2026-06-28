@@ -391,19 +391,20 @@ namespace Filey
                 Margin = new Thickness(1, 0, 1, 0),
                 Foreground = (Brush)FindResource("BreadcrumbActiveTextBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
-                FontWeight = FontWeights.Bold,
+                FontWeight = FontWeights.SemiBold,
                 FontSize = 12
             };
         }
 
-        private TextBlock CreateChevron()
+        private UIElement CreateChevron()
         {
-            return new TextBlock
+            return new Wpf.Ui.Controls.SymbolIcon
             {
-                Text = " › ",
+                Symbol = Wpf.Ui.Controls.SymbolRegular.ChevronRight16,
+                FontSize = 8,
                 Foreground = (Brush)FindResource("BreadcrumbChevronBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 14
+                Margin = new Thickness(2, 0, 2, 0)
             };
         }
 

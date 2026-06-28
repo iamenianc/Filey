@@ -7,22 +7,11 @@
              mc:Ignorable="d" 
              d:DesignHeight="40" d:DesignWidth="600">
     <UserControl.Resources>
-        <!-- Modern Flat Button Style for Back/Forward/Breadcrumbs -->
-        <Style x:Key="FlatButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="Padding" Value="6,4,6,4"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        </Style>
-
         <!-- Breadcrumb specific Button Style -->
         <Style x:Key="BreadcrumbButtonStyle" TargetType="Button" BasedOn="{StaticResource FlatButtonStyle}">
-            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+            <Setter Property="FontWeight" Value="Medium"/>
         </Style>
 
         <!-- Style for the PathTextBox to match theme and prevent white background on focus -->

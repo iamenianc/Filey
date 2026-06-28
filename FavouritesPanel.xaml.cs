@@ -284,6 +284,18 @@ namespace Filey
             return (sender as MenuItem)?.DataContext as Bookmark;
         }
 
+        private void FavCtxOpenRightPane_Click(object sender, RoutedEventArgs e)
+        {
+            var b = BookmarkFromMenu(sender);
+            if (b != null)
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    mainWindow.OpenPathInRightPane(b.Path);
+                }
+            }
+        }
+
         private void FavCtxOpenExplorer_Click(object sender, RoutedEventArgs e)
         {
             var b = BookmarkFromMenu(sender);

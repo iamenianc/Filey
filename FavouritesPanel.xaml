@@ -30,6 +30,9 @@
         </Style>
 
         <ContextMenu x:Key="FavItemContextMenu">
+            <MenuItem
+                Header="Open in Right Pane"
+                Click="FavCtxOpenRightPane_Click" />
             <MenuItem Header="Open in Windows Explorer" Click="FavCtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="FavCtxCopyPath_Click"/>
             <MenuItem Header="Set group…" Click="FavCtxSetGroup_Click"/>

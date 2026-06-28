@@ -632,6 +632,18 @@ namespace Filey
             }
         }
 
+        private void CtxOpenRightPane_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null)
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    mainWindow.OpenPathInRightPane(item.FullPath);
+                }
+            }
+        }
+
         private void CtxOpenExplorer_Click(object sender, RoutedEventArgs e)
         {
             var item = ItemFromMenu(sender);
