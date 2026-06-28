@@ -494,6 +494,7 @@ namespace Filey
         private System.Windows.Threading.DispatcherTimer _zoomDebounceTimer;
         private double _pdfZoomLevel = 1.0;
         private double _scaleVisualFactor = 1.0;
+        private bool _isFitWidth = true;
 
         private bool _isContinuousScroll = true;
         private bool _isDualPage = false;
@@ -539,55 +540,71 @@ namespace Filey
                     _activePdfDocument = pdfDoc;
 
                     uint pageCount = pdfDoc.PageCount;
+                    const int batchSize = 20;
 
                     for (uint i = 0; i < pageCount; i++)
                     {
                         if (token.IsCancellationRequested) return;
                         using (PdfPage page = pdfDoc.GetPage(i))
                         {
-                            double width = page.Size.Width;
-                            double height = page.Size.Height;
-                            double aspectRatio = height / width;
+                            double aspectRatio = page.Size.Height / page.Size.Width;
                             pages.Add(new PdfPageViewModel((int)i, aspectRatio));
                             thumbnails.Add(new PdfThumbnailViewModel((int)i, aspectRatio));
                         }
-                    }
 
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        if (_activePdfPath == filePath && !token.IsCancellationRequested)
+                        bool isFirstBatch = (i == (uint)Math.Min(batchSize - 1, (int)pageCount - 1));
+                        bool isBatchBoundary = ((i + 1) % batchSize == 0);
+                        bool isLast = (i == pageCount - 1);
+
+                        if (isFirstBatch || isBatchBoundary || isLast)
                         {
-                            _pdfPages = pages;
-                            _pdfThumbnails = thumbnails;
+                            var snapshot = pages.ToList();
+                            var thumbSnapshot = thumbnails.ToList();
+                            bool firstBatch = isFirstBatch;
 
-                            PdfThumbnailItemsControl.ItemsSource = _pdfThumbnails;
-
-                            _pdfZoomLevel = 1.0;
-                            _scaleVisualFactor = 1.0;
-                            PdfScale.ScaleX = 1.0;
-                            PdfScale.ScaleY = 1.0;
-                            ZoomText.Text = "100%";
-
-                            RebuildPdfRows();
-
-                            if (InitialPdfPageIndex > 0 && InitialPdfPageIndex < _pdfPages.Count)
+                            Dispatcher.BeginInvoke(new Action(() =>
                             {
-                                _currentPageIndex = InitialPdfPageIndex;
-                                Dispatcher.BeginInvoke(new Action(() =>
+                                if (_activePdfPath != filePath || token.IsCancellationRequested) return;
+
+                                _pdfPages = snapshot;
+                                _pdfThumbnails = thumbSnapshot;
+                                PdfThumbnailItemsControl.ItemsSource = _pdfThumbnails;
+
+                                RebuildPdfRows();
+
+                                if (firstBatch)
                                 {
-                                    ScrollToPdfPage(InitialPdfPageIndex);
-                                }), System.Windows.Threading.DispatcherPriority.Loaded);
-                            }
-                            else
-                            {
-                                _currentPageIndex = 0;
-                                UpdatePdfPagesDisplayWidth();
-                                UpdatePdfViewport();
-                            }
-                            UpdatePageIndicator();
-                            UpdateVisibleThumbnails();
+                                    _isFitWidth = true;
+                                    _pdfZoomLevel = 1.0;
+                                    _scaleVisualFactor = 1.0;
+                                    PdfScale.ScaleX = 1.0;
+                                    PdfScale.ScaleY = 1.0;
+                                    ZoomText.Text = "Fit";
+
+                                    if (InitialPdfPageIndex > 0 && InitialPdfPageIndex < _pdfPages.Count)
+                                    {
+                                        _currentPageIndex = InitialPdfPageIndex;
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            ScrollToPdfPage(InitialPdfPageIndex);
+                                        }), System.Windows.Threading.DispatcherPriority.Loaded);
+                                    }
+                                    else
+                                    {
+                                        _currentPageIndex = 0;
+                                        UpdatePdfPagesDisplayWidth();
+                                        UpdatePdfViewport();
+                                    }
+                                    UpdatePageIndicator();
+                                    UpdateVisibleThumbnails();
+                                }
+                                else
+                                {
+                                    UpdatePageIndicator();
+                                }
+                            }));
                         }
-                    }));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1059,8 +1076,23 @@ namespace Filey
             ApplyZoom(1.15);
         }
 
-        private void ZoomFitButton_Click(object sender, RoutedEventArgs e)
+        private void FitWidthButton_Click(object sender, RoutedEventArgs e)
         {
+            _isFitWidth = true;
+            _scaleVisualFactor = 1.0;
+            _pdfZoomLevel = 1.0;
+            PdfScale.ScaleX = 1.0;
+            PdfScale.ScaleY = 1.0;
+            _zoomDebounceTimer.Stop();
+
+            UpdatePdfPagesDisplayWidth();
+            UpdatePdfViewport();
+            ZoomText.Text = "Fit";
+        }
+
+        private void FitPageButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isFitWidth = false;
             _scaleVisualFactor = 1.0;
             _pdfZoomLevel = 1.0;
             PdfScale.ScaleX = 1.0;
@@ -1074,6 +1106,7 @@ namespace Filey
 
         private void ApplyZoom(double scaleFactor)
         {
+            _isFitWidth = false;
             double newFactor = _scaleVisualFactor * scaleFactor;
             if (_pdfZoomLevel * newFactor >= 0.1 && _pdfZoomLevel * newFactor <= 10.0)
             {

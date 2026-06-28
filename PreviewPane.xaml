@@ -153,7 +153,7 @@
                     <Image
                         x:Name="PdfSkimImage0"
                         Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="LowQuality" />
+                        RenderOptions.BitmapScalingMode="HighQuality" />
                 </Border>
                 <Border
                     Grid.Row="0"
@@ -165,7 +165,7 @@
                     <Image
                         x:Name="PdfSkimImage1"
                         Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="LowQuality" />
+                        RenderOptions.BitmapScalingMode="HighQuality" />
                 </Border>
                 <Border
                     Grid.Row="1"
@@ -177,7 +177,7 @@
                     <Image
                         x:Name="PdfSkimImage2"
                         Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="LowQuality" />
+                        RenderOptions.BitmapScalingMode="HighQuality" />
                 </Border>
                 <Border
                     Grid.Row="1"
@@ -189,7 +189,7 @@
                     <Image
                         x:Name="PdfSkimImage3"
                         Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="LowQuality" />
+                        RenderOptions.BitmapScalingMode="HighQuality" />
                 </Border>
 
                 <!-- Overlay prompt -->

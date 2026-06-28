@@ -1104,7 +1104,7 @@ namespace Filey
                         {
                             var originalSize = page.Size;
 
-                            double scale = Math.Min(300.0 / originalSize.Width, 300.0 / originalSize.Height);
+                            double scale = Math.Min(600.0 / originalSize.Width, 600.0 / originalSize.Height);
                             uint thumbWidth = (uint)Math.Max(1, originalSize.Width * scale);
                             uint thumbHeight = (uint)Math.Max(1, originalSize.Height * scale);
 

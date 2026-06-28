@@ -170,15 +170,26 @@
                         FontSize="11"
                         Cursor="Hand" />
                     <Button
-                        x:Name="ZoomFitButton"
-                        Content="↔ Fit"
-                        Click="ZoomFitButton_Click"
+                        x:Name="FitWidthButton"
+                        Content="↔ Width"
+                        Click="FitWidthButton_Click"
                         Background="#2D2D2D"
                         Foreground="#E0E0E0"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="11"
                         Margin="6,0,0,0"
+                        Cursor="Hand" />
+                    <Button
+                        x:Name="FitPageButton"
+                        Content="↕ Page"
+                        Click="FitPageButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Margin="4,0,0,0"
                         Cursor="Hand" />
                 </StackPanel>
             </Grid>
