@@ -491,6 +491,7 @@ namespace Filey
         private CancellationTokenSource _pdfCts;
         private CancellationTokenSource _pdfScrollCts;
         private CancellationTokenSource _thumbnailCts;
+        private bool _thumbnailsStarted;
         private System.Windows.Threading.DispatcherTimer _zoomDebounceTimer;
         private double _pdfZoomLevel = 1.0;
         private double _scaleVisualFactor = 1.0;
@@ -513,6 +514,7 @@ namespace Filey
         {
             _activePdfPath = filePath;
             _activePdfDocument = null;
+            _thumbnailsStarted = false;
             ContentTextBox.Visibility = Visibility.Collapsed;
             ImageScrollViewer.Visibility = Visibility.Collapsed;
             PdfViewerGrid.Visibility = Visibility.Visible;
@@ -560,6 +562,7 @@ namespace Filey
                             var snapshot = new System.Collections.Generic.List<PdfPageViewModel>(pages);
                             var thumbSnapshot = new System.Collections.Generic.List<PdfThumbnailViewModel>(thumbnails);
                             bool firstBatch = isFirstBatch;
+                            bool lastBatch = isLast;
 
                             Dispatcher.BeginInvoke(new Action(() =>
                             {
@@ -594,11 +597,15 @@ namespace Filey
                                         UpdatePdfViewport();
                                     }
                                     UpdatePageIndicator();
-                                    UpdateVisibleThumbnails();
                                 }
                                 else
                                 {
                                     UpdatePageIndicator();
+                                }
+
+                                if (lastBatch)
+                                {
+                                    RenderAllThumbnails();
                                 }
                             }));
                         }
@@ -678,34 +685,76 @@ namespace Filey
             UpdatePdfPagesDisplayWidth();
         }
 
+        private const double PdfPageMargin = 24.0;
+
+        private double GetPageOffset(int pageIndex)
+        {
+            if (_pdfPages == null) return 0;
+
+            double currentY = 0;
+            if (_isDualPage)
+            {
+                int targetRowIndex = pageIndex / 2;
+                for (int i = 0; i < targetRowIndex && i < _pdfRows.Count; i++)
+                {
+                    currentY += _pdfRows[i].DisplayHeight + PdfPageMargin;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < pageIndex && i < _pdfPages.Count; i++)
+                {
+                    currentY += _pdfPages[i].DisplayHeight + PdfPageMargin;
+                }
+            }
+            return currentY;
+        }
+
+        private double GetCurrentPageHeight()
+        {
+            if (_pdfPages == null) return 0;
+            if (_isDualPage)
+            {
+                int rowIndex = _currentPageIndex / 2;
+                if (rowIndex >= 0 && rowIndex < _pdfRows.Count) return _pdfRows[rowIndex].DisplayHeight;
+            }
+            else if (_currentPageIndex >= 0 && _currentPageIndex < _pdfPages.Count)
+            {
+                return _pdfPages[_currentPageIndex].DisplayHeight;
+            }
+            return 0;
+        }
+
+        // Captures the fractional reading position within the current page, runs the reflow
+        // (which changes page heights), then restores that same position so a zoom change keeps
+        // the view on the page being read.
+        private void ReanchorAcrossReflow(Action reflow)
+        {
+            double oldPageTop = GetPageOffset(_currentPageIndex);
+            double oldPageHeight = GetCurrentPageHeight();
+            double fraction = oldPageHeight > 0
+                ? Math.Max(0, Math.Min(1, (PdfActiveViewer.VerticalOffset - oldPageTop) / oldPageHeight))
+                : 0;
+
+            reflow();
+
+            if (_isContinuousScroll)
+            {
+                double newPageTop = GetPageOffset(_currentPageIndex);
+                double newPageHeight = GetCurrentPageHeight();
+                PdfActiveViewer.ScrollToVerticalOffset(newPageTop + fraction * newPageHeight);
+            }
+        }
+
         private void ScrollToPdfPage(int pageIndex)
         {
             if (_pdfPages == null || pageIndex < 0 || pageIndex >= _pdfPages.Count) return;
-            
+
             _currentPageIndex = pageIndex;
 
             if (_isContinuousScroll)
             {
-                double currentY = 0;
-                const double pageMargin = 24.0;
-
-                if (_isDualPage)
-                {
-                    int targetRowIndex = pageIndex / 2;
-                    for (int i = 0; i < targetRowIndex; i++)
-                    {
-                        currentY += _pdfRows[i].DisplayHeight + pageMargin;
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < pageIndex; i++)
-                    {
-                        currentY += _pdfPages[i].DisplayHeight + pageMargin;
-                    }
-                }
-
-                PdfActiveViewer.ScrollToVerticalOffset(currentY);
+                PdfActiveViewer.ScrollToVerticalOffset(GetPageOffset(pageIndex));
             }
             else
             {
@@ -714,7 +763,6 @@ namespace Filey
 
             UpdatePdfViewport();
             UpdatePageIndicator();
-            UpdateVisibleThumbnails();
         }
 
         private void UpdatePdfPagesDisplayWidth()
@@ -859,53 +907,35 @@ namespace Filey
             }
         }
 
-        private void UpdateVisibleThumbnails()
+        // Renders every thumbnail once in page order, in small batches with a yield between
+        // them so the UI stays responsive even for very large PDFs. Idempotent: a second call
+        // (e.g. on sidebar open) is ignored once a pass has started for the active document.
+        private void RenderAllThumbnails()
         {
+            if (_thumbnailsStarted) return;
             if (_pdfThumbnails == null || _activePdfDocument == null || _pdfCts.IsCancellationRequested) return;
 
-            double offset = PdfThumbnailScrollViewer.VerticalOffset;
-            double viewport = PdfThumbnailScrollViewer.ViewportHeight;
-            if (viewport <= 0) viewport = PdfThumbnailScrollViewer.ActualHeight;
-            if (viewport <= 0) viewport = 500;
-
-            double buffer = viewport;
-            double top = offset - buffer;
-            double bottom = offset + viewport + buffer;
-
-            var visibleIndices = new List<int>();
-            double currentY = 0;
-            const double margin = 12;
-
-            for (int i = 0; i < _pdfThumbnails.Count; i++)
-            {
-                double itemHeight = _pdfThumbnails[i].ThumbnailHeight + margin;
-                if (currentY + itemHeight >= top && currentY <= bottom)
-                {
-                    visibleIndices.Add(i);
-                }
-                currentY += itemHeight;
-            }
+            _thumbnailsStarted = true;
 
             _thumbnailCts?.Cancel();
             _thumbnailCts = new CancellationTokenSource();
             var token = _thumbnailCts.Token;
 
             var pdfDoc = _activePdfDocument;
+            var thumbnails = _pdfThumbnails;
+            const int batchSize = 10;
 
             Task.Run(async () =>
             {
-                foreach (int index in visibleIndices)
+                for (int index = 0; index < thumbnails.Count; index++)
                 {
-                    if (token.IsCancellationRequested) return;
+                    if (token.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
 
-                    var thumbnail = _pdfThumbnails[index];
+                    var thumbnail = thumbnails[index];
                     if (thumbnail.ThumbnailImage != null) continue;
 
                     try
                     {
-                        await Task.Delay(80, token);
-                        if (token.IsCancellationRequested) return;
-
                         using (PdfPage pdfPage = pdfDoc.GetPage((uint)index))
                         {
                             var renderOptions = new PdfPageRenderOptions();
@@ -915,7 +945,7 @@ namespace Filey
                             using (var stream = new InMemoryRandomAccessStream())
                             {
                                 await pdfPage.RenderToStreamAsync(stream, renderOptions);
-                                if (token.IsCancellationRequested) return;
+                                if (token.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
 
                                 var bitmap = new BitmapImage();
                                 bitmap.BeginInit();
@@ -935,6 +965,11 @@ namespace Filey
                         }
                     }
                     catch { }
+
+                    if ((index + 1) % batchSize == 0)
+                    {
+                        try { await Task.Delay(15, token); } catch { return; }
+                    }
                 }
             }, token);
         }
@@ -1025,7 +1060,7 @@ namespace Filey
             {
                 PdfSidebarColumn.Width = new GridLength(220);
                 PdfSidebarBorder.Visibility = Visibility.Visible;
-                UpdateVisibleThumbnails();
+                RenderAllThumbnails();
             }
             else
             {
@@ -1082,7 +1117,7 @@ namespace Filey
             PdfScale.ScaleY = 1.0;
             _zoomDebounceTimer.Stop();
 
-            UpdatePdfPagesDisplayWidth();
+            ReanchorAcrossReflow(() => UpdatePdfPagesDisplayWidth());
             UpdatePdfViewport();
             ZoomText.Text = "Fit";
         }
@@ -1118,7 +1153,7 @@ namespace Filey
             PdfScale.ScaleY = 1.0;
             _zoomDebounceTimer.Stop();
 
-            UpdatePdfPagesDisplayWidth();
+            ReanchorAcrossReflow(() => UpdatePdfPagesDisplayWidth());
             UpdatePdfViewport();
             ZoomText.Text = $"{Math.Round(_pdfZoomLevel * 100)}%";
         }
@@ -1146,7 +1181,7 @@ namespace Filey
             PdfScale.ScaleX = 1.0;
             PdfScale.ScaleY = 1.0;
 
-            UpdatePdfPagesDisplayWidth();
+            ReanchorAcrossReflow(() => UpdatePdfPagesDisplayWidth());
             UpdatePdfViewport();
             ZoomText.Text = $"{Math.Round(_pdfZoomLevel * 100)}%";
         }
@@ -1204,11 +1239,6 @@ namespace Filey
                 ApplyZoom(zoomRatio);
                 e.Handled = true;
             }
-        }
-
-        private void PdfThumbnailScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            UpdateVisibleThumbnails();
         }
 
         private void ThumbnailButton_Click(object sender, RoutedEventArgs e)

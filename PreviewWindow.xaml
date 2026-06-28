@@ -289,8 +289,7 @@
                         Grid.Row="1"
                         x:Name="PdfThumbnailScrollViewer"
                         VerticalScrollBarVisibility="Auto"
-                        HorizontalScrollBarVisibility="Disabled"
-                        ScrollChanged="PdfThumbnailScrollViewer_ScrollChanged">
+                        HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl
                             x:Name="PdfThumbnailItemsControl"
                             VirtualizingStackPanel.IsVirtualizing="True"
