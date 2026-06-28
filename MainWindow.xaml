@@ -162,7 +162,12 @@
             </Grid>
 
             <!-- Inline Dynamic File Preview Panel -->
-            <local:PreviewPane x:Name="RightPreviewControl" Grid.Row="1" Grid.Column="4" Visibility="Collapsed"/>
+            <local:PreviewPane
+                x:Name="RightPreviewControl"
+                Grid.Row="0"
+                Grid.RowSpan="2"
+                Grid.Column="4"
+                Visibility="Collapsed" />
         </Grid>
     </Grid>
 </ui:FluentWindow>

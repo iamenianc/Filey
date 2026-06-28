@@ -636,6 +636,12 @@ namespace Filey
                 SetRightPaneMode(RightPaneMode.RightPane);
             }
 
+            if (RightPaneOverlay != null && RightPaneOverlay.Visibility == Visibility.Visible)
+            {
+                RightPaneOverlay.Visibility = Visibility.Collapsed;
+                _rightPaneActivated = true;
+            }
+
             if (System.IO.Directory.Exists(targetDir))
             {
                 RightViewModel.LoadDirectory(targetDir);
