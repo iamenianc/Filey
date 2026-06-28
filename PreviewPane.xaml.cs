@@ -38,6 +38,7 @@ namespace Filey
 
         private List<PdfPageViewModel> _pdfPages;
         private string _activePdfPath;
+        private PdfDocument _activePdfDocument;
         private bool _isPdfActive;
         #region Win32 FindFirstFileEx Declarations
 
@@ -1054,12 +1055,14 @@ namespace Filey
             _scrollCts = null;
             _pdfPages = null;
             _activePdfPath = null;
+            _activePdfDocument = null;
             _isPdfActive = false;
         }
 
         private void LoadPdfFile(string filePath)
         {
             _activePdfPath = filePath;
+            _activePdfDocument = null;
             _isPdfActive = false;
 
             EmptyStateBorder.Visibility = Visibility.Collapsed;
@@ -1172,11 +1175,15 @@ namespace Filey
                     StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
                     PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
 
+                    if (token.IsCancellationRequested) return;
+                    _activePdfDocument = pdfDoc;
+
                     uint pageCount = pdfDoc.PageCount;
                     var pages = new List<PdfPageViewModel>();
 
                     for (uint i = 0; i < pageCount; i++)
                     {
+                        if (token.IsCancellationRequested) return;
                         using (PdfPage page = pdfDoc.GetPage(i))
                         {
                             double width = page.Size.Width;
@@ -1261,8 +1268,6 @@ namespace Filey
             _scrollCts = new CancellationTokenSource();
             var scrollToken = _scrollCts.Token;
 
-            var filePath = _activePdfPath;
-
             foreach (var page in _pdfPages)
             {
                 if (visiblePageIndices.Contains(page.PageIndex))
@@ -1272,15 +1277,16 @@ namespace Filey
                         var pageIndex = page.PageIndex;
                         var targetWidth = (uint)page.DisplayWidth;
                         var targetHeight = (uint)page.DisplayHeight;
+                        var pdfDoc = _activePdfDocument;
+
+                        if (pdfDoc == null) continue;
 
                         Task.Run(async () =>
                         {
-                            if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
-
                             try
                             {
-                                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-                                PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+                                await Task.Delay(100, scrollToken);
+                                if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
 
                                 using (PdfPage pdfPage = pdfDoc.GetPage((uint)pageIndex))
                                 {
@@ -1321,19 +1327,9 @@ namespace Filey
             }
         }
 
-        private void PdfSkimGrid_MouseDown(object sender, MouseButtonEventArgs e)
+        private void PdfSkimGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            ActivatePdfReader();
-        }
-
-        private void PdfSkimGrid_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            ActivatePdfReader();
-        }
-
-        private void PdfSkimGrid_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            ActivatePdfReader();
+            PopOutButton_Click(this, null);
         }
 
         private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)

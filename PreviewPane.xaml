@@ -129,9 +129,7 @@
                 x:Name="PdfSkimGrid"
                 Visibility="Visible"
                 Focusable="True"
-                MouseDown="PdfSkimGrid_MouseDown"
-                MouseWheel="PdfSkimGrid_MouseWheel"
-                PreviewKeyDown="PdfSkimGrid_PreviewKeyDown">
+                MouseDoubleClick="PdfSkimGrid_MouseDoubleClick">
                 <Grid.RowDefinitions>
                     <RowDefinition
                         Height="*" />
@@ -210,7 +208,7 @@
                     Padding="12,6"
                     IsHitTestVisible="False">
                     <TextBlock
-                        Text="🖱️ Scroll or click to read full document"
+                        Text="🖱️ Double-click to open in full preview window"
                         Foreground="#CCCCCC"
                         FontSize="11"
                         FontWeight="SemiBold" />

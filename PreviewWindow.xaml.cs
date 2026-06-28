@@ -477,6 +477,7 @@ namespace Filey
         public int InitialPdfPageIndex { get; set; } = 0;
         private System.Collections.Generic.List<PdfPageViewModel> _pdfPages;
         private string _activePdfPath;
+        private PdfDocument _activePdfDocument;
         private CancellationTokenSource _pdfCts;
         private CancellationTokenSource _pdfScrollCts;
 
@@ -490,6 +491,7 @@ namespace Filey
         private void LoadPdfFile(string filePath)
         {
             _activePdfPath = filePath;
+            _activePdfDocument = null;
             ContentTextBox.Visibility = Visibility.Collapsed;
             ImageScrollViewer.Visibility = Visibility.Collapsed;
             PdfActiveViewer.Visibility = Visibility.Visible;
@@ -509,10 +511,14 @@ namespace Filey
                     StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
                     PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
 
+                    if (token.IsCancellationRequested) return;
+                    _activePdfDocument = pdfDoc;
+
                     uint pageCount = pdfDoc.PageCount;
 
                     for (uint i = 0; i < pageCount; i++)
                     {
+                        if (token.IsCancellationRequested) return;
                         using (PdfPage page = pdfDoc.GetPage(i))
                         {
                             double width = page.Size.Width;
@@ -626,8 +632,6 @@ namespace Filey
             _pdfScrollCts = new CancellationTokenSource();
             var scrollToken = _pdfScrollCts.Token;
 
-            var filePath = _activePdfPath;
-
             foreach (var page in _pdfPages)
             {
                 if (visiblePageIndices.Contains(page.PageIndex))
@@ -637,15 +641,16 @@ namespace Filey
                         var pageIndex = page.PageIndex;
                         var targetWidth = (uint)page.DisplayWidth;
                         var targetHeight = (uint)page.DisplayHeight;
+                        var pdfDoc = _activePdfDocument;
+
+                        if (pdfDoc == null) continue;
 
                         Task.Run(async () =>
                         {
-                            if (scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
-
                             try
                             {
-                                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-                                PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+                                await Task.Delay(100, scrollToken);
+                                if (scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
 
                                 using (PdfPage pdfPage = pdfDoc.GetPage((uint)pageIndex))
                                 {
