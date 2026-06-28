@@ -106,12 +106,13 @@
         <ScrollViewer
             x:Name="FolderScrollViewer"
             Grid.Row="0"
-            HorizontalScrollBarVisibility="Hidden"
-            VerticalScrollBarVisibility="Hidden"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Auto"
             Background="#1E1E1E"
             Padding="16"
             Visibility="Collapsed"
-            PreviewMouseWheel="FolderScrollViewer_PreviewMouseWheel">
+            PreviewMouseWheel="FolderScrollViewer_PreviewMouseWheel"
+            ScrollChanged="FolderScrollViewer_ScrollChanged">
             <local:FastTreeVisualHost
                 x:Name="FolderTreeVisualHost"
                 HorizontalAlignment="Left"

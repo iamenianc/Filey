@@ -31,7 +31,7 @@ namespace Filey
         private CancellationTokenSource _cts;
         private int _previewDepth = 1;
         private List<FastNode> _currentRenderedNodes;
-
+        private CancellationTokenSource _scrollCts;
         #region Win32 FindFirstFileEx Declarations
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -323,13 +323,43 @@ namespace Filey
                     ChangeDepth(Math.Max(1, _previewDepth - 1));
                 }
             }
+            else
+            {
+                // Custom faster scroll amount per wheel tick (120px is ~6.5 lines)
+                e.Handled = true;
+                double scrollOffset = FolderScrollViewer.VerticalOffset - (e.Delta > 0 ? 120 : -120);
+                FolderScrollViewer.ScrollToVerticalOffset(Math.Max(0, Math.Min(FolderScrollViewer.ScrollableHeight, scrollOffset)));
+            }
         }
 
         private void FolderScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (_currentRenderedNodes != null && (e.VerticalChange != 0 || e.ViewportHeightChange != 0))
             {
-                FolderTreeVisualHost.RenderTree(_currentRenderedNodes, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
+                // Debounce/Throttle redraw to avoid doing it for every single tick of the wheel
+                _scrollCts?.Cancel();
+                _scrollCts = new CancellationTokenSource();
+                var token = _scrollCts.Token;
+
+                var verticalOffset = FolderScrollViewer.VerticalOffset;
+                var viewportHeight = FolderScrollViewer.ViewportHeight;
+
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Wait 30ms to debounce scroll ticks
+                        await Task.Delay(30, token);
+                        if (token.IsCancellationRequested) return;
+
+                        _ = Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            if (token.IsCancellationRequested) return;
+                            FolderTreeVisualHost.RenderTree(_currentRenderedNodes, verticalOffset, viewportHeight);
+                        }));
+                    }
+                    catch (TaskCanceledException) { }
+                }, token);
             }
         }
 

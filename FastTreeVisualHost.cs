@@ -37,10 +37,10 @@ namespace Filey
             {
                 if (nodes == null || nodes.Count == 0) return;
 
-                // Virtualization boundaries (offset by 50px buffer top/bottom)
+                // Virtualization boundaries (offset by 300px buffer top/bottom for pre-caching)
                 bool enableVirtualization = viewportHeight > 0;
-                double minY = verticalOffset - 50;
-                double maxY = verticalOffset + viewportHeight + 50;
+                double minY = verticalOffset - 300;
+                double maxY = verticalOffset + viewportHeight + 300;
 
                 // Premium colors for lines and text in dark theme
                 var linePen = new Pen(new SolidColorBrush(Color.FromRgb(71, 85, 105)), 1); // Slate 600
