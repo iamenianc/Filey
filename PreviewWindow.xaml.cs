@@ -496,7 +496,7 @@ namespace Filey
         private double _pdfZoomLevel = 1.0;
         private double _scaleVisualFactor = 1.0;
 
-        private const bool _isContinuousScroll = true;
+        private bool _isContinuousScroll = true;
         private bool _isDualPage = false;
         private int _currentPageIndex = 0;
         private bool _isSidebarVisible = true;
@@ -637,25 +637,42 @@ namespace Filey
 
             var rows = new System.Collections.Generic.List<PdfPageRowViewModel>();
 
-            if (_isDualPage)
+            if (_isContinuousScroll)
             {
-                // Group side by side
-                for (int i = 0; i < _pdfPages.Count; i += 2)
+                if (_isDualPage)
                 {
-                    var row = new PdfPageRowViewModel
+                    for (int i = 0; i < _pdfPages.Count; i += 2)
                     {
-                        LeftPage = _pdfPages[i],
-                        RightPage = (i + 1 < _pdfPages.Count) ? _pdfPages[i + 1] : null
-                    };
-                    rows.Add(row);
+                        rows.Add(new PdfPageRowViewModel
+                        {
+                            LeftPage = _pdfPages[i],
+                            RightPage = (i + 1 < _pdfPages.Count) ? _pdfPages[i + 1] : null
+                        });
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < _pdfPages.Count; i++)
+                    {
+                        rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[i] });
+                    }
                 }
             }
             else
             {
-                // Single page per row
-                for (int i = 0; i < _pdfPages.Count; i++)
+                // Single-page mode: show only the current page
+                if (_isDualPage)
                 {
-                    rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[i] });
+                    int leftIndex = _currentPageIndex % 2 != 0 && _currentPageIndex > 0 ? _currentPageIndex - 1 : _currentPageIndex;
+                    rows.Add(new PdfPageRowViewModel
+                    {
+                        LeftPage = _pdfPages[leftIndex],
+                        RightPage = (leftIndex + 1 < _pdfPages.Count) ? _pdfPages[leftIndex + 1] : null
+                    });
+                }
+                else
+                {
+                    rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[_currentPageIndex] });
                 }
             }
 
@@ -732,13 +749,9 @@ namespace Filey
             _currentPageIndex = pageIndex;
 
             if (_isContinuousScroll)
-            {
                 PdfActiveViewer.ScrollToVerticalOffset(GetPageOffset(pageIndex));
-            }
             else
-            {
                 RebuildPdfRows();
-            }
 
             UpdatePdfViewport();
             UpdatePageIndicator();
@@ -793,23 +806,34 @@ namespace Filey
 
             var visiblePageIndices = new HashSet<int>();
 
-            double currentY = 0;
-            const double pageMargin = 4.0;
-
-            foreach (var row in _pdfRows)
+            if (_isContinuousScroll)
             {
-                double rowHeight = row.DisplayHeight;
-                double rowTop = currentY;
-                double rowBottom = currentY + rowHeight;
+                double currentY = 0;
+                const double pageMargin = 4.0;
 
-                bool isVisible = (rowBottom >= topLimit) && (rowTop <= bottomLimit);
-                if (isVisible)
+                foreach (var row in _pdfRows)
+                {
+                    double rowHeight = row.DisplayHeight;
+                    double rowTop = currentY;
+                    double rowBottom = currentY + rowHeight;
+
+                    bool isVisible = (rowBottom >= topLimit) && (rowTop <= bottomLimit);
+                    if (isVisible)
+                    {
+                        if (row.LeftPage != null) visiblePageIndices.Add(row.LeftPage.PageIndex);
+                        if (row.RightPage != null) visiblePageIndices.Add(row.RightPage.PageIndex);
+                    }
+
+                    currentY = rowBottom + pageMargin;
+                }
+            }
+            else
+            {
+                foreach (var row in _pdfRows)
                 {
                     if (row.LeftPage != null) visiblePageIndices.Add(row.LeftPage.PageIndex);
                     if (row.RightPage != null) visiblePageIndices.Add(row.RightPage.PageIndex);
                 }
-
-                currentY = rowBottom + pageMargin;
             }
 
             _pdfScrollCts?.Cancel();
@@ -1034,12 +1058,14 @@ namespace Filey
 
         private void PrevPageButton_Click(object sender, RoutedEventArgs e)
         {
+            _isContinuousScroll = false;
             NavigatePrev();
             Dispatcher.BeginInvoke(new Action(() => FitPageButton_Click(null, null)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
+            _isContinuousScroll = false;
             NavigateNext();
             Dispatcher.BeginInvoke(new Action(() => FitPageButton_Click(null, null)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
@@ -1133,7 +1159,7 @@ namespace Filey
 
         private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            if (_pdfPages == null) return;
+            if (_pdfPages == null || !_isContinuousScroll) return;
 
             double offset = PdfActiveViewer.VerticalOffset;
             double currentY = 0;
@@ -1183,6 +1209,12 @@ namespace Filey
                 double zoomRatio = e.Delta > 0 ? 1.15 : 0.85;
                 ApplyZoom(zoomRatio);
                 e.Handled = true;
+            }
+            else if (!_isContinuousScroll)
+            {
+                _isContinuousScroll = true;
+                RebuildPdfRows();
+                PdfActiveViewer.ScrollToVerticalOffset(GetPageOffset(_currentPageIndex));
             }
         }
 
