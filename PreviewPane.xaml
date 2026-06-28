@@ -129,7 +129,7 @@
                 x:Name="PdfSkimGrid"
                 Visibility="Visible"
                 Focusable="True"
-                MouseDoubleClick="PdfSkimGrid_MouseDoubleClick">
+                MouseDown="PdfSkimGrid_MouseDown">
                 <Grid.RowDefinitions>
                     <RowDefinition
                         Height="*" />

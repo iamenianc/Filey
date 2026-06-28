@@ -18,6 +18,8 @@
             <RowDefinition
                 Height="Auto" />
             <RowDefinition
+                Height="Auto" />
+            <RowDefinition
                 Height="*" />
             <RowDefinition
                 Height="Auto" />
@@ -31,10 +33,161 @@
             ShowMinimize="True"
             ShowClose="True" />
 
+        <!-- PDF Control Toolbar -->
+        <Border
+            x:Name="PdfToolbarBorder"
+            Grid.Row="1"
+            Background="#1B1B1B"
+            BorderBrush="#2D2D2D"
+            BorderThickness="0,0,0,1"
+            Height="38"
+            Visibility="Collapsed">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" /> <!-- Sidebar toggle -->
+                    <ColumnDefinition Width="Auto" /> <!-- Separator -->
+                    <ColumnDefinition Width="Auto" /> <!-- View Modes (Continuous vs PageFlip) -->
+                    <ColumnDefinition Width="Auto" /> <!-- View Layouts (Single vs Dual) -->
+                    <ColumnDefinition Width="Auto" /> <!-- Separator -->
+                    <ColumnDefinition Width="Auto" /> <!-- Navigation Buttons -->
+                    <ColumnDefinition Width="*" />    <!-- Spacer -->
+                    <ColumnDefinition Width="Auto" /> <!-- Zoom Controls -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Sidebar Toggle -->
+                <Button
+                    x:Name="SidebarToggleButton"
+                    Grid.Column="0"
+                    Content="📋 Sidebar"
+                    Click="SidebarToggleButton_Click"
+                    Background="#2D2D2D"
+                    Foreground="#E0E0E0"
+                    BorderThickness="0"
+                    Padding="8,4"
+                    FontSize="11"
+                    Cursor="Hand" />
+
+                <Border Grid.Column="1" Background="#2D2D2D" Width="1" Margin="8,8" />
+
+                <!-- Continuous vs Page Flip Toggle -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <RadioButton
+                        x:Name="ContinuousScrollRadio"
+                        Content="📜 Continuous"
+                        GroupName="ViewModeGroup"
+                        IsChecked="True"
+                        Checked="ViewModeRadio_Checked"
+                        Style="{StaticResource ToggleTabRadioButtonStyle}"
+                        Margin="0,0,4,0" />
+                    <RadioButton
+                        x:Name="PageFlipRadio"
+                        Content="📖 Page-Flip"
+                        GroupName="ViewModeGroup"
+                        Checked="ViewModeRadio_Checked"
+                        Style="{StaticResource ToggleTabRadioButtonStyle}" />
+                </StackPanel>
+
+                <!-- Single vs Dual Page Toggle -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0,0,0">
+                    <RadioButton
+                        x:Name="SinglePageRadio"
+                        Content="📄 Single"
+                        GroupName="LayoutModeGroup"
+                        IsChecked="True"
+                        Checked="LayoutModeRadio_Checked"
+                        Style="{StaticResource ToggleTabRadioButtonStyle}"
+                        Margin="0,0,4,0" />
+                    <RadioButton
+                        x:Name="DualPageRadio"
+                        Content="👥 Dual Spread"
+                        GroupName="LayoutModeGroup"
+                        Checked="LayoutModeRadio_Checked"
+                        Style="{StaticResource ToggleTabRadioButtonStyle}" />
+                </StackPanel>
+
+                <Border Grid.Column="4" Background="#2D2D2D" Width="1" Margin="8,8" />
+
+                <!-- Navigation Buttons -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                    <Button
+                        x:Name="PrevPageButton"
+                        Content="◀ Prev"
+                        Click="PrevPageButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Cursor="Hand" />
+                    <TextBlock
+                        x:Name="PageIndicatorText"
+                        Text="Page 1 of 1"
+                        Foreground="#A0A0A0"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        Margin="10,0" />
+                    <Button
+                        x:Name="NextPageButton"
+                        Content="Next ▶"
+                        Click="NextPageButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Cursor="Hand" />
+                </StackPanel>
+
+                <!-- Zoom Controls -->
+                <StackPanel Grid.Column="7" Orientation="Horizontal">
+                    <Button
+                        x:Name="ZoomOutButton"
+                        Content="➖"
+                        Click="ZoomOutButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Cursor="Hand" />
+                    <TextBlock
+                        x:Name="ZoomText"
+                        Text="100%"
+                        Width="45"
+                        TextAlignment="Center"
+                        Foreground="#A0A0A0"
+                        FontSize="11"
+                        VerticalAlignment="Center"
+                        Margin="4,0" />
+                    <Button
+                        x:Name="ZoomInButton"
+                        Content="➕"
+                        Click="ZoomInButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Cursor="Hand" />
+                    <Button
+                        x:Name="ZoomFitButton"
+                        Content="↔ Fit"
+                        Click="ZoomFitButton_Click"
+                        Background="#2D2D2D"
+                        Foreground="#E0E0E0"
+                        BorderThickness="0"
+                        Padding="8,4"
+                        FontSize="11"
+                        Margin="6,0,0,0"
+                        Cursor="Hand" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Mode 1: Text Viewer -->
         <TextBox
             x:Name="ContentTextBox"
-            Grid.Row="1"
+            Grid.Row="2"
             Visibility="Collapsed"
             Background="#1E1E1E"
             Foreground="#D4D4D4"
@@ -55,7 +208,7 @@
         <!-- Mode 2: Image Viewer -->
         <ScrollViewer
             x:Name="ImageScrollViewer"
-            Grid.Row="1"
+            Grid.Row="2"
             Visibility="Collapsed"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Auto"
@@ -84,73 +237,225 @@
             </Grid>
         </ScrollViewer>
 
-        <!-- Mode 3: PDF Viewer -->
-        <ScrollViewer
-            x:Name="PdfActiveViewer"
-            Grid.Row="1"
+        <!-- Mode 3: PDF Viewer Container Grid -->
+        <Grid
+            x:Name="PdfViewerGrid"
+            Grid.Row="2"
             Visibility="Collapsed"
-            VerticalScrollBarVisibility="Auto"
-            HorizontalScrollBarVisibility="Disabled"
-            ScrollChanged="PdfActiveViewer_ScrollChanged"
-            SizeChanged="PdfActiveViewer_SizeChanged">
-            <ItemsControl
-                x:Name="PdfPageItemsControl"
-                VirtualizingStackPanel.IsVirtualizing="True"
-                VirtualizingStackPanel.VirtualizationMode="Recycling">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border
-                            Margin="8,12"
-                            BorderBrush="#2D2D2D"
-                            BorderThickness="1"
-                            Background="#1E1E1E"
-                            Width="{Binding DisplayWidth}"
-                            Height="{Binding DisplayHeight}"
-                            HorizontalAlignment="Center">
-                            <Grid>
-                                <TextBlock
-                                    Text="Loading..."
-                                    Foreground="#555555"
-                                    FontSize="12"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style
-                                            TargetType="TextBlock">
-                                            <Setter
-                                                Property="Visibility"
-                                                Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger
-                                                    Binding="{Binding Image}"
-                                                    Value="{x:Null}">
+            Background="#1E1E1E">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" x:Name="PdfSidebarColumn" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Collapsible Left Sidebar (Thumbnails + Page Navigation) -->
+            <Border
+                x:Name="PdfSidebarBorder"
+                Grid.Column="0"
+                Background="#161616"
+                BorderBrush="#2D2D2D"
+                BorderThickness="0,0,1,0">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- Go to page section -->
+                        <RowDefinition Height="*" />    <!-- Thumbnails list -->
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="Go to page:" Foreground="#858585" FontSize="11" Margin="0,0,0,4"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="PdfPageJumpInput" Background="#1E1E1E" Foreground="#E0E0E0" BorderBrush="#2D2D2D" FontSize="11" Padding="4" Height="24" KeyDown="PdfPageJumpInput_KeyDown"/>
+                            <Button Grid.Column="1" Content="Go" Width="40" Margin="4,0,0,0" Height="24" Click="PdfPageJumpButton_Click" Background="#2D2D2D" Foreground="#E0E0E0" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Page Thumbnails List -->
+                    <ScrollViewer
+                        Grid.Row="1"
+                        x:Name="PdfThumbnailScrollViewer"
+                        VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled"
+                        ScrollChanged="PdfThumbnailScrollViewer_ScrollChanged">
+                        <ItemsControl
+                            x:Name="PdfThumbnailItemsControl"
+                            VirtualizingStackPanel.IsVirtualizing="True"
+                            VirtualizingStackPanel.VirtualizationMode="Recycling"
+                            VirtualizingStackPanel.CacheLengthUnit="Page"
+                            VirtualizingStackPanel.CacheLength="2,2">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Margin="0,6"
+                                        Padding="4"
+                                        Background="Transparent"
+                                        BorderBrush="#2D2D2D"
+                                        BorderThickness="1"
+                                        Click="ThumbnailButton_Click"
+                                        HorizontalAlignment="Center"
+                                        Cursor="Hand">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="border" Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter />
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="border" Property="Background" Value="#2D2D2D"/>
+                                                                    <Setter TargetName="border" Property="BorderBrush" Value="#094771"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                        <Grid>
+                                            <Border Background="#101010" Width="100" Height="{Binding ThumbnailHeight}">
+                                                <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"/>
+                                            </Border>
+                                            <Border Background="#80000000" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="4,2" CornerRadius="2,0,0,0">
+                                                <TextBlock Text="{Binding PageNumber}" Foreground="#E0E0E0" FontSize="9"/>
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Main PDF Viewer -->
+            <ScrollViewer
+                Grid.Column="1"
+                x:Name="PdfActiveViewer"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                ScrollChanged="PdfActiveViewer_ScrollChanged"
+                SizeChanged="PdfActiveViewer_SizeChanged"
+                PreviewMouseWheel="PdfActiveViewer_PreviewMouseWheel">
+                <ItemsControl
+                    x:Name="PdfPageItemsControl"
+                    VirtualizingStackPanel.IsVirtualizing="True"
+                    VirtualizingStackPanel.VirtualizationMode="Recycling">
+                    <ItemsControl.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="PdfScale" />
+                        </TransformGroup>
+                    </ItemsControl.LayoutTransform>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- Row representing either one single page or two pages side-by-side -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12">
+                                <!-- Left Page -->
+                                <Border
+                                    Margin="8,0"
+                                    BorderBrush="#2D2D2D"
+                                    BorderThickness="1"
+                                    Background="#1E1E1E"
+                                    Width="{Binding LeftPageWidth}"
+                                    Height="{Binding DisplayHeight}"
+                                    HorizontalAlignment="Center">
+                                    <Grid>
+                                        <TextBlock
+                                            Text="Loading..."
+                                            Foreground="#555555"
+                                            FontSize="12"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style
+                                                    TargetType="TextBlock">
                                                     <Setter
                                                         Property="Visibility"
-                                                        Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <Image
-                                    Source="{Binding Image}"
-                                    Stretch="Uniform"
-                                    RenderOptions.BitmapScalingMode="HighQuality" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                                        Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger
+                                                            Binding="{Binding LeftPageImage}"
+                                                            Value="{x:Null}">
+                                                            <Setter
+                                                                Property="Visibility"
+                                                                Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Image
+                                            Source="{Binding LeftPageImage}"
+                                            Stretch="Uniform"
+                                            RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Right Page (Only visible in Dual Mode) -->
+                                <Border
+                                    Margin="8,0"
+                                    BorderBrush="#2D2D2D"
+                                    BorderThickness="1"
+                                    Background="#1E1E1E"
+                                    Width="{Binding RightPageWidth}"
+                                    Height="{Binding DisplayHeight}"
+                                    HorizontalAlignment="Center"
+                                    Visibility="{Binding RightPageVisibility}">
+                                    <Grid>
+                                        <TextBlock
+                                            Text="Loading..."
+                                            Foreground="#555555"
+                                            FontSize="12"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style
+                                                    TargetType="TextBlock">
+                                                    <Setter
+                                                        Property="Visibility"
+                                                        Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger
+                                                            Binding="{Binding RightPageImage}"
+                                                            Value="{x:Null}">
+                                                            <Setter
+                                                                Property="Visibility"
+                                                                Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Image
+                                            Source="{Binding RightPageImage}"
+                                            Stretch="Uniform"
+                                            RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
         <!-- Status Bar -->
         <Border
-            Grid.Row="2"
+            Grid.Row="3"
             Background="#1B1B1B"
             BorderBrush="#2D2D2D"
             BorderThickness="0,1,0,0"

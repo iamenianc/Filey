@@ -85,4 +85,39 @@
         <Setter Property="Padding" Value="4,2" />
     </Style>
 
+    <!-- Custom flat Tab-like RadioButton Style for PDF options -->
+    <Style x:Key="ToggleTabRadioButtonStyle" TargetType="RadioButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="border"
+                            Background="Transparent"
+                            BorderBrush="#2D2D2D"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Padding="8,4"
+                            Cursor="Hand">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#2D2D2D"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="#094771"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#2A2A2A"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

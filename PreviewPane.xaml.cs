@@ -1327,9 +1327,12 @@ namespace Filey
             }
         }
 
-        private void PdfSkimGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void PdfSkimGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            PopOutButton_Click(this, null);
+            if (e.ClickCount == 2)
+            {
+                PopOutButton_Click(this, null);
+            }
         }
 
         private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
