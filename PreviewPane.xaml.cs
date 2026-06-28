@@ -11,9 +11,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Windows.Data.Pdf;
-using Windows.Storage;
-using Windows.Storage.Streams;
 
 namespace Filey
 {
@@ -38,8 +35,10 @@ namespace Filey
 
         private List<PdfPageViewModel> _pdfPages;
         private string _activePdfPath;
-        private PdfDocument _activePdfDocument;
+        private PdfRenderer _pdfRenderer;
         private bool _isPdfActive;
+
+        private const double PdfPageMargin = 24.0;
         #region Win32 FindFirstFileEx Declarations
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -961,14 +960,14 @@ namespace Filey
             _scrollCts = null;
             _pdfPages = null;
             _activePdfPath = null;
-            _activePdfDocument = null;
+            _pdfRenderer = null;
             _isPdfActive = false;
         }
 
         private void LoadPdfFile(string filePath)
         {
             _activePdfPath = filePath;
-            _activePdfDocument = null;
+            _pdfRenderer = null;
             _isPdfActive = false;
 
             EmptyStateBorder.Visibility = Visibility.Collapsed;
@@ -995,47 +994,18 @@ namespace Filey
             {
                 try
                 {
-                    StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-                    PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+                    var renderer = new PdfRenderer();
+                    if (!await renderer.LoadAsync(filePath, token)) return;
 
-                    uint pageCount = pdfDoc.PageCount;
-                    int count = Math.Min(4, (int)pageCount);
+                    int count = Math.Min(4, renderer.PageCount);
                     var images = new BitmapSource[count];
 
                     for (int i = 0; i < count; i++)
                     {
                         if (token.IsCancellationRequested) return;
-
-                        using (PdfPage page = pdfDoc.GetPage((uint)i))
-                        {
-                            var originalSize = page.Size;
-
-                            double scale = Math.Min(600.0 / originalSize.Width, 600.0 / originalSize.Height);
-                            uint thumbWidth = (uint)Math.Max(1, originalSize.Width * scale);
-                            uint thumbHeight = (uint)Math.Max(1, originalSize.Height * scale);
-
-                            var renderOptions = new PdfPageRenderOptions();
-                            renderOptions.DestinationWidth = thumbWidth;
-                            renderOptions.DestinationHeight = thumbHeight;
-
-                            using (var stream = new InMemoryRandomAccessStream())
-                            {
-                                await page.RenderToStreamAsync(stream, renderOptions);
-                                if (token.IsCancellationRequested) return;
-
-                                var bitmap = new BitmapImage();
-                                bitmap.BeginInit();
-                                bitmap.StreamSource = stream.AsStream();
-                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                                bitmap.EndInit();
-                                bitmap.Freeze();
-
-                                images[i] = bitmap;
-                            }
-                        }
+                        images[i] = await renderer.RenderPageToBoxAsync(i, 600.0, token);
+                        if (token.IsCancellationRequested) return;
                     }
-
-                    if (token.IsCancellationRequested) return;
 
                     PdfSkimCache.Add(filePath, images);
 
@@ -1078,33 +1048,24 @@ namespace Filey
             {
                 try
                 {
-                    StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-                    PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+                    var renderer = new PdfRenderer();
+                    if (!await renderer.LoadAsync(filePath, token)) return;
 
-                    if (token.IsCancellationRequested) return;
-                    _activePdfDocument = pdfDoc;
-
-                    uint pageCount = pdfDoc.PageCount;
+                    var ratios = renderer.PageAspectRatios();
                     var pages = new List<PdfPageViewModel>();
-
-                    for (uint i = 0; i < pageCount; i++)
+                    for (int i = 0; i < ratios.Count; i++)
                     {
                         if (token.IsCancellationRequested) return;
-                        using (PdfPage page = pdfDoc.GetPage(i))
-                        {
-                            double width = page.Size.Width;
-                            double height = page.Size.Height;
-                            double aspectRatio = height / width;
-                            pages.Add(new PdfPageViewModel((int)i, aspectRatio));
-                        }
+                        pages.Add(new PdfPageViewModel(i, ratios[i]));
                     }
 
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (_activePdfPath == filePath && !token.IsCancellationRequested)
                         {
+                            _pdfRenderer = renderer;
                             _pdfPages = pages;
-                            
+
                             UpdatePdfPagesDisplayWidth();
                             PdfPageItemsControl.ItemsSource = _pdfPages;
                             UpdatePdfViewport();
@@ -1129,7 +1090,7 @@ namespace Filey
             if (_pdfPages == null) return;
             double availableWidth = PdfActiveViewer.ViewportWidth;
             if (availableWidth <= 0) availableWidth = PdfActiveViewer.ActualWidth;
-            double displayWidth = Math.Max(100, availableWidth - 48);
+            double displayWidth = PdfLayout.DisplayWidth(availableWidth, 48, false, 0, 1.0);
 
             foreach (var page in _pdfPages)
             {
@@ -1146,29 +1107,9 @@ namespace Filey
             if (viewportHeight <= 0) viewportHeight = PdfActiveViewer.ActualHeight;
             if (viewportHeight <= 0) viewportHeight = 600;
 
-            double buffer = viewportHeight;
-            double topLimit = scrollOffset - buffer;
-            double bottomLimit = scrollOffset + viewportHeight + buffer;
-
-            double currentY = 0;
-            const double pageMargin = 24.0;
-
-            var visiblePageIndices = new HashSet<int>();
-
-            foreach (var page in _pdfPages)
-            {
-                double pageHeight = page.DisplayHeight;
-                double pageTop = currentY;
-                double pageBottom = currentY + pageHeight;
-
-                bool isVisible = (pageBottom >= topLimit) && (pageTop <= bottomLimit);
-                if (isVisible)
-                {
-                    visiblePageIndices.Add(page.PageIndex);
-                }
-
-                currentY = pageBottom + pageMargin;
-            }
+            var pageHeights = _pdfPages.ConvertAll(p => p.DisplayHeight);
+            var visiblePageIndices = PdfLayout.VisiblePageIndices(
+                scrollOffset, viewportHeight, pageHeights, PdfPageMargin, viewportHeight);
 
             _scrollCts?.Cancel();
             _scrollCts = new CancellationTokenSource();
@@ -1183,9 +1124,9 @@ namespace Filey
                         var pageIndex = page.PageIndex;
                         var targetWidth = (uint)page.DisplayWidth;
                         var targetHeight = (uint)page.DisplayHeight;
-                        var pdfDoc = _activePdfDocument;
+                        var renderer = _pdfRenderer;
 
-                        if (pdfDoc == null) continue;
+                        if (renderer == null) continue;
 
                         Task.Run(async () =>
                         {
@@ -1194,33 +1135,16 @@ namespace Filey
                                 await Task.Delay(100, scrollToken);
                                 if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
 
-                                using (PdfPage pdfPage = pdfDoc.GetPage((uint)pageIndex))
+                                var bitmap = await renderer.RenderPageAsync(pageIndex, targetWidth, targetHeight, scrollToken);
+                                if (bitmap == null || scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
+
+                                Dispatcher.BeginInvoke(new Action(() =>
                                 {
-                                    var renderOptions = new PdfPageRenderOptions();
-                                    renderOptions.DestinationWidth = targetWidth;
-                                    renderOptions.DestinationHeight = targetHeight;
-
-                                    using (var stream = new InMemoryRandomAccessStream())
+                                    if (!scrollToken.IsCancellationRequested && !_cts.IsCancellationRequested && (uint)page.DisplayWidth == targetWidth)
                                     {
-                                        await pdfPage.RenderToStreamAsync(stream, renderOptions);
-                                        if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
-
-                                        var bitmap = new BitmapImage();
-                                        bitmap.BeginInit();
-                                        bitmap.StreamSource = stream.AsStream();
-                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                                        bitmap.EndInit();
-                                        bitmap.Freeze();
-
-                                        Dispatcher.BeginInvoke(new Action(() =>
-                                        {
-                                            if (!scrollToken.IsCancellationRequested && !_cts.IsCancellationRequested && page.DisplayWidth == targetWidth)
-                                            {
-                                                page.Image = bitmap;
-                                            }
-                                        }));
+                                        page.Image = bitmap;
                                     }
-                                }
+                                }));
                             }
                             catch {}
                         }, scrollToken);
@@ -1269,23 +1193,9 @@ namespace Filey
 
             if (_isPdfActive && _pdfPages != null && PdfActiveViewer != null)
             {
-                double scrollOffset = PdfActiveViewer.VerticalOffset;
-                double currentY = 0;
-                const double pageMargin = 24.0;
-                int activeIndex = 0;
-                
-                foreach (var page in _pdfPages)
-                {
-                    double pageHeight = page.DisplayHeight;
-                    if (scrollOffset >= currentY && scrollOffset <= currentY + pageHeight + pageMargin)
-                    {
-                        activeIndex = page.PageIndex;
-                        break;
-                    }
-                    currentY += pageHeight + pageMargin;
-                }
-                
-                previewWindow.InitialPdfPageIndex = activeIndex;
+                var pageHeights = _pdfPages.ConvertAll(p => p.DisplayHeight);
+                previewWindow.InitialPdfPageIndex = PdfLayout.PageIndexAtOffset(
+                    PdfActiveViewer.VerticalOffset, pageHeights, PdfPageMargin);
             }
 
             previewWindow.Show();
