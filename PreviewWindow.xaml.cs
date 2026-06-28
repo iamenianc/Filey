@@ -496,7 +496,7 @@ namespace Filey
         private double _pdfZoomLevel = 1.0;
         private double _scaleVisualFactor = 1.0;
 
-        private bool _isContinuousScroll = true;
+        private const bool _isContinuousScroll = true;
         private bool _isDualPage = false;
         private int _currentPageIndex = 0;
         private bool _isSidebarVisible = true;
@@ -580,7 +580,6 @@ namespace Filey
                                     _scaleVisualFactor = 1.0;
                                     PdfScale.ScaleX = 1.0;
                                     PdfScale.ScaleY = 1.0;
-                                    ZoomText.Text = "Fit";
 
                                     if (InitialPdfPageIndex > 0 && InitialPdfPageIndex < _pdfPages.Count)
                                     {
@@ -588,6 +587,7 @@ namespace Filey
                                         Dispatcher.BeginInvoke(new Action(() =>
                                         {
                                             ScrollToPdfPage(InitialPdfPageIndex);
+                                            FitPageButton_Click(null, null);
                                         }), System.Windows.Threading.DispatcherPriority.Loaded);
                                     }
                                     else
@@ -595,6 +595,10 @@ namespace Filey
                                         _currentPageIndex = 0;
                                         UpdatePdfPagesDisplayWidth();
                                         UpdatePdfViewport();
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            FitPageButton_Click(null, null);
+                                        }), System.Windows.Threading.DispatcherPriority.Loaded);
                                     }
                                     UpdatePageIndicator();
                                 }
@@ -633,50 +637,25 @@ namespace Filey
 
             var rows = new System.Collections.Generic.List<PdfPageRowViewModel>();
 
-            if (_isContinuousScroll)
+            if (_isDualPage)
             {
-                if (_isDualPage)
+                // Group side by side
+                for (int i = 0; i < _pdfPages.Count; i += 2)
                 {
-                    // Group side by side
-                    for (int i = 0; i < _pdfPages.Count; i += 2)
+                    var row = new PdfPageRowViewModel
                     {
-                        var row = new PdfPageRowViewModel
-                        {
-                            LeftPage = _pdfPages[i],
-                            RightPage = (i + 1 < _pdfPages.Count) ? _pdfPages[i + 1] : null
-                        };
-                        rows.Add(row);
-                    }
-                }
-                else
-                {
-                    // Single page per row
-                    for (int i = 0; i < _pdfPages.Count; i++)
-                    {
-                        rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[i] });
-                    }
+                        LeftPage = _pdfPages[i],
+                        RightPage = (i + 1 < _pdfPages.Count) ? _pdfPages[i + 1] : null
+                    };
+                    rows.Add(row);
                 }
             }
             else
             {
-                // Page flip mode: only show the current page(s)
-                if (_isDualPage)
+                // Single page per row
+                for (int i = 0; i < _pdfPages.Count; i++)
                 {
-                    int leftIndex = _currentPageIndex;
-                    if (leftIndex % 2 != 0 && leftIndex > 0)
-                    {
-                        leftIndex--;
-                    }
-                    var row = new PdfPageRowViewModel
-                    {
-                        LeftPage = _pdfPages[leftIndex],
-                        RightPage = (leftIndex + 1 < _pdfPages.Count) ? _pdfPages[leftIndex + 1] : null
-                    };
-                    rows.Add(row);
-                }
-                else
-                {
-                    rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[_currentPageIndex] });
+                    rows.Add(new PdfPageRowViewModel { LeftPage = _pdfPages[i] });
                 }
             }
 
@@ -685,7 +664,7 @@ namespace Filey
             UpdatePdfPagesDisplayWidth();
         }
 
-        private const double PdfPageMargin = 24.0;
+        private const double PdfPageMargin = 4.0;
 
         private double GetPageOffset(int pageIndex)
         {
@@ -814,34 +793,23 @@ namespace Filey
 
             var visiblePageIndices = new HashSet<int>();
 
-            if (_isContinuousScroll)
+            double currentY = 0;
+            const double pageMargin = 4.0;
+
+            foreach (var row in _pdfRows)
             {
-                double currentY = 0;
-                const double pageMargin = 24.0;
+                double rowHeight = row.DisplayHeight;
+                double rowTop = currentY;
+                double rowBottom = currentY + rowHeight;
 
-                foreach (var row in _pdfRows)
-                {
-                    double rowHeight = row.DisplayHeight;
-                    double rowTop = currentY;
-                    double rowBottom = currentY + rowHeight;
-
-                    bool isVisible = (rowBottom >= topLimit) && (rowTop <= bottomLimit);
-                    if (isVisible)
-                    {
-                        if (row.LeftPage != null) visiblePageIndices.Add(row.LeftPage.PageIndex);
-                        if (row.RightPage != null) visiblePageIndices.Add(row.RightPage.PageIndex);
-                    }
-
-                    currentY = rowBottom + pageMargin;
-                }
-            }
-            else
-            {
-                foreach (var row in _pdfRows)
+                bool isVisible = (rowBottom >= topLimit) && (rowTop <= bottomLimit);
+                if (isVisible)
                 {
                     if (row.LeftPage != null) visiblePageIndices.Add(row.LeftPage.PageIndex);
                     if (row.RightPage != null) visiblePageIndices.Add(row.RightPage.PageIndex);
                 }
+
+                currentY = rowBottom + pageMargin;
             }
 
             _pdfScrollCts?.Cancel();
@@ -999,22 +967,6 @@ namespace Filey
                     NavigatePrev();
                     handled = true;
                     break;
-                case Key.Down:
-                case Key.Right:
-                    if (!_isContinuousScroll)
-                    {
-                        NavigateNext();
-                        handled = true;
-                    }
-                    break;
-                case Key.Up:
-                case Key.Left:
-                    if (!_isContinuousScroll)
-                    {
-                        NavigatePrev();
-                        handled = true;
-                    }
-                    break;
                 case Key.Home:
                     ScrollToPdfPage(0);
                     handled = true;
@@ -1069,15 +1021,6 @@ namespace Filey
             }
             UpdatePdfPagesDisplayWidth();
             UpdatePdfViewport();
-        }
-
-        private void ViewModeRadio_Checked(object sender, RoutedEventArgs e)
-        {
-            if (ContinuousScrollRadio == null || PageFlipRadio == null) return;
-
-            _isContinuousScroll = ContinuousScrollRadio.IsChecked == true;
-            RebuildPdfRows();
-            ScrollToPdfPage(_currentPageIndex);
         }
 
         private void LayoutModeRadio_Checked(object sender, RoutedEventArgs e)
@@ -1188,7 +1131,7 @@ namespace Filey
 
         private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            if (_pdfPages == null || !_isContinuousScroll) return;
+            if (_pdfPages == null) return;
 
             double offset = PdfActiveViewer.VerticalOffset;
             double currentY = 0;

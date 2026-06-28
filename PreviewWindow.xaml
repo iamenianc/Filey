@@ -10,9 +10,10 @@
     Title="File Preview"
     Height="700"
     Width="1300"
+    WindowState="Maximized"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica"
-    WindowStartupLocation="CenterOwner">
+    WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition
@@ -46,7 +47,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" /> <!-- Sidebar toggle -->
                     <ColumnDefinition Width="Auto" /> <!-- Separator -->
-                    <ColumnDefinition Width="Auto" /> <!-- View Modes (Continuous vs PageFlip) -->
                     <ColumnDefinition Width="Auto" /> <!-- View Layouts (Single vs Dual) -->
                     <ColumnDefinition Width="Auto" /> <!-- Separator -->
                     <ColumnDefinition Width="Auto" /> <!-- Navigation Buttons -->
@@ -69,26 +69,8 @@
 
                 <Border Grid.Column="1" Background="#2D2D2D" Width="1" Margin="8,8" />
 
-                <!-- Continuous vs Page Flip Toggle -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <RadioButton
-                        x:Name="ContinuousScrollRadio"
-                        Content="📜 Continuous"
-                        GroupName="ViewModeGroup"
-                        IsChecked="True"
-                        Checked="ViewModeRadio_Checked"
-                        Style="{StaticResource ToggleTabRadioButtonStyle}"
-                        Margin="0,0,4,0" />
-                    <RadioButton
-                        x:Name="PageFlipRadio"
-                        Content="📖 Page-Flip"
-                        GroupName="ViewModeGroup"
-                        Checked="ViewModeRadio_Checked"
-                        Style="{StaticResource ToggleTabRadioButtonStyle}" />
-                </StackPanel>
-
                 <!-- Single vs Dual Page Toggle -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0,0,0">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
                     <RadioButton
                         x:Name="SinglePageRadio"
                         Content="📄 Single"
@@ -105,10 +87,10 @@
                         Style="{StaticResource ToggleTabRadioButtonStyle}" />
                 </StackPanel>
 
-                <Border Grid.Column="4" Background="#2D2D2D" Width="1" Margin="8,8" />
+                <Border Grid.Column="3" Background="#2D2D2D" Width="1" Margin="8,8" />
 
                 <!-- Navigation Buttons -->
-                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                <StackPanel Grid.Column="4" Orientation="Horizontal">
                     <Button
                         x:Name="PrevPageButton"
                         Content="◀ Prev"
@@ -139,7 +121,7 @@
                 </StackPanel>
 
                 <!-- Zoom Controls -->
-                <StackPanel Grid.Column="7" Orientation="Horizontal">
+                <StackPanel Grid.Column="6" Orientation="Horizontal">
                     <Button
                         x:Name="ZoomOutButton"
                         Content="➖"
@@ -372,7 +354,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <!-- Row representing either one single page or two pages side-by-side -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3">
                                 <!-- Left Page -->
                                 <Border
                                     Margin="8,0"
