@@ -1035,13 +1035,13 @@ namespace Filey
         private void PrevPageButton_Click(object sender, RoutedEventArgs e)
         {
             NavigatePrev();
-            FitPageButton_Click(null, null);
+            Dispatcher.BeginInvoke(new Action(() => FitPageButton_Click(null, null)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
             NavigateNext();
-            FitPageButton_Click(null, null);
+            Dispatcher.BeginInvoke(new Action(() => FitPageButton_Click(null, null)), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
