@@ -20,14 +20,14 @@
         </ContextMenu>
 
         <!-- ListBoxItem Style for Folders list -->
-        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
             <EventSetter Event="MouseDoubleClick" Handler="FoldersItem_MouseDoubleClick" />
             <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />
         </Style>
 
         <!-- ListViewItem Style for Contents grid -->
-        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
             <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />
         </Style>
