@@ -10,6 +10,10 @@
     <UserControl.Resources>
         <!-- Shared right-click context menu for all folder/file items in this pane -->
         <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
+            <MenuItem
+                x:Name="CtxPreviewItem"
+                Header="Preview"
+                Click="CtxPreview_Click" />
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
             <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>

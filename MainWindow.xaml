@@ -40,13 +40,16 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="6,0">
-                <ToggleButton x:Name="RightPaneToggle"
-                              Style="{StaticResource TopBarToggleStyle}"
-                              Content="Right Pane"
-                              ToolTip="Show or hide the right pane"
-                              IsChecked="True"
-                              Checked="RightPaneToggle_Changed"
-                              Unchecked="RightPaneToggle_Changed"/>
+                <Button x:Name="RightPaneCycleButton"
+                        Style="{StaticResource FlatButtonStyle}"
+                        FontSize="11"
+                        Padding="8,2"
+                        Margin="0,0,4,0"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        Content="Pane: Dual"
+                        ToolTip="Cycle right pane: Off ➔ Preview ➔ Dual"
+                        Click="RightPaneCycleButton_Click"/>
                 <ToggleButton x:Name="ShowHiddenToggle"
                               Style="{StaticResource TopBarToggleStyle}"
                               Content="Hidden"
@@ -115,6 +118,9 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <!-- Inline Dynamic File Preview Panel -->
+            <local:PreviewPane x:Name="RightPreviewControl" Grid.Column="4" Visibility="Collapsed"/>
         </Grid>
     </Grid>
 </Window>

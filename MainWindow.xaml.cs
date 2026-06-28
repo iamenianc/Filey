@@ -42,6 +42,16 @@ namespace Filey
 
             this.Closing += MainWindow_Closing;
 
+            // Track left selection and path updates to trigger preview load
+            LeftViewModel.PropertyChanged += (s, ev) =>
+            {
+                if (ev.PropertyName == nameof(DirectoryViewModel.SelectedItem) ||
+                    ev.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+                {
+                    OnLeftSelectionChanged();
+                }
+            };
+
             // Wire up the (single, shared) Favourites panel. It adds bookmarks for the
             // active side's current path and navigates that side.
             LeftFavouritesPanel.CurrentPathProvider = () => GetActiveViewModel().CurrentPath;
@@ -51,8 +61,8 @@ namespace Filey
             {
                 ApplySplitterPositions();
 
-                RightPaneToggle.IsChecked = _settings.RightPaneVisible;
-                SetRightPaneVisible(_settings.RightPaneVisible);
+                _currentRightPaneMode = (RightPaneMode)_settings.RightPaneMode;
+                SetRightPaneMode(_currentRightPaneMode);
 
                 ShowHiddenToggle.IsChecked = _settings.ShowHidden;
 
@@ -100,11 +110,12 @@ namespace Filey
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            _settings.RightPaneVisible = RightPaneToggle.IsChecked == true;
+            _settings.RightPaneMode = (int)_currentRightPaneMode;
+            _settings.RightPaneVisible = _currentRightPaneMode != RightPaneMode.Off;
             _settings.ShowHidden = ShowHiddenToggle.IsChecked == true;
             _settings.CompactMode = CompactModeToggle.IsChecked == true;
 
-            if (_settings.RightPaneVisible)
+            if (_currentRightPaneMode != RightPaneMode.Off)
             {
                 _settings.SplitterPositions = new System.Collections.Generic.List<double>
                 {
@@ -200,31 +211,108 @@ namespace Filey
                 RightViewModel.LoadDirectory(RightViewModel.CurrentDirectory, pushToHistory: false);
         }
 
-        private GridLength _savedRightPaneWidth = new GridLength(1, GridUnitType.Star);
-
-        private void RightPaneToggle_Changed(object sender, RoutedEventArgs e)
+        public enum RightPaneMode
         {
-            if (RightPaneCol == null) return;
-            SetRightPaneVisible(RightPaneToggle.IsChecked == true);
+            Off = 0,
+            PreviewPane = 1,
+            RightPane = 2
         }
 
-        private void SetRightPaneVisible(bool visible)
+        private RightPaneMode _currentRightPaneMode = RightPaneMode.RightPane;
+        private GridLength _savedRightPaneWidth = new GridLength(1, GridUnitType.Star);
+
+        private void OnLeftSelectionChanged()
         {
-            if (visible)
+            if (_currentRightPaneMode == RightPaneMode.PreviewPane)
             {
-                RightPaneCol.MinWidth = 300;
-                RightPaneCol.Width = _savedRightPaneWidth;
-                LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
-            }
-            else
-            {
-                if (RightPaneCol.ActualWidth > 0)
+                var selected = LeftViewModel.SelectedItem;
+                if (selected != null)
                 {
-                    _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth);
+                    RightPreviewControl.PreviewFile(selected.FullPath);
                 }
-                RightPaneCol.MinWidth = 0;
-                RightPaneCol.Width = new GridLength(0);
-                LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+                else if (!string.IsNullOrEmpty(LeftViewModel.CurrentDirectory))
+                {
+                    RightPreviewControl.PreviewFile(LeftViewModel.CurrentDirectory);
+                }
+                else
+                {
+                    RightPreviewControl.PreviewFile(null);
+                }
+            }
+        }
+
+        private void RightPaneCycleButton_Click(object sender, RoutedEventArgs e)
+        {
+            switch (_currentRightPaneMode)
+            {
+                case RightPaneMode.RightPane:
+                    SetRightPaneMode(RightPaneMode.Off);
+                    break;
+                case RightPaneMode.Off:
+                    SetRightPaneMode(RightPaneMode.PreviewPane);
+                    break;
+                case RightPaneMode.PreviewPane:
+                    SetRightPaneMode(RightPaneMode.RightPane);
+                    break;
+            }
+        }
+
+        private void SetRightPaneMode(RightPaneMode mode)
+        {
+            _currentRightPaneMode = mode;
+            _settings.RightPaneMode = (int)mode;
+            _settings.RightPaneVisible = mode != RightPaneMode.Off;
+            SettingsService.Save(_settings);
+
+            UpdateRightPaneLayout();
+        }
+
+        private void UpdateRightPaneLayout()
+        {
+            if (RightPaneCol == null) return;
+
+            switch (_currentRightPaneMode)
+            {
+                case RightPaneMode.Off:
+                    if (RightPaneCol.ActualWidth > 0)
+                    {
+                        _savedRightPaneWidth = new GridLength(RightPaneCol.ActualWidth);
+                    }
+                    RightPaneCol.MinWidth = 0;
+                    RightPaneCol.Width = new GridLength(0);
+                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+
+                    CentreSplitter.Visibility = Visibility.Collapsed;
+                    RightPaneGrid.Visibility = Visibility.Collapsed;
+                    RightPreviewControl.Visibility = Visibility.Collapsed;
+
+                    RightPaneCycleButton.Content = "Pane: Off";
+                    break;
+
+                case RightPaneMode.PreviewPane:
+                    RightPaneCol.MinWidth = 300;
+                    RightPaneCol.Width = _savedRightPaneWidth;
+                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+
+                    CentreSplitter.Visibility = Visibility.Visible;
+                    RightPaneGrid.Visibility = Visibility.Collapsed;
+                    RightPreviewControl.Visibility = Visibility.Visible;
+
+                    RightPaneCycleButton.Content = "Pane: Preview";
+                    OnLeftSelectionChanged(); // Trigger load of currently selected left pane item
+                    break;
+
+                case RightPaneMode.RightPane:
+                    RightPaneCol.MinWidth = 300;
+                    RightPaneCol.Width = _savedRightPaneWidth;
+                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+
+                    CentreSplitter.Visibility = Visibility.Visible;
+                    RightPaneGrid.Visibility = Visibility.Visible;
+                    RightPreviewControl.Visibility = Visibility.Collapsed;
+
+                    RightPaneCycleButton.Content = "Pane: Dual";
+                    break;
             }
         }
 
@@ -358,7 +446,7 @@ namespace Filey
 
         private DirectoryViewModel GetActiveViewModel()
         {
-            if (RightPaneOverlay.Visibility == Visibility.Visible)
+            if (RightPaneOverlay.Visibility == Visibility.Visible || _currentRightPaneMode == RightPaneMode.PreviewPane || _currentRightPaneMode == RightPaneMode.Off)
             {
                 return LeftViewModel;
             }
@@ -378,7 +466,7 @@ namespace Filey
                 }
             }
 
-            if (RightPaneGrid != null && RightPaneGrid.IsMouseOver)
+            if (RightPaneGrid != null && RightPaneGrid.IsMouseOver && RightPaneGrid.Visibility == Visibility.Visible)
             {
                 return RightViewModel;
             }

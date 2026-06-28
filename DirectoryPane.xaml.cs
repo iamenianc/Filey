@@ -559,18 +559,65 @@ namespace Filey
             return null;
         }
 
+        private static readonly string[] TextExtensions = new[]
+        {
+            ".txt", ".ini", ".sql", ".cs", ".json", ".md", ".xml", ".log", ".py",
+            ".js", ".ts", ".html", ".css", ".xaml", ".csproj", ".sln", ".slnx",
+            ".bat", ".cmd", ".sh", ".yaml", ".yml", ".config"
+        };
+
+        private static readonly string[] ImageExtensions = new[]
+        {
+            ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".tiff"
+        };
+
+        private bool IsSupportedPreviewFile(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            string ext = System.IO.Path.GetExtension(path);
+            return Array.Exists(TextExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))
+                || Array.Exists(ImageExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase));
+        }
+
         private void ItemContextMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (!(sender is ContextMenu menu)) return;
             var item = menu.DataContext as FolderItem;
             foreach (var obj in menu.Items)
             {
-                if (obj is MenuItem mi && (string.Equals(mi.Name, "CtxFavouriteItem")
-                    || (mi.Header as string)?.Contains("Favourites") == true))
+                if (obj is MenuItem mi)
                 {
-                    bool exists = item != null && BookmarkStore.Instance.Contains(Side, item.FullPath);
-                    mi.Header = exists ? "Remove from Favourites" : "Add to Favourites";
+                    if (string.Equals(mi.Name, "CtxFavouriteItem")
+                        || (mi.Header as string)?.Contains("Favourites") == true)
+                    {
+                        bool exists = item != null && BookmarkStore.Instance.Contains(Side, item.FullPath);
+                        mi.Header = exists ? "Remove from Favourites" : "Add to Favourites";
+                    }
+                    else if (string.Equals(mi.Name, "CtxPreviewItem"))
+                    {
+                        if (item != null && !item.IsDirectory && IsSupportedPreviewFile(item.FullPath))
+                        {
+                            mi.Visibility = Visibility.Visible;
+                        }
+                        else
+                        {
+                            mi.Visibility = Visibility.Collapsed;
+                        }
+                    }
                 }
+            }
+        }
+
+        private void CtxPreview_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null && !item.IsDirectory && IsSupportedPreviewFile(item.FullPath))
+            {
+                var previewWindow = new PreviewWindow(item.FullPath)
+                {
+                    Owner = Application.Current.MainWindow
+                };
+                previewWindow.Show();
             }
         }
 
