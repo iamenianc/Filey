@@ -494,7 +494,6 @@ namespace Filey
         private System.Windows.Threading.DispatcherTimer _zoomDebounceTimer;
         private double _pdfZoomLevel = 1.0;
         private double _scaleVisualFactor = 1.0;
-        private bool _isFitWidth = true;
 
         private bool _isContinuousScroll = true;
         private bool _isDualPage = false;
@@ -574,7 +573,6 @@ namespace Filey
 
                                 if (firstBatch)
                                 {
-                                    _isFitWidth = true;
                                     _pdfZoomLevel = 1.0;
                                     _scaleVisualFactor = 1.0;
                                     PdfScale.ScaleX = 1.0;
@@ -1078,7 +1076,6 @@ namespace Filey
 
         private void FitWidthButton_Click(object sender, RoutedEventArgs e)
         {
-            _isFitWidth = true;
             _scaleVisualFactor = 1.0;
             _pdfZoomLevel = 1.0;
             PdfScale.ScaleX = 1.0;
@@ -1092,21 +1089,42 @@ namespace Filey
 
         private void FitPageButton_Click(object sender, RoutedEventArgs e)
         {
-            _isFitWidth = false;
+            if (_pdfPages == null || _pdfPages.Count == 0) return;
+
+            int pageIndex = Math.Max(0, Math.Min(_currentPageIndex, _pdfPages.Count - 1));
+            double aspectRatio = _pdfPages[pageIndex].AspectRatio;
+            if (aspectRatio <= 0) return;
+
+            double viewportHeight = PdfActiveViewer.ViewportHeight;
+            if (viewportHeight <= 0) viewportHeight = PdfActiveViewer.ActualHeight;
+            if (viewportHeight <= 0) viewportHeight = 600;
+
+            const double vPadding = 48;
+            double desiredWidth = Math.Max(100, (viewportHeight - vPadding) / aspectRatio);
+
+            double availableWidth = PdfActiveViewer.ViewportWidth;
+            if (availableWidth <= 0) availableWidth = PdfActiveViewer.ActualWidth;
+            if (availableWidth <= 0) availableWidth = this.Width - (_isSidebarVisible ? 220 : 0);
+            if (availableWidth <= 0) availableWidth = 800;
+
+            const double padding = 48;
+            double baselineWidth = _isDualPage
+                ? Math.Max(100, (availableWidth - padding - 24) / 2.0)
+                : Math.Max(100, availableWidth - padding);
+
             _scaleVisualFactor = 1.0;
-            _pdfZoomLevel = 1.0;
+            _pdfZoomLevel = desiredWidth / baselineWidth;
             PdfScale.ScaleX = 1.0;
             PdfScale.ScaleY = 1.0;
             _zoomDebounceTimer.Stop();
 
             UpdatePdfPagesDisplayWidth();
             UpdatePdfViewport();
-            ZoomText.Text = "100%";
+            ZoomText.Text = $"{Math.Round(_pdfZoomLevel * 100)}%";
         }
 
         private void ApplyZoom(double scaleFactor)
         {
-            _isFitWidth = false;
             double newFactor = _scaleVisualFactor * scaleFactor;
             if (_pdfZoomLevel * newFactor >= 0.1 && _pdfZoomLevel * newFactor <= 10.0)
             {
@@ -1176,15 +1194,6 @@ namespace Filey
             }
 
             UpdatePdfViewport();
-        }
-
-        private void PdfActiveViewer_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (_pdfPages != null)
-            {
-                UpdatePdfPagesDisplayWidth();
-                UpdatePdfViewport();
-            }
         }
 
         private void PdfActiveViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

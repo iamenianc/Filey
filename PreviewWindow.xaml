@@ -355,7 +355,6 @@
                 VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Disabled"
                 ScrollChanged="PdfActiveViewer_ScrollChanged"
-                SizeChanged="PdfActiveViewer_SizeChanged"
                 PreviewMouseWheel="PdfActiveViewer_PreviewMouseWheel">
                 <ItemsControl
                     x:Name="PdfPageItemsControl"
