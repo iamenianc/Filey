@@ -350,20 +350,20 @@ namespace Filey
             if (DepthButton5 != null) DepthButton5.Foreground = (_previewDepth == 5) ? activeBrush : inactiveBrush;
         }
 
-        private void LoadDirectoryPreviewAsync(string folderPath, CancellationToken token)
+        private async void LoadDirectoryPreviewAsync(string folderPath, CancellationToken token)
         {
             try
             {
                 if (!Directory.Exists(folderPath)) return;
 
                 var nodes = new List<FastNode>();
-                double currentY         = 10;
-                double rowHeight        = 20; // Explicit spacing
+                double[] currentY = new double[] { 10.0 };
+                double rowHeight        = 18.50; // Explicit spacing
                 double indentWidth      = 40;
-                double historyIndent    = 40;
+                double historyIndent    = 20;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                bool wasLimited = false;
+                bool[] wasLimited = new bool[] { false };
 
                 // Collect the entire hierarchy of parent paths leading to this folder
                 var historyPaths = new List<string>();
@@ -396,31 +396,31 @@ namespace Filey
                         Name = displayName,
                         Level = i,
                         X = i * historyIndent,
-                        Y = currentY,
+                        Y = currentY[0],
                         IsFile = false,
                         IsPlaceholder = false,
                         IsHistory = true
                     });
-                    currentY += rowHeight;
+                    currentY[0] += rowHeight;
                 }
 
                 // Start recursive collection on the background thread
                 string rootName = Path.GetFileName(folderPath);
                 if (string.IsNullOrEmpty(rootName)) rootName = folderPath;
-                BuildFastTree(folderPath, rootName, activeRootLevel, activeRootLevel, historyIndent, indentWidth, ref currentY, rowHeight, nodes, stopwatch, ref wasLimited, token);
+                await BuildFastTreeAsync(folderPath, rootName, activeRootLevel, activeRootLevel, historyIndent, indentWidth, currentY, rowHeight, nodes, stopwatch, wasLimited, token);
 
-                if (wasLimited)
+                if (wasLimited[0])
                 {
                     nodes.Add(new FastNode
                     {
-                        Name = "... Preview limited (depth/node limit or timeout reached) ...",
+                        Name = "... Preview limited (10,000 folders limit reached) ...",
                         Level = activeRootLevel + 1,
                         X = (activeRootLevel + 1) * indentWidth,
-                        Y = currentY,
+                        Y = currentY[0],
                         IsFile = false,
                         IsPlaceholder = true
                     });
-                    currentY += rowHeight;
+                    currentY[0] += rowHeight;
                 }
 
                 int activeFileCount = 0;
@@ -450,7 +450,7 @@ namespace Filey
 
                 if (token.IsCancellationRequested) return;
 
-                Dispatcher.BeginInvoke(new Action(() =>
+                _ = Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (token.IsCancellationRequested) return;
 
@@ -466,7 +466,7 @@ namespace Filey
 
                     _currentRenderedNodes = nodes;
                     FolderTreeVisualHost.RenderTree(nodes);
-                    FolderTreeVisualHost.Height = currentY + 50; // Set explicit size for ScrollViewer bounds
+                    FolderTreeVisualHost.Height = currentY[0] + 50; // Set explicit size for ScrollViewer bounds
                     FolderTreeVisualHost.Width = 800; 
 
                     PathTextBlock.Text = folderPath;
@@ -480,7 +480,7 @@ namespace Filey
             {
                 if (token.IsCancellationRequested) return;
 
-                Dispatcher.BeginInvoke(new Action(() =>
+                _ = Dispatcher.BeginInvoke(new Action(() =>
                 {
                     ShowEmptyState("Error reading directory", ex.Message);
                     PathTextBlock.Text = folderPath;
@@ -488,9 +488,16 @@ namespace Filey
             }
         }
 
-        private void BuildFastTree(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, ref double currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, ref bool wasLimited, CancellationToken token)
+        private async Task BuildFastTreeAsync(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, double[] currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, bool[] wasLimited, CancellationToken token)
         {
             if (token.IsCancellationRequested) return;
+
+            // Guardrail limit of 10,000 folders
+            if (list.Count >= 10000)
+            {
+                wasLimited[0] = true;
+                return;
+            }
 
             // Calculate X coordinate based on whether it is history or active tree
             double xCoord = (activeRootLevel * historyIndent) + (level - activeRootLevel) * indent;
@@ -502,13 +509,27 @@ namespace Filey
                 FullPath = dirPath,
                 Level = level,
                 X = xCoord,
-                Y = currentY,
+                Y = currentY[0],
                 IsFile = false,
                 IsPlaceholder = false,
                 IsHistory = false,
-                FileCount = -1 // Computed asynchronously in background
+                FileCount = -1
             });
-            currentY += rowHeight;
+            currentY[0] += rowHeight;
+
+            // Batch update UI for Level 2 (200 items per batch, 10 batches/sec = 100ms delay)
+            if (_previewDepth == 2 && list.Count % 200 == 0)
+            {
+                var currentSnapshot = new List<FastNode>(list);
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (token.IsCancellationRequested) return;
+                    _currentRenderedNodes = currentSnapshot;
+                    FolderTreeVisualHost.RenderTree(currentSnapshot);
+                }));
+
+                await Task.Delay(100, token);
+            }
 
             // Depth limit check (explore exactly _previewDepth levels under the active folder)
             if (level >= activeRootLevel + _previewDepth) return;
@@ -536,7 +557,7 @@ namespace Filey
                     if (token.IsCancellationRequested) return;
 
                     var subDir = subDirsList[i];
-                    BuildFastTree(subDir.FullPath, subDir.Name, level + 1, activeRootLevel, historyIndent, indent, ref currentY, rowHeight, list, stopwatch, ref wasLimited, token);
+                    await BuildFastTreeAsync(subDir.FullPath, subDir.Name, level + 1, activeRootLevel, historyIndent, indent, currentY, rowHeight, list, stopwatch, wasLimited, token);
                 }
             }
             catch (Exception)
