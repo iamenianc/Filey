@@ -186,7 +186,7 @@
                           PreviewMouseMove="ItemList_PreviewMouseMove"
                           KeyDown="List_KeyDown">
                     <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
                         </Style>
                     </ListView.ItemContainerStyle>
@@ -257,7 +257,7 @@
                           PreviewMouseMove="ItemList_PreviewMouseMove"
                           KeyDown="List_KeyDown">
                     <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
                             <EventSetter Event="MouseDoubleClick" Handler="ContentsItem_MouseDoubleClick" />
                         </Style>
                     </ListView.ItemContainerStyle>
