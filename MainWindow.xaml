@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Filey"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Filey — Dual Pane File Manager" Height="787" Width="1555"
         ExtendsContentIntoTitleBar="True"
@@ -12,8 +13,9 @@
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
-        <Thickness x:Key="RowItemPadding">4,4,4,4</Thickness>
-        <Thickness x:Key="RowCellMargin">2</Thickness>
+        <Thickness x:Key="RowItemPadding">4,1,4,1</Thickness>
+        <Thickness x:Key="RowCellMargin">2,0,2,0</Thickness>
+        <sys:Double x:Key="ListFontSize">11.5</sys:Double>
 
         <!-- Shared right-click context menu for all folder/file/bookmark items in MainWindow (e.g. Favourites) -->
         <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
@@ -80,6 +82,20 @@
                         ToolTip="Swap the paths shown in the left and right panes"
                         Padding="8,0"
                         Click="SwapPanesButton_Click"/>
+                <Button
+                    x:Name="FontSizeDecreaseButton"
+                    Style="{StaticResource FlatButtonStyle}"
+                    Content="A⁻"
+                    ToolTip="Decrease list font size by 0.5"
+                    Padding="8,0"
+                    Click="FontSizeDecreaseButton_Click" />
+                <Button
+                    x:Name="FontSizeIncreaseButton"
+                    Style="{StaticResource FlatButtonStyle}"
+                    Content="A⁺"
+                    ToolTip="Increase list font size by 0.5"
+                    Padding="8,0"
+                    Click="FontSizeIncreaseButton_Click" />
             </StackPanel>
         </Border>
 

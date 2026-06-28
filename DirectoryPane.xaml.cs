@@ -53,7 +53,7 @@ namespace Filey
 
         public static readonly DependencyProperty EstimatedRowHeightProperty =
             DependencyProperty.Register("EstimatedRowHeight", typeof(double), typeof(DirectoryPane),
-                new PropertyMetadata(28.0, OnEstimatedRowHeightChanged));
+                new PropertyMetadata(22.0, OnEstimatedRowHeightChanged));
 
         public double EstimatedRowHeight
         {

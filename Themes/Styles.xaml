@@ -39,6 +39,7 @@
         <Setter Property="Foreground" Value="#E0E0E0" />
         <Setter Property="Padding" Value="4" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="FontSize" Value="{DynamicResource ListFontSize}" />
     </Style>
 
     <!-- Modern ListView Style -->
@@ -48,6 +49,7 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="#E0E0E0" />
         <Setter Property="Padding" Value="0" />
+        <Setter Property="FontSize" Value="{DynamicResource ListFontSize}" />
     </Style>
 
     <!-- Modern Column Header Style -->
