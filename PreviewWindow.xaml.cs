@@ -1035,11 +1035,13 @@ namespace Filey
         private void PrevPageButton_Click(object sender, RoutedEventArgs e)
         {
             NavigatePrev();
+            FitPageButton_Click(null, null);
         }
 
         private void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
             NavigateNext();
+            FitPageButton_Click(null, null);
         }
 
         private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
