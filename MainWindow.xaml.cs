@@ -519,6 +519,57 @@ namespace Filey
             SettingsService.Save(_settings);
         }
 
+        // --- Left/Right AddressBar Handlers ---
+        private void LeftAddressBar_NavigationRequested(object sender, string targetPath)
+        {
+            LeftViewModel?.LoadDirectory(targetPath);
+        }
+
+        private void LeftAddressBar_GoBackRequested(object sender, EventArgs e)
+        {
+            LeftViewModel?.GoBack();
+        }
+
+        private void LeftAddressBar_GoForwardRequested(object sender, EventArgs e)
+        {
+            LeftViewModel?.GoForward();
+        }
+
+        private void LeftAddressBar_HomeRequested(object sender, EventArgs e)
+        {
+            LeftDirectoryPane_HomeRequested(sender, e);
+        }
+
+        private void LeftAddressBar_SetHomeRequested(object sender, EventArgs e)
+        {
+            LeftDirectoryPane_SetHomeRequested(sender, e);
+        }
+
+        private void RightAddressBar_NavigationRequested(object sender, string targetPath)
+        {
+            RightViewModel?.LoadDirectory(targetPath);
+        }
+
+        private void RightAddressBar_GoBackRequested(object sender, EventArgs e)
+        {
+            RightViewModel?.GoBack();
+        }
+
+        private void RightAddressBar_GoForwardRequested(object sender, EventArgs e)
+        {
+            RightViewModel?.GoForward();
+        }
+
+        private void RightAddressBar_HomeRequested(object sender, EventArgs e)
+        {
+            RightDirectoryPane_HomeRequested(sender, e);
+        }
+
+        private void RightAddressBar_SetHomeRequested(object sender, EventArgs e)
+        {
+            RightDirectoryPane_SetHomeRequested(sender, e);
+        }
+
         /// <summary>
         /// Shows a free-text input dialog for a Home path, pre-filled with the existing
         /// setting (falling back to the pane's current folder). Returns the trimmed path,

@@ -23,6 +23,16 @@ namespace Filey
             set => SetValue(ViewModelProperty, value);
         }
 
+        public static readonly DependencyProperty ShowAddressBarProperty =
+            DependencyProperty.Register("ShowAddressBar", typeof(bool), typeof(DirectoryPane),
+                new PropertyMetadata(true));
+
+        public bool ShowAddressBar
+        {
+            get => (bool)GetValue(ShowAddressBarProperty);
+            set => SetValue(ShowAddressBarProperty, value);
+        }
+
         public static readonly DependencyProperty SideProperty =
             DependencyProperty.Register("Side", typeof(Side), typeof(DirectoryPane),
                 new PropertyMetadata(Side.Left, OnSideChanged));

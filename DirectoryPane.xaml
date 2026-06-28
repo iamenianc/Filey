@@ -9,6 +9,8 @@
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="self">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
         <!-- Shared right-click context menu for all folder/file items in this pane -->
         <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
             <MenuItem
@@ -43,6 +45,7 @@
         <!-- Path Display -->
         <local:AddressBar x:Name="AddressBar"
                           Grid.Row="0"
+                          Visibility="{Binding ShowAddressBar, ElementName=self, Converter={StaticResource BoolToVis}}"
                           CurrentPath="{Binding CurrentPath}"
                           CanGoBack="{Binding CanGoBack}"
                           CanGoForward="{Binding CanGoForward}"

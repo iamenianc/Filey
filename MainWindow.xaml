@@ -84,6 +84,10 @@
         </Border>
 
         <Grid Grid.Row="2" Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <!-- Col 0: Favourites L -->
                 <ColumnDefinition x:Name="LeftFavouritesCol" Width="150" MinWidth="50"/>
@@ -97,21 +101,46 @@
                 <ColumnDefinition x:Name="RightPaneCol" Width="440*" MinWidth="440" />
             </Grid.ColumnDefinitions>
 
+            <!-- Row 0: Spanning Address Bars -->
+            <local:AddressBar x:Name="LeftAddressBar"
+                              Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                              Margin="0,0,0,8"
+                              CurrentPath="{Binding LeftViewModel.CurrentPath, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              CanGoBack="{Binding LeftViewModel.CanGoBack, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              CanGoForward="{Binding LeftViewModel.CanGoForward, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              NavigationRequested="LeftAddressBar_NavigationRequested"
+                              GoBackRequested="LeftAddressBar_GoBackRequested"
+                              GoForwardRequested="LeftAddressBar_GoForwardRequested"
+                              HomeRequested="LeftAddressBar_HomeRequested"
+                              SetHomeRequested="LeftAddressBar_SetHomeRequested"/>
+
+            <local:AddressBar x:Name="RightAddressBar"
+                              Grid.Row="0" Grid.Column="4"
+                              Margin="0,0,0,8"
+                              CurrentPath="{Binding RightViewModel.CurrentPath, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              CanGoBack="{Binding RightViewModel.CanGoBack, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              CanGoForward="{Binding RightViewModel.CanGoForward, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                              NavigationRequested="RightAddressBar_NavigationRequested"
+                              GoBackRequested="RightAddressBar_GoBackRequested"
+                              GoForwardRequested="RightAddressBar_GoForwardRequested"
+                              HomeRequested="RightAddressBar_HomeRequested"
+                              SetHomeRequested="RightAddressBar_SetHomeRequested"/>
+
             <!-- Favourites panel on the far left -->
-            <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Column="0" Side="Left"/>
+            <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Row="1" Grid.Column="0" Side="Left"/>
 
             <!-- GridSplitter between Favourites and Left Pane -->
-            <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
+            <GridSplitter Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
             <!-- Left Directory Pane -->
-            <local:DirectoryPane x:Name="LeftDirectoryPane" Grid.Column="2" ViewModel="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Left" HomeRequested="LeftDirectoryPane_HomeRequested" SetHomeRequested="LeftDirectoryPane_SetHomeRequested"/>
+            <local:DirectoryPane x:Name="LeftDirectoryPane" Grid.Row="1" Grid.Column="2" ShowAddressBar="False" ViewModel="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Left" HomeRequested="LeftDirectoryPane_HomeRequested" SetHomeRequested="LeftDirectoryPane_SetHomeRequested"/>
 
             <!-- Centre Splitter between Left and Right Panes -->
-            <GridSplitter x:Name="CentreSplitter" Grid.Column="3" Style="{StaticResource ModernGridSplitter}" Width="12" />
+            <GridSplitter x:Name="CentreSplitter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Style="{StaticResource ModernGridSplitter}" Width="12" />
 
             <!-- Right Pane Grid (includes the DirectoryPane and the Inactive Overlay) -->
-            <Grid x:Name="RightPaneGrid" Grid.Column="4" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
-                <local:DirectoryPane x:Name="RightDirectoryPane" ViewModel="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
+            <Grid x:Name="RightPaneGrid" Grid.Row="1" Grid.Column="4" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
+                <local:DirectoryPane x:Name="RightDirectoryPane" ShowAddressBar="False" ViewModel="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
 
                 <!-- Overlay Placeholder for Inactive Right Pane -->
                 <Border Grid.Row="0" Grid.RowSpan="2" 
@@ -132,7 +161,7 @@
             </Grid>
 
             <!-- Inline Dynamic File Preview Panel -->
-            <local:PreviewPane x:Name="RightPreviewControl" Grid.Column="4" Visibility="Collapsed"/>
+            <local:PreviewPane x:Name="RightPreviewControl" Grid.Row="1" Grid.Column="4" Visibility="Collapsed"/>
         </Grid>
     </Grid>
 </ui:FluentWindow>
