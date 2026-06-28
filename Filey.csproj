@@ -122,6 +122,7 @@
     <Compile Include="FolderItem.cs" />
     <Compile Include="DirectoryViewModel.cs" />
     <Compile Include="IconHelper.cs" />
+    <Compile Include="ImageView.cs" />
     <Compile Include="InputDialog.cs" />
     <Compile Include="FastTreeVisualHost.cs" />
   </ItemGroup>

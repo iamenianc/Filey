@@ -113,21 +113,7 @@ namespace Filey
                     ContentImage.Height = originalHeight > 0 ? originalHeight : 1950;
 
                     // Set initial display orientation angle based on EXIF rotation
-                    switch (rotation)
-                    {
-                        case Rotation.Rotate90:
-                            _rotationAngle = 90;
-                            break;
-                        case Rotation.Rotate180:
-                            _rotationAngle = 180;
-                            break;
-                        case Rotation.Rotate270:
-                            _rotationAngle = 270;
-                            break;
-                        default:
-                            _rotationAngle = 0;
-                            break;
-                    }
+                    _rotationAngle = ImageView.AngleFor(rotation);
                     ImageRotation.Angle = _rotationAngle;
 
                     UpdateImageMetadata(filePath, originalWidth, originalHeight);
@@ -200,74 +186,15 @@ namespace Filey
 
         private void GetOriginalImageDimensions(string filePath, out int width, out int height, out Rotation rotation)
         {
-            width = 0;
-            height = 0;
-            rotation = Rotation.Rotate0;
-            try
-            {
-                using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    // DelayCreation avoids decoding pixel data, reading metadata only
-                    var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
-                    if (decoder.Frames.Count > 0)
-                    {
-                        var frame = decoder.Frames[0];
-                        width = frame.PixelWidth;
-                        height = frame.PixelHeight;
-
-                        // Query EXIF orientation with multiple fallback paths to be completely robust
-                        var metadata = frame.Metadata as BitmapMetadata;
-                        if (metadata != null)
-                        {
-                            object val = null;
-                            if (metadata.ContainsQuery("/System/Photo/Orientation"))
-                            {
-                                val = metadata.GetQuery("/System/Photo/Orientation");
-                            }
-                            else if (metadata.ContainsQuery("System.Photo.Orientation"))
-                            {
-                                val = metadata.GetQuery("System.Photo.Orientation");
-                            }
-                            else if (metadata.ContainsQuery("/app1/ifd/{ushort=274}"))
-                            {
-                                val = metadata.GetQuery("/app1/ifd/{ushort=274}");
-                            }
-
-                            if (val != null)
-                            {
-                                ushort orientation = Convert.ToUInt16(val);
-                                switch (orientation)
-                                {
-                                    case 3: // Rotate 180
-                                        rotation = Rotation.Rotate180;
-                                        break;
-                                    case 6: // Rotate 90 CW
-                                        rotation = Rotation.Rotate90;
-                                        int temp = width;
-                                        width = height;
-                                        height = temp;
-                                        break;
-                                    case 8: // Rotate 270 CW
-                                        rotation = Rotation.Rotate270;
-                                        int temp2 = width;
-                                        width = height;
-                                        height = temp2;
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Fallback will leave them as 0/Rotate0
-            }
+            var info = ImageView.ReadOrientation(filePath);
+            width = info.Width;
+            height = info.Height;
+            rotation = info.Rotation;
         }
 
         private void RotateImage()
         {
-            _rotationAngle = (_rotationAngle + 90) % 360;
+            _rotationAngle = ImageView.RotateStep(_rotationAngle);
             ImageRotation.Angle = _rotationAngle;
 
             // Recalculate original metadata display based on rotation state
@@ -300,54 +227,17 @@ namespace Filey
                 double viewportWidth = ImageScrollViewer.ViewportWidth > 0 ? ImageScrollViewer.ViewportWidth : ImageScrollViewer.ActualWidth;
                 double viewportHeight = ImageScrollViewer.ViewportHeight > 0 ? ImageScrollViewer.ViewportHeight : ImageScrollViewer.ActualHeight;
 
-                // Subtract padding
-                double margin = 16;
-                viewportWidth = Math.Max(100, viewportWidth - margin);
-                viewportHeight = Math.Max(100, viewportHeight - margin);
-
-                // Check active rotated dimensions
-                bool isRotated90or270 = (_rotationAngle == 90 || _rotationAngle == 270);
-                double activeImageWidth = isRotated90or270 ? ContentImage.Height : ContentImage.Width;
-                double activeImageHeight = isRotated90or270 ? ContentImage.Width : ContentImage.Height;
-
-                double scaleX = viewportWidth / activeImageWidth;
-                double scaleY = viewportHeight / activeImageHeight;
-
-                _zoomFactor = Math.Min(scaleX, scaleY);
+                _zoomFactor = ImageView.FitScale(viewportWidth, viewportHeight,
+                    ContentImage.Width, ContentImage.Height, _rotationAngle);
 
                 ImageScale.ScaleX = _zoomFactor;
                 ImageScale.ScaleY = _zoomFactor;
             }
         }
 
-        private string GetEncodingName(Encoding encoding)
-        {
-            if (encoding == null) return "Unknown";
-            if (encoding.Equals(Encoding.UTF8)) return "UTF-8";
-            if (encoding.Equals(Encoding.Unicode)) return "UTF-16 LE";
-            if (encoding.Equals(Encoding.BigEndianUnicode)) return "UTF-16 BE";
-            if (encoding.Equals(Encoding.ASCII)) return "ASCII";
-            return encoding.WebName.ToUpper();
-        }
+        private string GetEncodingName(Encoding encoding) => ImageView.GetEncodingName(encoding);
 
-        private string GetFormattedFileSize(string filePath)
-        {
-            try
-            {
-                long bytes = new FileInfo(filePath).Length;
-                if (bytes >= 1073741824)
-                    return $"{(bytes / 1073741824.0):N1} GB";
-                if (bytes >= 1048576)
-                    return $"{(bytes / 1048576.0):N1} MB";
-                if (bytes >= 1024)
-                    return $"{(bytes / 1024.0):N1} KB";
-                return $"{bytes} B";
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
+        private string GetFormattedFileSize(string filePath) => ImageView.GetFormattedFileSize(filePath);
 
         private void ContentTextBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
@@ -377,7 +267,6 @@ namespace Filey
             {
                 _hasManuallyZoomed = true;
 
-                double oldZoom = _zoomFactor;
                 double scaleRatio = 1.15;
 
                 if (e.Delta > 0)
@@ -416,12 +305,11 @@ namespace Filey
                     // Force layout updates so scroll viewer calculates new extent size before scroll offsets adjustment
                     ImageScrollViewer.UpdateLayout();
 
-                    // Calculate and apply new scrollbar offsets to center zoom on mouse cursor
-                    double newHorizontalOffset = (ImageScrollViewer.HorizontalOffset + mousePosInViewport.X) * scaleRatio - mousePosInViewport.X;
-                    double newVerticalOffset = (ImageScrollViewer.VerticalOffset + mousePosInViewport.Y) * scaleRatio - mousePosInViewport.Y;
-
-                    ImageScrollViewer.ScrollToHorizontalOffset(newHorizontalOffset);
-                    ImageScrollViewer.ScrollToVerticalOffset(newVerticalOffset);
+                    // Apply new scrollbar offsets to center zoom on mouse cursor
+                    ImageScrollViewer.ScrollToHorizontalOffset(
+                        ImageView.ZoomAroundPoint(ImageScrollViewer.HorizontalOffset, mousePosInViewport.X, scaleRatio));
+                    ImageScrollViewer.ScrollToVerticalOffset(
+                        ImageView.ZoomAroundPoint(ImageScrollViewer.VerticalOffset, mousePosInViewport.Y, scaleRatio));
                 }
 
                 e.Handled = true;
