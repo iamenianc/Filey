@@ -8,6 +8,12 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Windows.Data.Pdf;
+using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace Filey
 {
@@ -86,6 +92,7 @@ namespace Filey
 
                 string ext = Path.GetExtension(filePath).ToLower();
                 bool isImage = Array.Exists(ImageExtensions, e => e == ext);
+                bool isPdf = ext == ".pdf";
 
                 if (isImage)
                 {
@@ -129,6 +136,10 @@ namespace Filey
 
                     // Fit to window based on the active image dimensions
                     Dispatcher.BeginInvoke(new Action(() => FitImageToWindow()), System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+                else if (isPdf)
+                {
+                    LoadPdfFile(filePath);
                 }
                 else
                 {
@@ -460,6 +471,232 @@ namespace Filey
                 ImageGrid.ReleaseMouseCapture();
                 ImageGrid.Cursor = Cursors.Arrow;
                 e.Handled = true;
+            }
+        }
+
+        public int InitialPdfPageIndex { get; set; } = 0;
+        private System.Collections.Generic.List<PdfPageViewModel> _pdfPages;
+        private string _activePdfPath;
+        private CancellationTokenSource _pdfCts;
+        private CancellationTokenSource _pdfScrollCts;
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            _pdfCts?.Cancel();
+            _pdfScrollCts?.Cancel();
+        }
+
+        private void LoadPdfFile(string filePath)
+        {
+            _activePdfPath = filePath;
+            ContentTextBox.Visibility = Visibility.Collapsed;
+            ImageScrollViewer.Visibility = Visibility.Collapsed;
+            PdfActiveViewer.Visibility = Visibility.Visible;
+
+            PathTextBlock.Text = filePath;
+            SizeTextBlock.Text = GetFormattedFileSize(filePath);
+            Title = $"{Path.GetFileName(filePath)} — Preview";
+
+            _pdfCts = new CancellationTokenSource();
+            var token = _pdfCts.Token;
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var pages = new System.Collections.Generic.List<PdfPageViewModel>();
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                    PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+
+                    uint pageCount = pdfDoc.PageCount;
+
+                    for (uint i = 0; i < pageCount; i++)
+                    {
+                        using (PdfPage page = pdfDoc.GetPage(i))
+                        {
+                            double width = page.Size.Width;
+                            double height = page.Size.Height;
+                            double aspectRatio = height / width;
+                            pages.Add(new PdfPageViewModel((int)i, aspectRatio));
+                        }
+                    }
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath && !token.IsCancellationRequested)
+                        {
+                            _pdfPages = pages;
+
+                            UpdatePdfPagesDisplayWidth();
+                            PdfPageItemsControl.ItemsSource = _pdfPages;
+
+                            if (InitialPdfPageIndex > 0 && InitialPdfPageIndex < _pdfPages.Count)
+                            {
+                                Dispatcher.BeginInvoke(new Action(() =>
+                                {
+                                    ScrollToPdfPage(InitialPdfPageIndex);
+                                }), System.Windows.Threading.DispatcherPriority.Loaded);
+                            }
+                            else
+                            {
+                                UpdatePdfViewport();
+                            }
+                        }
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath)
+                        {
+                            ContentTextBox.Visibility = Visibility.Visible;
+                            PdfActiveViewer.Visibility = Visibility.Collapsed;
+                            ContentTextBox.Text = $"Error reading PDF file:\n{ex.Message}";
+                        }
+                    }));
+                }
+            }, token);
+        }
+
+        private void ScrollToPdfPage(int pageIndex)
+        {
+            if (_pdfPages == null || pageIndex < 0 || pageIndex >= _pdfPages.Count) return;
+            
+            double currentY = 0;
+            const double pageMargin = 24.0;
+            for (int i = 0; i < pageIndex; i++)
+            {
+                currentY += _pdfPages[i].DisplayHeight + pageMargin;
+            }
+            PdfActiveViewer.ScrollToVerticalOffset(currentY);
+            UpdatePdfViewport();
+        }
+
+        private void UpdatePdfPagesDisplayWidth()
+        {
+            if (_pdfPages == null) return;
+            double availableWidth = PdfActiveViewer.ViewportWidth;
+            if (availableWidth <= 0) availableWidth = PdfActiveViewer.ActualWidth;
+            if (availableWidth <= 0) availableWidth = this.Width;
+            
+            double displayWidth = Math.Max(100, availableWidth - 48);
+
+            foreach (var page in _pdfPages)
+            {
+                page.DisplayWidth = displayWidth;
+            }
+        }
+
+        private void UpdatePdfViewport()
+        {
+            if (_pdfPages == null || _pdfCts == null || _pdfCts.IsCancellationRequested) return;
+
+            double scrollOffset = PdfActiveViewer.VerticalOffset;
+            double viewportHeight = PdfActiveViewer.ViewportHeight;
+            if (viewportHeight <= 0) viewportHeight = PdfActiveViewer.ActualHeight;
+            if (viewportHeight <= 0) viewportHeight = 600;
+
+            double buffer = viewportHeight;
+            double topLimit = scrollOffset - buffer;
+            double bottomLimit = scrollOffset + viewportHeight + buffer;
+
+            double currentY = 0;
+            const double pageMargin = 24.0;
+
+            var visiblePageIndices = new HashSet<int>();
+
+            foreach (var page in _pdfPages)
+            {
+                double pageHeight = page.DisplayHeight;
+                double pageTop = currentY;
+                double pageBottom = currentY + pageHeight;
+
+                bool isVisible = (pageBottom >= topLimit) && (pageTop <= bottomLimit);
+                if (isVisible)
+                {
+                    visiblePageIndices.Add(page.PageIndex);
+                }
+
+                currentY = pageBottom + pageMargin;
+            }
+
+            _pdfScrollCts?.Cancel();
+            _pdfScrollCts = new CancellationTokenSource();
+            var scrollToken = _pdfScrollCts.Token;
+
+            var filePath = _activePdfPath;
+
+            foreach (var page in _pdfPages)
+            {
+                if (visiblePageIndices.Contains(page.PageIndex))
+                {
+                    if (page.Image == null)
+                    {
+                        var pageIndex = page.PageIndex;
+                        var targetWidth = (uint)page.DisplayWidth;
+                        var targetHeight = (uint)page.DisplayHeight;
+
+                        Task.Run(async () =>
+                        {
+                            if (scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
+
+                            try
+                            {
+                                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                                PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+
+                                using (PdfPage pdfPage = pdfDoc.GetPage((uint)pageIndex))
+                                {
+                                    var renderOptions = new PdfPageRenderOptions();
+                                    renderOptions.DestinationWidth = targetWidth;
+                                    renderOptions.DestinationHeight = targetHeight;
+
+                                    using (var stream = new InMemoryRandomAccessStream())
+                                    {
+                                        await pdfPage.RenderToStreamAsync(stream, renderOptions);
+                                        if (scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
+
+                                        var bitmap = new BitmapImage();
+                                        bitmap.BeginInit();
+                                        bitmap.StreamSource = stream.AsStream();
+                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                        bitmap.EndInit();
+                                        bitmap.Freeze();
+
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            if (!scrollToken.IsCancellationRequested && !_pdfCts.IsCancellationRequested && page.DisplayWidth == targetWidth)
+                                            {
+                                                page.Image = bitmap;
+                                            }
+                                        }));
+                                    }
+                                }
+                            }
+                            catch {}
+                        }, scrollToken);
+                    }
+                }
+                else
+                {
+                    page.Image = null;
+                }
+            }
+        }
+
+        private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            UpdatePdfViewport();
+        }
+
+        private void PdfActiveViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (_pdfPages != null)
+            {
+                UpdatePdfPagesDisplayWidth();
+                UpdatePdfViewport();
             }
         }
     }

@@ -576,7 +576,8 @@ namespace Filey
             if (string.IsNullOrEmpty(path)) return false;
             string ext = System.IO.Path.GetExtension(path);
             return Array.Exists(TextExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))
-                || Array.Exists(ImageExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase));
+                || Array.Exists(ImageExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))
+                || string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ItemContextMenu_Opened(object sender, RoutedEventArgs e)

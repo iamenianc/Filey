@@ -11,6 +11,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Windows.Data.Pdf;
+using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace Filey
 {
@@ -32,6 +35,10 @@ namespace Filey
         private int _previewDepth = 1;
         private List<FastNode> _currentRenderedNodes;
         private CancellationTokenSource _scrollCts;
+
+        private List<PdfPageViewModel> _pdfPages;
+        private string _activePdfPath;
+        private bool _isPdfActive;
         #region Win32 FindFirstFileEx Declarations
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -88,7 +95,7 @@ namespace Filey
         {
             public string Name;
             public string FullPath;
-            public FileAttributes Attributes;
+            public System.IO.FileAttributes Attributes;
         }
 
         private static List<SimpleDirectoryInfo> GetSubDirectoriesWin32(string parentPath)
@@ -121,7 +128,7 @@ namespace Filey
                                 {
                                     Name = name,
                                     FullPath = System.IO.Path.Combine(parentPath, name),
-                                    Attributes = (FileAttributes)findData.dwFileAttributes
+                                    Attributes = (System.IO.FileAttributes)findData.dwFileAttributes
                                 });
                             }
                         }
@@ -175,6 +182,7 @@ namespace Filey
             this.Unloaded += (s, e) =>
             {
                 _cts?.Cancel();
+                DisposePdf();
 
                 var parentWindow = Window.GetWindow(this);
                 if (parentWindow != null)
@@ -236,8 +244,9 @@ namespace Filey
             string ext = Path.GetExtension(filePath).ToLower();
             bool isText = Array.Exists(TextExtensions, x => x == ext);
             bool isImage = Array.Exists(ImageExtensions, x => x == ext);
+            bool isPdf = ext == ".pdf";
 
-            if (!isText && !isImage)
+            if (!isText && !isImage && !isPdf)
             {
                 ShowEmptyState("Preview not available for this file type.", Path.GetFileName(filePath));
                 PathTextBlock.Text = filePath;
@@ -258,10 +267,28 @@ namespace Filey
             {
                 Task.Run(() => LoadImageFileAsync(filePath, token), token);
             }
+            else if (isPdf)
+            {
+                LoadPdfFile(filePath);
+            }
         }
 
         private void RecyclePreview()
         {
+            DisposePdf();
+
+            if (PdfViewerGrid != null)
+            {
+                PdfViewerGrid.Visibility = Visibility.Collapsed;
+                PdfSkimGrid.Visibility = Visibility.Visible;
+                PdfActiveViewer.Visibility = Visibility.Collapsed;
+                PdfSkimImage0.Source = null;
+                PdfSkimImage1.Source = null;
+                PdfSkimImage2.Source = null;
+                PdfSkimImage3.Source = null;
+                PdfPageItemsControl.ItemsSource = null;
+            }
+
             ContentTextBox.Visibility = Visibility.Collapsed;
             ContentTextBox.Text = string.Empty;
             ContentTextBox.ScrollToHome();
@@ -487,7 +514,7 @@ namespace Filey
                         foreach (var file in dirInfo.EnumerateFiles())
                         {
                             if (token.IsCancellationRequested) return;
-                            if ((file.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0)
+                            if ((file.Attributes & (System.IO.FileAttributes.Hidden | System.IO.FileAttributes.System)) == 0)
                             {
                                 activeFileCount++;
                             }
@@ -599,7 +626,7 @@ namespace Filey
                 {
                     if (!DirectoryViewModel.ShowHidden)
                     {
-                        if ((sd.Attributes & (FileAttributes.Hidden | FileAttributes.System)) != 0)
+                        if ((sd.Attributes & (System.IO.FileAttributes.Hidden | System.IO.FileAttributes.System)) != 0)
                         {
                             continue;
                         }
@@ -1018,6 +1045,424 @@ namespace Filey
                 ImageGrid.ReleaseMouseCapture();
                 ImageGrid.Cursor = Cursors.Arrow;
                 e.Handled = true;
+            }
+        }
+
+        private void DisposePdf()
+        {
+            _scrollCts?.Cancel();
+            _scrollCts = null;
+            _pdfPages = null;
+            _activePdfPath = null;
+            _isPdfActive = false;
+        }
+
+        private void LoadPdfFile(string filePath)
+        {
+            _activePdfPath = filePath;
+            _isPdfActive = false;
+
+            EmptyStateBorder.Visibility = Visibility.Collapsed;
+            PdfViewerGrid.Visibility = Visibility.Visible;
+            PdfSkimGrid.Visibility = Visibility.Visible;
+            PdfActiveViewer.Visibility = Visibility.Collapsed;
+            PdfSkimGrid.Focus();
+
+            PathTextBlock.Text = filePath;
+            SizeTextBlock.Text = GetFormattedFileSize(filePath);
+
+            var cached = PdfSkimCache.Get(filePath);
+            if (cached != null)
+            {
+                PdfSkimImage0.Source = cached.Length > 0 ? cached[0] : null;
+                PdfSkimImage1.Source = cached.Length > 1 ? cached[1] : null;
+                PdfSkimImage2.Source = cached.Length > 2 ? cached[2] : null;
+                PdfSkimImage3.Source = cached.Length > 3 ? cached[3] : null;
+                return;
+            }
+
+            var token = _cts.Token;
+            Task.Run(async () =>
+            {
+                try
+                {
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                    PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+
+                    uint pageCount = pdfDoc.PageCount;
+                    int count = Math.Min(4, (int)pageCount);
+                    var images = new BitmapSource[count];
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (token.IsCancellationRequested) return;
+
+                        using (PdfPage page = pdfDoc.GetPage((uint)i))
+                        {
+                            var originalSize = page.Size;
+
+                            double scale = Math.Min(300.0 / originalSize.Width, 300.0 / originalSize.Height);
+                            uint thumbWidth = (uint)Math.Max(1, originalSize.Width * scale);
+                            uint thumbHeight = (uint)Math.Max(1, originalSize.Height * scale);
+
+                            var renderOptions = new PdfPageRenderOptions();
+                            renderOptions.DestinationWidth = thumbWidth;
+                            renderOptions.DestinationHeight = thumbHeight;
+
+                            using (var stream = new InMemoryRandomAccessStream())
+                            {
+                                await page.RenderToStreamAsync(stream, renderOptions);
+                                if (token.IsCancellationRequested) return;
+
+                                var bitmap = new BitmapImage();
+                                bitmap.BeginInit();
+                                bitmap.StreamSource = stream.AsStream();
+                                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                bitmap.EndInit();
+                                bitmap.Freeze();
+
+                                images[i] = bitmap;
+                            }
+                        }
+                    }
+
+                    if (token.IsCancellationRequested) return;
+
+                    PdfSkimCache.Add(filePath, images);
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath && !token.IsCancellationRequested && !_isPdfActive)
+                        {
+                            PdfSkimImage0.Source = images.Length > 0 ? images[0] : null;
+                            PdfSkimImage1.Source = images.Length > 1 ? images[1] : null;
+                            PdfSkimImage2.Source = images.Length > 2 ? images[2] : null;
+                            PdfSkimImage3.Source = images.Length > 3 ? images[3] : null;
+                        }
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath)
+                        {
+                            ShowEmptyState("Error reading PDF file.", ex.Message);
+                        }
+                    }));
+                }
+            }, token);
+        }
+
+        private void ActivatePdfReader()
+        {
+            if (_isPdfActive || string.IsNullOrEmpty(_activePdfPath)) return;
+            _isPdfActive = true;
+
+            PdfSkimGrid.Visibility = Visibility.Collapsed;
+            PdfActiveViewer.Visibility = Visibility.Visible;
+
+            var filePath = _activePdfPath;
+            var token = _cts.Token;
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                    PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+
+                    uint pageCount = pdfDoc.PageCount;
+                    var pages = new List<PdfPageViewModel>();
+
+                    for (uint i = 0; i < pageCount; i++)
+                    {
+                        using (PdfPage page = pdfDoc.GetPage(i))
+                        {
+                            double width = page.Size.Width;
+                            double height = page.Size.Height;
+                            double aspectRatio = height / width;
+                            pages.Add(new PdfPageViewModel((int)i, aspectRatio));
+                        }
+                    }
+
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath && !token.IsCancellationRequested)
+                        {
+                            _pdfPages = pages;
+                            
+                            UpdatePdfPagesDisplayWidth();
+                            PdfPageItemsControl.ItemsSource = _pdfPages;
+                            UpdatePdfViewport();
+                        }
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_activePdfPath == filePath)
+                        {
+                            ShowEmptyState("Error opening PDF viewer.", ex.Message);
+                        }
+                    }));
+                }
+            }, token);
+        }
+
+        private void UpdatePdfPagesDisplayWidth()
+        {
+            if (_pdfPages == null) return;
+            double availableWidth = PdfActiveViewer.ViewportWidth;
+            if (availableWidth <= 0) availableWidth = PdfActiveViewer.ActualWidth;
+            double displayWidth = Math.Max(100, availableWidth - 48);
+
+            foreach (var page in _pdfPages)
+            {
+                page.DisplayWidth = displayWidth;
+            }
+        }
+
+        private void UpdatePdfViewport()
+        {
+            if (_pdfPages == null || _cts == null || _cts.IsCancellationRequested) return;
+
+            double scrollOffset = PdfActiveViewer.VerticalOffset;
+            double viewportHeight = PdfActiveViewer.ViewportHeight;
+            if (viewportHeight <= 0) viewportHeight = PdfActiveViewer.ActualHeight;
+            if (viewportHeight <= 0) viewportHeight = 600;
+
+            double buffer = viewportHeight;
+            double topLimit = scrollOffset - buffer;
+            double bottomLimit = scrollOffset + viewportHeight + buffer;
+
+            double currentY = 0;
+            const double pageMargin = 24.0;
+
+            var visiblePageIndices = new HashSet<int>();
+
+            foreach (var page in _pdfPages)
+            {
+                double pageHeight = page.DisplayHeight;
+                double pageTop = currentY;
+                double pageBottom = currentY + pageHeight;
+
+                bool isVisible = (pageBottom >= topLimit) && (pageTop <= bottomLimit);
+                if (isVisible)
+                {
+                    visiblePageIndices.Add(page.PageIndex);
+                }
+
+                currentY = pageBottom + pageMargin;
+            }
+
+            _scrollCts?.Cancel();
+            _scrollCts = new CancellationTokenSource();
+            var scrollToken = _scrollCts.Token;
+
+            var filePath = _activePdfPath;
+
+            foreach (var page in _pdfPages)
+            {
+                if (visiblePageIndices.Contains(page.PageIndex))
+                {
+                    if (page.Image == null)
+                    {
+                        var pageIndex = page.PageIndex;
+                        var targetWidth = (uint)page.DisplayWidth;
+                        var targetHeight = (uint)page.DisplayHeight;
+
+                        Task.Run(async () =>
+                        {
+                            if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
+
+                            try
+                            {
+                                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+                                PdfDocument pdfDoc = await PdfDocument.LoadFromFileAsync(file);
+
+                                using (PdfPage pdfPage = pdfDoc.GetPage((uint)pageIndex))
+                                {
+                                    var renderOptions = new PdfPageRenderOptions();
+                                    renderOptions.DestinationWidth = targetWidth;
+                                    renderOptions.DestinationHeight = targetHeight;
+
+                                    using (var stream = new InMemoryRandomAccessStream())
+                                    {
+                                        await pdfPage.RenderToStreamAsync(stream, renderOptions);
+                                        if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
+
+                                        var bitmap = new BitmapImage();
+                                        bitmap.BeginInit();
+                                        bitmap.StreamSource = stream.AsStream();
+                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                        bitmap.EndInit();
+                                        bitmap.Freeze();
+
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            if (!scrollToken.IsCancellationRequested && !_cts.IsCancellationRequested && page.DisplayWidth == targetWidth)
+                                            {
+                                                page.Image = bitmap;
+                                            }
+                                        }));
+                                    }
+                                }
+                            }
+                            catch {}
+                        }, scrollToken);
+                    }
+                }
+                else
+                {
+                    page.Image = null;
+                }
+            }
+        }
+
+        private void PdfSkimGrid_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ActivatePdfReader();
+        }
+
+        private void PdfSkimGrid_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            ActivatePdfReader();
+        }
+
+        private void PdfSkimGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            ActivatePdfReader();
+        }
+
+        private void PdfActiveViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (_isPdfActive)
+            {
+                UpdatePdfViewport();
+            }
+        }
+
+        private void PdfActiveViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (_isPdfActive && _pdfPages != null)
+            {
+                UpdatePdfPagesDisplayWidth();
+                UpdatePdfViewport();
+            }
+        }
+
+        private void PopOutButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_currentFilePath) || !File.Exists(_currentFilePath)) return;
+
+            var previewWindow = new PreviewWindow(_currentFilePath)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            if (_isPdfActive && _pdfPages != null && PdfActiveViewer != null)
+            {
+                double scrollOffset = PdfActiveViewer.VerticalOffset;
+                double currentY = 0;
+                const double pageMargin = 24.0;
+                int activeIndex = 0;
+                
+                foreach (var page in _pdfPages)
+                {
+                    double pageHeight = page.DisplayHeight;
+                    if (scrollOffset >= currentY && scrollOffset <= currentY + pageHeight + pageMargin)
+                    {
+                        activeIndex = page.PageIndex;
+                        break;
+                    }
+                    currentY += pageHeight + pageMargin;
+                }
+                
+                previewWindow.InitialPdfPageIndex = activeIndex;
+            }
+
+            previewWindow.Show();
+        }
+    }
+
+    public class PdfPageViewModel : ViewModelBase
+    {
+        private BitmapSource _image;
+        private double _displayWidth;
+
+        public int PageIndex { get; }
+        public double AspectRatio { get; }
+
+        public PdfPageViewModel(int pageIndex, double aspectRatio)
+        {
+            PageIndex = pageIndex;
+            AspectRatio = aspectRatio;
+        }
+
+        public BitmapSource Image
+        {
+            get => _image;
+            set => SetField(ref _image, value);
+        }
+
+        public double DisplayWidth
+        {
+            get => _displayWidth;
+            set
+            {
+                if (SetField(ref _displayWidth, value))
+                {
+                    OnPropertyChanged(nameof(DisplayHeight));
+                }
+            }
+        }
+
+        public double DisplayHeight => DisplayWidth * AspectRatio;
+    }
+
+    public static class PdfSkimCache
+    {
+        private static readonly Dictionary<string, BitmapSource[]> _cache = new Dictionary<string, BitmapSource[]>(StringComparer.OrdinalIgnoreCase);
+        private static readonly List<string> _lruList = new List<string>();
+        private const int MaxCacheSize = 100;
+
+        public static BitmapSource[] Get(string path)
+        {
+            lock (_cache)
+            {
+                if (_cache.TryGetValue(path, out var bitmaps))
+                {
+                    _lruList.Remove(path);
+                    _lruList.Add(path);
+                    return bitmaps;
+                }
+                return null;
+            }
+        }
+
+        public static void Add(string path, BitmapSource[] bitmaps)
+        {
+            lock (_cache)
+            {
+                if (_cache.ContainsKey(path))
+                {
+                    _cache[path] = bitmaps;
+                    _lruList.Remove(path);
+                    _lruList.Add(path);
+                    return;
+                }
+
+                if (_lruList.Count >= MaxCacheSize)
+                {
+                    string oldest = _lruList[0];
+                    _lruList.RemoveAt(0);
+                    _cache.Remove(oldest);
+                }
+
+                _cache[path] = bitmaps;
+                _lruList.Add(path);
             }
         }
     }

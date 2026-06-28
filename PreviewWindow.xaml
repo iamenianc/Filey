@@ -73,6 +73,70 @@
             </Grid>
         </ScrollViewer>
 
+        <!-- Mode 3: PDF Viewer -->
+        <ScrollViewer
+            x:Name="PdfActiveViewer"
+            Grid.Row="0"
+            Visibility="Collapsed"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+            ScrollChanged="PdfActiveViewer_ScrollChanged"
+            SizeChanged="PdfActiveViewer_SizeChanged">
+            <ItemsControl
+                x:Name="PdfPageItemsControl"
+                VirtualizingStackPanel.IsVirtualizing="True"
+                VirtualizingStackPanel.VirtualizationMode="Recycling">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="8,12"
+                            BorderBrush="#2D2D2D"
+                            BorderThickness="1"
+                            Background="#1E1E1E"
+                            Width="{Binding DisplayWidth}"
+                            Height="{Binding DisplayHeight}"
+                            HorizontalAlignment="Center">
+                            <Grid>
+                                <TextBlock
+                                    Text="Loading..."
+                                    Foreground="#555555"
+                                    FontSize="12"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style
+                                            TargetType="TextBlock">
+                                            <Setter
+                                                Property="Visibility"
+                                                Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding Image}"
+                                                    Value="{x:Null}">
+                                                    <Setter
+                                                        Property="Visibility"
+                                                        Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Image
+                                    Source="{Binding Image}"
+                                    Stretch="Uniform"
+                                    RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
         <!-- Status Bar -->
         <Border
             Grid.Row="1"

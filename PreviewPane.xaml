@@ -119,6 +119,169 @@
                 VerticalAlignment="Top" />
         </ScrollViewer>
 
+        <!-- Mode 5: PDF Viewer -->
+        <Grid
+            x:Name="PdfViewerGrid"
+            Grid.Row="0"
+            Visibility="Collapsed">
+            <!-- Preview State: 2x2 Grid for the first 4 pages -->
+            <Grid
+                x:Name="PdfSkimGrid"
+                Visibility="Visible"
+                Focusable="True"
+                MouseDown="PdfSkimGrid_MouseDown"
+                MouseWheel="PdfSkimGrid_MouseWheel"
+                PreviewKeyDown="PdfSkimGrid_PreviewKeyDown">
+                <Grid.RowDefinitions>
+                    <RowDefinition
+                        Height="*" />
+                    <RowDefinition
+                        Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition
+                        Width="*" />
+                    <ColumnDefinition
+                        Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="4"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    Background="#161616">
+                    <Image
+                        x:Name="PdfSkimImage0"
+                        Stretch="Uniform"
+                        RenderOptions.BitmapScalingMode="LowQuality" />
+                </Border>
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="4"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    Background="#161616">
+                    <Image
+                        x:Name="PdfSkimImage1"
+                        Stretch="Uniform"
+                        RenderOptions.BitmapScalingMode="LowQuality" />
+                </Border>
+                <Border
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="4"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    Background="#161616">
+                    <Image
+                        x:Name="PdfSkimImage2"
+                        Stretch="Uniform"
+                        RenderOptions.BitmapScalingMode="LowQuality" />
+                </Border>
+                <Border
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="4"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    Background="#161616">
+                    <Image
+                        x:Name="PdfSkimImage3"
+                        Stretch="Uniform"
+                        RenderOptions.BitmapScalingMode="LowQuality" />
+                </Border>
+
+                <!-- Overlay prompt -->
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Grid.RowSpan="2"
+                    Grid.ColumnSpan="2"
+                    Background="#B00C0C0C"
+                    BorderBrush="#2D2D2D"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="16"
+                    Padding="12,6"
+                    IsHitTestVisible="False">
+                    <TextBlock
+                        Text="🖱️ Scroll or click to read full document"
+                        Foreground="#CCCCCC"
+                        FontSize="11"
+                        FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+
+            <!-- Active State: Full scroll viewer -->
+            <ScrollViewer
+                x:Name="PdfActiveViewer"
+                Visibility="Collapsed"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                ScrollChanged="PdfActiveViewer_ScrollChanged"
+                SizeChanged="PdfActiveViewer_SizeChanged">
+                <ItemsControl
+                    x:Name="PdfPageItemsControl"
+                    VirtualizingStackPanel.IsVirtualizing="True"
+                    VirtualizingStackPanel.VirtualizationMode="Recycling">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="8,12"
+                                BorderBrush="#2D2D2D"
+                                BorderThickness="1"
+                                Background="#1E1E1E"
+                                Width="{Binding DisplayWidth}"
+                                Height="{Binding DisplayHeight}"
+                                HorizontalAlignment="Center">
+                                <Grid>
+                                    <TextBlock
+                                        Text="Loading..."
+                                        Foreground="#555555"
+                                        FontSize="12"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style
+                                                TargetType="TextBlock">
+                                                <Setter
+                                                    Property="Visibility"
+                                                    Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger
+                                                        Binding="{Binding Image}"
+                                                        Value="{x:Null}">
+                                                        <Setter
+                                                            Property="Visibility"
+                                                            Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <Image
+                                        Source="{Binding Image}"
+                                        Stretch="Uniform"
+                                        RenderOptions.BitmapScalingMode="HighQuality" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+
         <!-- Subtle Scroll Reminder Prompt -->
         <TextBlock
             x:Name="ScrollPromptTextBlock"
@@ -145,6 +308,8 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition
                         Width="*" />
+                    <ColumnDefinition
+                        Width="Auto" />
                     <ColumnDefinition
                         Width="Auto" />
                     <ColumnDefinition
@@ -250,6 +415,21 @@
                     FontSize="10"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0" />
+
+                <Button
+                    x:Name="PopOutButton"
+                    Grid.Column="4"
+                    Content="↗ Pop Out"
+                    Click="PopOutButton_Click"
+                    Foreground="#A0A0A0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    FontSize="10"
+                    VerticalAlignment="Center"
+                    Margin="12,0,0,0"
+                    Cursor="Hand"
+                    ToolTip="Open in separate window"
+                    Style="{StaticResource FlatButtonStyle}" />
             </Grid>
         </Border>
     </Grid>
