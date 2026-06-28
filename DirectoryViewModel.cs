@@ -13,8 +13,7 @@ namespace Filey
         private FolderItem _selectedParentFolder;
         private FolderItem _selectedItem;
 
-        private readonly System.Collections.Generic.List<string> _backStack = new System.Collections.Generic.List<string>();
-        private readonly System.Collections.Generic.List<string> _forwardStack = new System.Collections.Generic.List<string>();
+        private readonly NavigationHistory _history = new NavigationHistory();
 
         /// <summary>
         /// When false (default) entries flagged Hidden or System are filtered out of all
@@ -50,8 +49,8 @@ namespace Filey
         /// <summary>The loaded directory, ignoring any selected file (unlike CurrentPath).</summary>
         public string CurrentDirectory => _currentPath;
 
-        public bool CanGoBack => _backStack.Count > 0;
-        public bool CanGoForward => _forwardStack.Count > 0;
+        public bool CanGoBack => _history.CanGoBack;
+        public bool CanGoForward => _history.CanGoForward;
 
         public bool CanGoToParent
         {
@@ -136,7 +135,7 @@ namespace Filey
         /// <summary>Snapshot of the back stack (oldest first) for persistence.</summary>
         public System.Collections.Generic.List<string> GetBackStackSnapshot()
         {
-            return new System.Collections.Generic.List<string>(_backStack);
+            return _history.GetBackStackSnapshot();
         }
 
         /// <summary>
@@ -145,18 +144,7 @@ namespace Filey
         /// </summary>
         public void RestoreBackStack(System.Collections.Generic.IEnumerable<string> paths)
         {
-            _backStack.Clear();
-            _forwardStack.Clear();
-            if (paths != null)
-            {
-                foreach (var p in paths)
-                {
-                    if (!string.IsNullOrEmpty(p))
-                        _backStack.Add(p);
-                }
-                if (_backStack.Count > 50)
-                    _backStack.RemoveRange(0, _backStack.Count - 50);
-            }
+            _history.RestoreBackStack(paths);
             OnPropertyChanged(nameof(CanGoBack));
             OnPropertyChanged(nameof(CanGoForward));
         }
@@ -180,29 +168,15 @@ namespace Filey
 
         public void GoBack()
         {
-            if (!CanGoBack) return;
-            string prevPath = _backStack[_backStack.Count - 1];
-            _backStack.RemoveAt(_backStack.Count - 1);
-            if (!string.IsNullOrEmpty(CurrentPath))
-            {
-                _forwardStack.Add(CurrentPath);
-            }
+            string prevPath = _history.Back(CurrentPath);
+            if (prevPath == null) return;
             LoadDirectory(prevPath, pushToHistory: false);
         }
 
         public void GoForward()
         {
-            if (!CanGoForward) return;
-            string nextPath = _forwardStack[_forwardStack.Count - 1];
-            _forwardStack.RemoveAt(_forwardStack.Count - 1);
-            if (!string.IsNullOrEmpty(CurrentPath))
-            {
-                _backStack.Add(CurrentPath);
-                if (_backStack.Count > 50)
-                {
-                    _backStack.RemoveAt(0);
-                }
-            }
+            string nextPath = _history.Forward(CurrentPath);
+            if (nextPath == null) return;
             LoadDirectory(nextPath, pushToHistory: false);
         }
 
@@ -335,12 +309,7 @@ namespace Filey
 
                 if (pushToHistory && !string.IsNullOrEmpty(oldPath) && oldPath != CurrentPath)
                 {
-                    _backStack.Add(oldPath);
-                    if (_backStack.Count > 50)
-                    {
-                        _backStack.RemoveAt(0);
-                    }
-                    _forwardStack.Clear();
+                    _history.Push(oldPath);
                 }
 
                 OnPropertyChanged(nameof(CanGoBack));

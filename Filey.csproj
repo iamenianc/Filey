@@ -115,7 +115,7 @@
     <Compile Include="AppStorage.cs" />
     <Compile Include="Bookmark.cs" />
     <Compile Include="BookmarkStore.cs" />
-    <Compile Include="HistoryService.cs" />
+    <Compile Include="NavigationHistory.cs" />
     <Compile Include="SettingsService.cs" />
     <Compile Include="ContextActions.cs" />
     <Compile Include="ViewModelBase.cs" />

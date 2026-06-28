@@ -38,6 +38,10 @@ namespace Filey
             _settings = SettingsService.Load();
             BookmarkStore.Instance.LoadFromDisk();
 
+            var history = NavigationHistoryStore.Load();
+            LeftViewModel.RestoreBackStack(history.Left);
+            RightViewModel.RestoreBackStack(history.Right);
+
             InitializeComponent();
 
             this.Closing += MainWindow_Closing;
@@ -134,6 +138,12 @@ namespace Filey
             SettingsService.Save(_settings);
 
             BookmarkStore.Instance.SaveToDisk();
+
+            NavigationHistoryStore.Save(new NavigationHistoryRecord
+            {
+                Left = LeftViewModel.GetBackStackSnapshot(),
+                Right = RightViewModel.GetBackStackSnapshot(),
+            });
         }
 
         protected override void OnSourceInitialized(EventArgs e)
