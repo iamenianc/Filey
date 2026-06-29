@@ -146,6 +146,40 @@ namespace Filey
 
         #endregion
 
+        private static int GetFileCountWin32(string dirPath, bool showHidden, CancellationToken token)
+        {
+            int count = 0;
+            WIN32_FIND_DATA findData = new WIN32_FIND_DATA();
+            IntPtr hFind = FindFirstFileEx(System.IO.Path.Combine(dirPath, "*"),
+                FINDEX_INFO_LEVELS.FindExInfoBasic, ref findData,
+                FINDEX_SEARCH_OPS.FindExSearchNameMatch, IntPtr.Zero, FIND_FIRST_EX_LARGE_FETCH);
+            if (hFind == INVALID_HANDLE_VALUE) return 0;
+            try
+            {
+                do
+                {
+                    if (token.IsCancellationRequested) break;
+                    uint attr = findData.dwFileAttributes;
+                    if ((attr & 0x10) != 0) continue; // skip directories
+                    if (!showHidden && ((attr & 0x02) != 0 || (attr & 0x04) != 0)) continue; // skip hidden/system
+                    count++;
+                }
+                while (FindNextFile(hFind, ref findData));
+            }
+            finally { FindClose(hFind); }
+            return count;
+        }
+
+        private static async Task<List<SimpleDirectoryInfo>> FetchChildrenAsync(
+            string path, SemaphoreSlim semaphore, CancellationToken token)
+        {
+            await semaphore.WaitAsync(token);
+            try   { return await Task.Run(() => GetSubDirectoriesWin32(path), token); }
+            catch (OperationCanceledException) { throw; }
+            catch  { return new List<SimpleDirectoryInfo>(); }
+            finally { semaphore.Release(); }
+        }
+
         private static readonly string[] TextExtensions = new[]
         {
             ".txt", ".ini", ".sql", ".cs", ".json", ".md", ".xml", ".log", ".py",
@@ -485,7 +519,8 @@ namespace Filey
                 // Start recursive collection on the background thread
                 string rootName = Path.GetFileName(folderPath);
                 if (string.IsNullOrEmpty(rootName)) rootName = folderPath;
-                await BuildFastTreeAsync(folderPath, rootName, activeRootLevel, activeRootLevel, historyIndent, indentWidth, currentY, rowHeight, nodes, stopwatch, wasLimited, token);
+                using var semaphore = new SemaphoreSlim(8);
+                await BuildFastTreeAsync(folderPath, rootName, activeRootLevel, activeRootLevel, historyIndent, indentWidth, currentY, rowHeight, nodes, stopwatch, wasLimited, token, semaphore);
 
                 if (wasLimited[0])
                 {
@@ -565,7 +600,7 @@ namespace Filey
             }
         }
 
-        private async Task BuildFastTreeAsync(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, double[] currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, bool[] wasLimited, CancellationToken token)
+        private async Task BuildFastTreeAsync(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, double[] currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, bool[] wasLimited, CancellationToken token, SemaphoreSlim semaphore, List<SimpleDirectoryInfo> preEnumeratedChildren = null)
         {
             if (token.IsCancellationRequested) return;
 
@@ -580,7 +615,7 @@ namespace Filey
             double xCoord = (activeRootLevel * historyIndent) + (level - activeRootLevel) * indent;
 
             // Add the directory node
-            list.Add(new FastNode
+            var node = new FastNode
             {
                 Name = dirName,
                 FullPath = dirPath,
@@ -591,7 +626,8 @@ namespace Filey
                 IsPlaceholder = false,
                 IsHistory = false,
                 FileCount = -1
-            });
+            };
+            list.Add(node);
             currentY[0] += rowHeight;
 
             // Progressive batch sizes to keep UI thread responsive while avoiding sudden jumps
@@ -618,7 +654,7 @@ namespace Filey
 
             try
             {
-                var allSubDirs = GetSubDirectoriesWin32(dirPath);
+                var allSubDirs = preEnumeratedChildren ?? GetSubDirectoriesWin32(dirPath);
                 var subDirsList = new List<SimpleDirectoryInfo>();
 
                 // Pre-filter hidden/system directories if ShowHidden is false
@@ -634,13 +670,29 @@ namespace Filey
                     subDirsList.Add(sd);
                 }
 
+                if (subDirsList.Count == 0)
+                {
+                    node.FileCount = GetFileCountWin32(dirPath, DirectoryViewModel.ShowHidden, token);
+                    return;
+                }
+
+                // Kick off all siblings' directory enumerations concurrently (bounded by semaphore).
+                // Recursion below is sequential to preserve DFS display order; only the I/O is parallelised.
+                var prefetchTasks = subDirsList.ConvertAll(sd =>
+                    FetchChildrenAsync(sd.FullPath, semaphore, token));
+
                 for (int i = 0; i < subDirsList.Count; i++)
                 {
                     if (token.IsCancellationRequested) return;
 
-                    var subDir = subDirsList[i];
-                    await BuildFastTreeAsync(subDir.FullPath, subDir.Name, level + 1, activeRootLevel, historyIndent, indent, currentY, rowHeight, list, stopwatch, wasLimited, token);
+                    var childPrefetch = await prefetchTasks[i];
+                    await BuildFastTreeAsync(subDirsList[i].FullPath, subDirsList[i].Name, level + 1, activeRootLevel, historyIndent, indent, currentY, rowHeight, list, stopwatch, wasLimited, token, semaphore, childPrefetch);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Propagate cancellation rather than treating it as an access error
+                throw;
             }
             catch (Exception)
             {
