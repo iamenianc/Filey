@@ -57,6 +57,11 @@ namespace Filey
                 }
             };
 
+            RightPreviewControl.DirectoryClicked += (s, path) =>
+            {
+                GetActiveViewModel()?.LoadDirectory(path);
+            };
+
             // Wire up the (single, shared) Favourites panel. It adds bookmarks for the
             // active side's current path and navigates that side.
             LeftFavouritesPanel.CurrentPathProvider = () => GetActiveViewModel().CurrentPath;

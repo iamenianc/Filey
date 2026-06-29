@@ -33,6 +33,8 @@ namespace Filey
         private List<FastNode> _currentRenderedNodes;
         private CancellationTokenSource _scrollCts;
 
+        public event EventHandler<string> DirectoryClicked;
+
         private List<PdfPageViewModel> _pdfPages;
         private string _activePdfPath;
         private PdfRenderer _pdfRenderer;
@@ -203,6 +205,9 @@ namespace Filey
                     FitImageToWindow();
                 }
             };
+
+            FolderTreeVisualHost.MouseLeftButtonUp += FolderTreeVisualHost_MouseLeftButtonUp;
+            FolderTreeVisualHost.MouseMove += FolderTreeVisualHost_MouseMove;
 
             this.Loaded += (s, e) =>
             {
@@ -1251,6 +1256,59 @@ namespace Filey
             }
 
             previewWindow.Show();
+        }
+
+        private void FolderTreeVisualHost_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            var nodes = _currentRenderedNodes;
+            if (nodes == null || nodes.Count == 0) return;
+
+            var pos = e.GetPosition(FolderTreeVisualHost);
+            double rowHeight = 18.50;
+
+            foreach (var node in nodes)
+            {
+                if (pos.Y >= node.Y && pos.Y < node.Y + rowHeight)
+                {
+                    if (pos.X >= node.X && !node.IsPlaceholder && !string.IsNullOrEmpty(node.FullPath))
+                    {
+                        DirectoryClicked?.Invoke(this, node.FullPath);
+                    }
+                    break;
+                }
+            }
+        }
+
+        private void FolderTreeVisualHost_MouseMove(object sender, MouseEventArgs e)
+        {
+            var nodes = _currentRenderedNodes;
+            if (nodes == null || nodes.Count == 0)
+            {
+                FolderTreeVisualHost.Cursor = null;
+                return;
+            }
+
+            var pos = e.GetPosition(FolderTreeVisualHost);
+            double rowHeight = 18.50;
+            bool found = false;
+
+            foreach (var node in nodes)
+            {
+                if (pos.Y >= node.Y && pos.Y < node.Y + rowHeight)
+                {
+                    if (pos.X >= node.X && !node.IsPlaceholder && !string.IsNullOrEmpty(node.FullPath))
+                    {
+                        FolderTreeVisualHost.Cursor = Cursors.Hand;
+                        found = true;
+                    }
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                FolderTreeVisualHost.Cursor = null;
+            }
         }
     }
 
