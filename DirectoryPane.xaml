@@ -237,6 +237,11 @@
                                     <GridViewColumnHeader Content="Date Modified" Tag="DateModified"/>
                                 </GridViewColumn.Header>
                             </GridViewColumn>
+                            <GridViewColumn Width="130" DisplayMemberBinding="{Binding DateCreatedFormatted}">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Content="Date Created" Tag="DateCreated"/>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
                             <GridViewColumn Width="85" DisplayMemberBinding="{Binding SizeFormatted}">
                                 <GridViewColumn.Header>
                                     <GridViewColumnHeader Content="Size" Tag="Size"/>

@@ -18,7 +18,7 @@ namespace Filey
         public bool RightPaneVisible { get; set; } = true;
 
         /// <summary>The display mode for the right column: 0=Off, 1=PreviewPane, 2=RightPane (Dual).</summary>
-        public int RightPaneMode { get; set; } = 2;
+        public int RightPaneMode { get; set; } = 1;
 
         /// <summary>Whether hidden/system folders and files are shown in the panes. Off by default.</summary>
         public bool ShowHidden { get; set; } = false;

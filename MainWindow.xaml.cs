@@ -28,7 +28,7 @@ namespace Filey
         private AppSettings _settings;
 
         /// <summary>True once the right pane has been activated out of its inactive state.</summary>
-        private bool _rightPaneActivated;
+        private bool _rightPaneActivated = true;
         private int _fontSizeStep = 0;
 
         public MainWindow()
@@ -164,33 +164,8 @@ namespace Filey
             }
         }
 
-        private void RightPaneOverlay_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (RightPaneOverlay.Visibility == Visibility.Visible)
-            {
-                ActivateRightPane();
-            }
-        }
-
-        /// <summary>
-        /// Brings the right pane out of its inactive state, opening it at the same
-        /// directory the left pane is currently viewing for side-by-side operations.
-        /// </summary>
-        private void ActivateRightPane()
-        {
-            string syncPath = LeftViewModel.CurrentDirectory;
-            if (string.IsNullOrEmpty(syncPath) || !System.IO.Directory.Exists(syncPath))
-            {
-                syncPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            }
-            RightViewModel.LoadDirectory(syncPath);
-            RightPaneOverlay.Visibility = Visibility.Collapsed;
-            _rightPaneActivated = true;
-        }
-
         private void SwapPanesButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_rightPaneActivated) return;
 
             string leftPath = LeftViewModel.CurrentDirectory;
             string rightPath = RightViewModel.CurrentDirectory;
@@ -225,17 +200,17 @@ namespace Filey
 
         private void FontSizeButton_Click(object sender, RoutedEventArgs e)
         {
-            _fontSizeStep = (_fontSizeStep + 1) % 5;
-            double scale = 1.0 + (_fontSizeStep * 0.04);
+            _fontSizeStep = (_fontSizeStep + 1) % 2;
+            double offset = _fontSizeStep * 1.5;
 
-            Application.Current.Resources["AppFontSize"] = 11.5 * scale;
-            Application.Current.Resources["NormalFontSize"] = 12.0 * scale;
-            Application.Current.Resources["SmallFontSize"] = 10.0 * scale;
-            Application.Current.Resources["HeaderFontSize"] = 11.0 * scale;
-            Application.Current.Resources["LargeFontSize"] = 16.0 * scale;
-            Application.Current.Resources["TitleFontSize"] = 14.0 * scale;
+            Application.Current.Resources["AppFontSize"] = 11.5 + offset;
+            Application.Current.Resources["NormalFontSize"] = 12.0 + offset;
+            Application.Current.Resources["SmallFontSize"] = 10.0 + offset;
+            Application.Current.Resources["HeaderFontSize"] = 11.0 + offset;
+            Application.Current.Resources["LargeFontSize"] = 16.0 + offset;
+            Application.Current.Resources["TitleFontSize"] = 14.0 + offset;
 
-            FontSizeButton.Content = $"Font: {100 + (_fontSizeStep * 4)}%";
+            FontSizeButton.Content = _fontSizeStep == 0 ? "Font: Default" : "Font: Large";
         }
 
         private void ReloadBothPanes()
@@ -254,7 +229,7 @@ namespace Filey
             RightPane = 2
         }
 
-        private RightPaneMode _currentRightPaneMode = RightPaneMode.RightPane;
+        private RightPaneMode _currentRightPaneMode = RightPaneMode.PreviewPane;
         private GridLength _savedLeftPaneWidth = new GridLength(1000, GridUnitType.Star);
         private GridLength _savedRightPaneWidth = new GridLength(440, GridUnitType.Star);
 
@@ -278,18 +253,22 @@ namespace Filey
             }
         }
 
-        private void RightPaneCycleButton_Click(object sender, RoutedEventArgs e)
+        private void PreviewModeButton_Click(object sender, RoutedEventArgs e)
         {
-            switch (_currentRightPaneMode)
-            {
-                case RightPaneMode.RightPane:
-                    SetRightPaneMode(RightPaneMode.PreviewPane);
-                    break;
-                case RightPaneMode.PreviewPane:
-                default:
-                    SetRightPaneMode(RightPaneMode.RightPane);
-                    break;
-            }
+            SetRightPaneMode(RightPaneMode.PreviewPane);
+        }
+
+        private void DualModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetRightPaneMode(RightPaneMode.RightPane);
+        }
+
+        private void UpdateModeButtons()
+        {
+            if (PreviewModeButton != null)
+                PreviewModeButton.IsChecked = (_currentRightPaneMode == RightPaneMode.PreviewPane);
+            if (DualModeButton != null)
+                DualModeButton.IsChecked = (_currentRightPaneMode == RightPaneMode.RightPane);
         }
 
         private void SetRightPaneMode(RightPaneMode mode)
@@ -300,6 +279,7 @@ namespace Filey
             SettingsService.Save(_settings);
 
             UpdateRightPaneLayout();
+            UpdateModeButtons();
         }
 
         private void UpdateRightPaneLayout()
@@ -321,8 +301,6 @@ namespace Filey
                     CentreSplitter.Visibility = Visibility.Collapsed;
                     RightPaneGrid.Visibility = Visibility.Collapsed;
                     RightPreviewControl.Visibility = Visibility.Collapsed;
-
-                    RightPaneCycleButton.Content = "Pane: Off";
                     break;
 
                 case RightPaneMode.PreviewPane:
@@ -334,20 +312,28 @@ namespace Filey
                     RightPaneGrid.Visibility = Visibility.Collapsed;
                     RightPreviewControl.Visibility = Visibility.Visible;
 
-                    RightPaneCycleButton.Content = "Pane: Preview";
                     OnLeftSelectionChanged(); // Trigger load of currently selected left pane item
                     break;
 
                 case RightPaneMode.RightPane:
                     RightPaneCol.MinWidth = 440;
-                    RightPaneCol.Width = _savedRightPaneWidth;
-                    LeftPaneCol.Width = _savedLeftPaneWidth;
+                    LeftPaneCol.Width = new GridLength(1, GridUnitType.Star);
+                    RightPaneCol.Width = new GridLength(1, GridUnitType.Star);
 
                     CentreSplitter.Visibility = Visibility.Visible;
                     RightPaneGrid.Visibility = Visibility.Visible;
                     RightPreviewControl.Visibility = Visibility.Collapsed;
 
-                    RightPaneCycleButton.Content = "Pane: Dual";
+                    // Ensure right pane has a directory loaded
+                    if (string.IsNullOrEmpty(RightViewModel.CurrentDirectory))
+                    {
+                        string syncPath = LeftViewModel.CurrentDirectory;
+                        if (string.IsNullOrEmpty(syncPath) || !System.IO.Directory.Exists(syncPath))
+                        {
+                            syncPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                        }
+                        RightViewModel.LoadDirectory(syncPath);
+                    }
                     break;
             }
 
@@ -490,7 +476,7 @@ namespace Filey
 
         private DirectoryViewModel GetActiveViewModel()
         {
-            if (RightPaneOverlay.Visibility == Visibility.Visible || _currentRightPaneMode == RightPaneMode.PreviewPane || _currentRightPaneMode == RightPaneMode.Off)
+            if (_currentRightPaneMode == RightPaneMode.PreviewPane || _currentRightPaneMode == RightPaneMode.Off)
             {
                 return LeftViewModel;
             }
@@ -665,12 +651,6 @@ namespace Filey
             if (_currentRightPaneMode != RightPaneMode.RightPane)
             {
                 SetRightPaneMode(RightPaneMode.RightPane);
-            }
-
-            if (RightPaneOverlay != null && RightPaneOverlay.Visibility == Visibility.Visible)
-            {
-                RightPaneOverlay.Visibility = Visibility.Collapsed;
-                _rightPaneActivated = true;
             }
 
             if (System.IO.Directory.Exists(targetDir))

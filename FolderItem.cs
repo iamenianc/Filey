@@ -22,6 +22,7 @@ namespace Filey
         }
         public bool IsDirectory { get; set; }
         public DateTime? DateModified { get; set; }
+        public DateTime? DateCreated { get; set; }
         public long? Size { get; set; }
         public string Extension { get; set; }
         public string Type { get; set; }
@@ -52,5 +53,6 @@ namespace Filey
         }
 
         public string DateModifiedFormatted => DateModified?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty;
+        public string DateCreatedFormatted => DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty;
     }
 }

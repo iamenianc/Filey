@@ -60,12 +60,18 @@
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
                         Margin="6,0">
-                <Button
-                    x:Name="RightPaneCycleButton"
-                    Style="{StaticResource TopBarButtonStyle}"
-                    Content="Pane: Dual"
-                    ToolTip="Toggle right pane layout: Preview ➔ Dual"
-                    Click="RightPaneCycleButton_Click" />
+                <ToggleButton
+                    x:Name="PreviewModeButton"
+                    Style="{StaticResource TopBarToggleStyle}"
+                    Content="Preview View"
+                    ToolTip="Switch right pane to File Preview"
+                    Click="PreviewModeButton_Click" />
+                <ToggleButton
+                    x:Name="DualModeButton"
+                    Style="{StaticResource TopBarToggleStyle}"
+                    Content="Dual Pane"
+                    ToolTip="Switch right pane to Dual Directory Pane"
+                    Click="DualModeButton_Click" />
                 <ToggleButton
                     x:Name="ShowHiddenToggle"
                     Style="{StaticResource TopBarToggleStyle}"
@@ -89,8 +95,8 @@
                 <Button
                     x:Name="FontSizeButton"
                     Style="{StaticResource TopBarButtonStyle}"
-                    Content="Font: 100%"
-                    ToolTip="Increase Font Size (0% to +16%)"
+                    Content="Font: Default"
+                    ToolTip="Toggle large font size"
                     Click="FontSizeButton_Click" />
             </StackPanel>
         </Border>
@@ -153,23 +159,6 @@
             <!-- Right Pane Grid (includes the DirectoryPane and the Inactive Overlay) -->
             <Grid x:Name="RightPaneGrid" Grid.Row="1" Grid.Column="4" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
                 <local:DirectoryPane x:Name="RightDirectoryPane" ShowAddressBar="False" ViewModel="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
-
-                <!-- Overlay Placeholder for Inactive Right Pane -->
-                <Border Grid.Row="0" Grid.RowSpan="2" 
-                        x:Name="RightPaneOverlay"
-                        Background="#161616"
-                        BorderBrush="#2D2D2D"
-                        BorderThickness="1"
-                        CornerRadius="3"
-                        Cursor="Hand"
-                        MouseDown="RightPaneOverlay_MouseDown">
-                    <Grid>
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="Right Pane Inactive" Foreground="#D4D4D4" FontSize="{DynamicResource LargeFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                            <TextBlock Text="Click anywhere in this pane to activate" Foreground="#858585" FontSize="{DynamicResource HeaderFontSize}" HorizontalAlignment="Center"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
             </Grid>
 
             <!-- Inline Dynamic File Preview Panel -->

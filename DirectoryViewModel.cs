@@ -328,7 +328,8 @@ namespace Filey
             {
                 Name = info.Name,
                 FullPath = info.FullName,
-                DateModified = info.LastWriteTime
+                DateModified = info.LastWriteTime,
+                DateCreated = info.CreationTime
             };
 
             if (info is DirectoryInfo)

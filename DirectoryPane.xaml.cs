@@ -91,6 +91,12 @@ namespace Filey
         public event EventHandler HomeRequested;
         public event EventHandler SetHomeRequested;
 
+        private GridViewColumn _colFolderName;
+        private GridViewColumn _colFolderDateModified;
+        private GridViewColumn _colFolderDateCreated;
+        private GridViewColumn _colFolderSize;
+        private GridViewColumn _colFolderType;
+
         private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DirectoryPane pane)
@@ -105,6 +111,7 @@ namespace Filey
                 }
                 pane.SetupParentFoldersFilter();
                 pane.UpdatePaneLayout();
+                pane.UpdateDirectoryColumns();
             }
         }
 
@@ -121,6 +128,7 @@ namespace Filey
             if (e.PropertyName == nameof(DirectoryViewModel.CurrentPath))
             {
                 UpdatePaneLayout();
+                UpdateDirectoryColumns();
             }
         }
 
@@ -132,7 +140,48 @@ namespace Filey
                 SetupParentFoldersFilter();
                 ApplySideLayout();
                 UpdatePaneLayout();
+                UpdateDirectoryColumns();
             };
+        }
+
+        private void UpdateDirectoryColumns()
+        {
+            if (ViewModel == null || FoldersListView == null || !(FoldersListView.View is GridView gridView))
+                return;
+
+            // Ensure columns are initialized from XAML
+            if (_colFolderName == null)
+            {
+                if (gridView.Columns.Count >= 5)
+                {
+                    _colFolderName = gridView.Columns[0];
+                    _colFolderDateModified = gridView.Columns[1];
+                    _colFolderDateCreated = gridView.Columns[2];
+                    _colFolderSize = gridView.Columns[3];
+                    _colFolderType = gridView.Columns[4];
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            // If there are zero files, then all contents loaded in this directory pane are folders.
+            bool allFolders = (ViewModel.Contents == null || ViewModel.Contents.Count == 0);
+
+            gridView.Columns.Clear();
+            gridView.Columns.Add(_colFolderName);
+            gridView.Columns.Add(_colFolderDateModified);
+
+            if (allFolders)
+            {
+                gridView.Columns.Add(_colFolderDateCreated);
+            }
+            else
+            {
+                gridView.Columns.Add(_colFolderSize);
+                gridView.Columns.Add(_colFolderType);
+            }
         }
 
         // Mirror the layout for the right pane: parent-folders list sits on the
