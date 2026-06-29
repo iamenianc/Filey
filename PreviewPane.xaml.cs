@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Microsoft.Web.WebView2.Wpf;
 
 namespace Filey
 {
@@ -41,6 +42,9 @@ namespace Filey
         private bool _isPdfActive;
 
         private const double PdfPageMargin = 24.0;
+
+        private WebView2 _webView;
+        private string _pendingHtml;
         #region Win32 FindFirstFileEx Declarations
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -222,6 +226,7 @@ namespace Filey
             {
                 _cts?.Cancel();
                 DisposePdf();
+                DisposeWebView();
 
                 var parentWindow = Window.GetWindow(this);
                 if (parentWindow != null)
@@ -284,18 +289,12 @@ namespace Filey
 
             if (ext == ".md")
             {
-                ShowEmptyState("Opened in browser", Path.GetFileName(filePath));
+                _cts = new CancellationTokenSource();
+                var mdToken = _cts.Token;
                 PathTextBlock.Text = filePath;
                 SizeTextBlock.Text = GetFormattedFileSize(filePath);
-                Task.Run(() =>
-                {
-                    try { MarkdownRenderer.OpenInBrowser(filePath); }
-                    catch (Exception ex)
-                    {
-                        Dispatcher.BeginInvoke(new Action(() =>
-                            ShowEmptyState("Error opening markdown", ex.Message)));
-                    }
-                });
+                EmptyStateBorder.Visibility = Visibility.Collapsed;
+                Task.Run(() => LoadMarkdownAsync(filePath, mdToken), mdToken);
                 return;
             }
 
@@ -330,9 +329,88 @@ namespace Filey
             }
         }
 
+        private async Task LoadMarkdownAsync(string filePath, CancellationToken token)
+        {
+            string html;
+            try
+            {
+                string markdown = await Task.Run(() => File.ReadAllText(filePath), token);
+                if (token.IsCancellationRequested) return;
+                var blocks = MarkdownParser.Parse(markdown);
+                html = MarkdownRenderer.RenderToHtml(blocks);
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception ex)
+            {
+                await Dispatcher.BeginInvoke(new Action(() =>
+                    ShowEmptyState("Error rendering markdown", ex.Message)));
+                return;
+            }
+
+            if (token.IsCancellationRequested) return;
+
+            await Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                if (token.IsCancellationRequested || _currentFilePath != filePath) return;
+                await ShowHtmlInWebViewAsync(html);
+            }));
+        }
+
+        private async Task ShowHtmlInWebViewAsync(string html)
+        {
+            WebViewHost.Visibility = Visibility.Visible;
+
+            if (_webView == null)
+            {
+                _webView = new WebView2();
+                WebViewHost.Children.Add(_webView);
+                _pendingHtml = html;
+                try
+                {
+                    await _webView.EnsureCoreWebView2Async(null);
+                }
+                catch (Exception ex)
+                {
+                    ShowEmptyState("WebView2 unavailable", ex.Message);
+                    return;
+                }
+
+                if (_pendingHtml != null)
+                {
+                    _webView.CoreWebView2.NavigateToString(_pendingHtml);
+                    _pendingHtml = null;
+                }
+                return;
+            }
+
+            if (_webView.CoreWebView2 == null)
+            {
+                _pendingHtml = html;
+                return;
+            }
+
+            _webView.CoreWebView2.NavigateToString(html);
+        }
+
+        private void DisposeWebView()
+        {
+            _pendingHtml = null;
+            if (_webView != null)
+            {
+                WebViewHost.Children.Remove(_webView);
+                _webView.Dispose();
+                _webView = null;
+            }
+            if (WebViewHost != null)
+            {
+                WebViewHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private void RecyclePreview()
         {
             DisposePdf();
+            DisposeWebView();
 
             if (PdfViewerGrid != null)
             {
