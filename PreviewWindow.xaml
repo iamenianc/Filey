@@ -13,7 +13,10 @@
     WindowState="Maximized"
     ExtendsContentIntoTitleBar="True"
     WindowBackdropType="Mica"
-    WindowStartupLocation="CenterScreen">
+    WindowStartupLocation="CenterScreen"
+    TextOptions.TextFormattingMode="Display"
+    TextOptions.TextRenderingMode="ClearType"
+    UseLayoutRounding="True">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition

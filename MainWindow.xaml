@@ -6,10 +6,15 @@
         xmlns:local="clr-namespace:Filey"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
-        Title="Filey — Dual Pane File Manager" Height="787" Width="1555"
+        Title="Filey — Dual Pane File Manager"
+        Height="787"
+        Width="1555"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True">
     <Window.Resources>
         <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
         <Thickness x:Key="RowItemPadding">4,1,4,1</Thickness>
