@@ -184,7 +184,7 @@ namespace Filey
 
         private static readonly string[] TextExtensions = new[]
         {
-            ".txt", ".ini", ".sql", ".cs", ".json", ".md", ".xml", ".log", ".py",
+            ".txt", ".ini", ".sql", ".cs", ".json", ".xml", ".log", ".py",
             ".xaml", ".csproj", ".sln", ".config", ".js", ".ts", ".css", ".html",
             ".h", ".cpp", ".c", ".sh", ".bat", ".ps1", ".yml", ".yaml"
         };
@@ -281,6 +281,24 @@ namespace Filey
             }
 
             string ext = Path.GetExtension(filePath).ToLower();
+
+            if (ext == ".md")
+            {
+                ShowEmptyState("Opened in browser", Path.GetFileName(filePath));
+                PathTextBlock.Text = filePath;
+                SizeTextBlock.Text = GetFormattedFileSize(filePath);
+                Task.Run(() =>
+                {
+                    try { MarkdownRenderer.OpenInBrowser(filePath); }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                            ShowEmptyState("Error opening markdown", ex.Message)));
+                    }
+                });
+                return;
+            }
+
             bool isText = Array.Exists(TextExtensions, x => x == ext);
             bool isImage = Array.Exists(ImageExtensions, x => x == ext);
             bool isPdf = ext == ".pdf";

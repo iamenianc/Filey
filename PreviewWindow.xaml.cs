@@ -96,6 +96,26 @@ namespace Filey
                 }
 
                 string ext = Path.GetExtension(filePath).ToLower();
+
+                if (ext == ".md")
+                {
+                    try
+                    {
+                        MarkdownRenderer.OpenInBrowser(filePath);
+                        ContentTextBox.Visibility = Visibility.Visible;
+                        ContentTextBox.Text = $"Opened in default browser:\n{filePath}";
+                    }
+                    catch (Exception ex)
+                    {
+                        ContentTextBox.Visibility = Visibility.Visible;
+                        ContentTextBox.Text = $"Error opening markdown:\n{ex.Message}";
+                    }
+                    PathTextBlock.Text = filePath;
+                    SizeTextBlock.Text = GetFormattedFileSize(filePath);
+                    Title = $"{Path.GetFileName(filePath)} — Preview";
+                    return;
+                }
+
                 bool isImage = Array.Exists(ImageExtensions, e => e == ext);
                 bool isPdf = ext == ".pdf";
 
