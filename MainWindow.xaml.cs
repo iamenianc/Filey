@@ -29,6 +29,7 @@ namespace Filey
 
         /// <summary>True once the right pane has been activated out of its inactive state.</summary>
         private bool _rightPaneActivated;
+        private int _fontSizeStep = 0;
 
         public MainWindow()
         {
@@ -220,6 +221,21 @@ namespace Filey
             if (LeftViewModel == null) return;
             DirectoryViewModel.ShowHidden = ShowHiddenToggle.IsChecked == true;
             ReloadBothPanes();
+        }
+
+        private void FontSizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _fontSizeStep = (_fontSizeStep + 1) % 5;
+            double scale = 1.0 + (_fontSizeStep * 0.04);
+
+            Application.Current.Resources["AppFontSize"] = 11.5 * scale;
+            Application.Current.Resources["NormalFontSize"] = 12.0 * scale;
+            Application.Current.Resources["SmallFontSize"] = 10.0 * scale;
+            Application.Current.Resources["HeaderFontSize"] = 11.0 * scale;
+            Application.Current.Resources["LargeFontSize"] = 16.0 * scale;
+            Application.Current.Resources["TitleFontSize"] = 14.0 * scale;
+
+            FontSizeButton.Content = $"Font: {100 + (_fontSizeStep * 4)}%";
         }
 
         private void ReloadBothPanes()

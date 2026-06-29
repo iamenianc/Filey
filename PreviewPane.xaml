@@ -27,7 +27,7 @@
             Foreground="#D4D4D4"
             BorderThickness="0"
             FontFamily="Consolas"
-            FontSize="12"
+            FontSize="{DynamicResource NormalFontSize}"
             Padding="10"
             IsReadOnly="True"
             AcceptsReturn="True"
@@ -85,7 +85,7 @@
                     x:Name="EmptyStateMainText"
                     Text="Select a file to preview"
                     Foreground="#858585"
-                    FontSize="13"
+                    FontSize="{DynamicResource NormalFontSize}"
                     FontWeight="SemiBold"
                     HorizontalAlignment="Center"
                     TextAlignment="Center"
@@ -94,7 +94,7 @@
                     x:Name="EmptyStateSubText"
                     Text="Support for text, code files, and images"
                     Foreground="#555555"
-                    FontSize="11"
+                    FontSize="{DynamicResource HeaderFontSize}"
                     HorizontalAlignment="Center"
                     Margin="0,4,0,0"
                     TextAlignment="Center"
@@ -210,7 +210,7 @@
                     <TextBlock
                         Text="🖱️ Double-click to open in full preview window"
                         Foreground="#CCCCCC"
-                        FontSize="11"
+                        FontSize="{DynamicResource HeaderFontSize}"
                         FontWeight="SemiBold" />
                 </Border>
             </Grid>
@@ -246,7 +246,7 @@
                                     <TextBlock
                                         Text="Loading..."
                                         Foreground="#555555"
-                                        FontSize="12"
+                                        FontSize="{DynamicResource NormalFontSize}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
                                         <TextBlock.Style>
@@ -286,7 +286,7 @@
             Grid.Row="0"
             Text="Ctrl + Scroll Wheel to adjust folder depth"
             Foreground="#475569"
-            FontSize="12"
+            FontSize="{DynamicResource NormalFontSize}"
             FontStyle="Italic"
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
@@ -320,7 +320,7 @@
                     x:Name="PathTextBlock"
                     Grid.Column="0"
                     Foreground="#858585"
-                    FontSize="10"
+                    FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     TextTrimming="CharacterEllipsis" />
 
@@ -334,7 +334,7 @@
                     <TextBlock
                         Text="Depth: "
                         Foreground="#858585"
-                        FontSize="10"
+                        FontSize="{DynamicResource SmallFontSize}"
                         VerticalAlignment="Center" />
                     <Button
                         x:Name="DepthButton1"
@@ -402,7 +402,7 @@
                     x:Name="EncodingTextBlock"
                     Grid.Column="2"
                     Foreground="#858585"
-                    FontSize="10"
+                    FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0" />
 
@@ -410,7 +410,7 @@
                     x:Name="SizeTextBlock"
                     Grid.Column="3"
                     Foreground="#858585"
-                    FontSize="10"
+                    FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0" />
 
@@ -422,7 +422,7 @@
                     Foreground="#A0A0A0"
                     Background="Transparent"
                     BorderThickness="0"
-                    FontSize="10"
+                    FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0"
                     Cursor="Hand"

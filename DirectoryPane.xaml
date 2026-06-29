@@ -116,7 +116,7 @@
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ParentFolderName}"
                                        Foreground="#CCCCCC"
-                                       FontSize="12"
+                                       FontSize="{DynamicResource NormalFontSize}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center"
                                        Margin="8,0,8,0"

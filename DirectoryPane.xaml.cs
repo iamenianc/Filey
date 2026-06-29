@@ -392,6 +392,34 @@ namespace Filey
                 dataView.SortDescriptions.Clear();
                 dataView.SortDescriptions.Add(new SortDescription(sortBy, direction));
                 dataView.Refresh();
+
+                UpdateSortIndicators(listView, header, direction);
+            }
+        }
+
+        private void UpdateSortIndicators(ListView listView, GridViewColumnHeader activeHeader, ListSortDirection direction)
+        {
+            if (listView.View is GridView gridView)
+            {
+                foreach (var column in gridView.Columns)
+                {
+                    if (column.Header is GridViewColumnHeader header)
+                    {
+                        string text = header.Content as string;
+                        if (text != null)
+                        {
+                            text = text.Replace(" ▲", "").Replace(" ▼", "").Trim();
+                            if (header == activeHeader)
+                            {
+                                header.Content = text + (direction == ListSortDirection.Ascending ? " ▲" : " ▼");
+                            }
+                            else
+                            {
+                                header.Content = text;
+                            }
+                        }
+                    }
+                }
             }
         }
 

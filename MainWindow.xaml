@@ -86,6 +86,12 @@
                     Content="⇄ Swap"
                     ToolTip="Swap the paths shown in the left and right panes"
                     Click="SwapPanesButton_Click" />
+                <Button
+                    x:Name="FontSizeButton"
+                    Style="{StaticResource TopBarButtonStyle}"
+                    Content="Font: 100%"
+                    ToolTip="Increase Font Size (0% to +16%)"
+                    Click="FontSizeButton_Click" />
             </StackPanel>
         </Border>
 
@@ -159,8 +165,8 @@
                         MouseDown="RightPaneOverlay_MouseDown">
                     <Grid>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="Right Pane Inactive" Foreground="#D4D4D4" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                            <TextBlock Text="Click anywhere in this pane to activate" Foreground="#858585" FontSize="11" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Right Pane Inactive" Foreground="#D4D4D4" FontSize="{DynamicResource LargeFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Click anywhere in this pane to activate" Foreground="#858585" FontSize="{DynamicResource HeaderFontSize}" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Border>

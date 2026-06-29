@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Filey"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
              Startup="Application_Startup">
     <Application.Resources>
         <ResourceDictionary>
@@ -12,6 +13,13 @@
                 <ResourceDictionary Source="Themes/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- Dynamic font size resources -->
+            <system:Double x:Key="AppFontSize">11.5</system:Double>
+            <system:Double x:Key="NormalFontSize">12.0</system:Double>
+            <system:Double x:Key="SmallFontSize">10.0</system:Double>
+            <system:Double x:Key="HeaderFontSize">11.0</system:Double>
+            <system:Double x:Key="LargeFontSize">16.0</system:Double>
+            <system:Double x:Key="TitleFontSize">14.0</system:Double>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

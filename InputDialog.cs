@@ -45,13 +45,13 @@ namespace Filey
             {
                 Text = prompt,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
-                FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 12)
             };
+            header.SetResourceReference(TextBlock.FontSizeProperty, "TitleFontSize");
             Grid.SetRow(header, 0);
-
+ 
             _textBox = new TextBox
             {
                 Text = initialValue ?? string.Empty,
@@ -61,9 +61,9 @@ namespace Filey
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(8, 6, 8, 6),
                 SelectionBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC")),
-                FontFamily = new FontFamily("Segoe UI"),
-                FontSize = 12
+                FontFamily = new FontFamily("Segoe UI")
             };
+            _textBox.SetResourceReference(TextBox.FontSizeProperty, "NormalFontSize");
             _textBox.KeyDown += TextBox_KeyDown;
             Grid.SetRow(_textBox, 1);
 

@@ -28,7 +28,7 @@
             <TextBlock Grid.Row="0" 
                        Text="Rename" 
                        Foreground="#FFFFFF" 
-                       FontSize="14" 
+                       FontSize="{DynamicResource TitleFontSize}" 
                        FontWeight="SemiBold" 
                        Margin="0,0,0,12"/>
 
@@ -36,7 +36,7 @@
             <StackPanel Grid.Row="1" VerticalAlignment="Center">
                 <ui:TextBox x:Name="NameTextBox" 
                             Padding="8,6" 
-                            FontSize="12"
+                            FontSize="{DynamicResource NormalFontSize}"
                             KeyDown="NameTextBox_KeyDown"/>
             </StackPanel>
 
