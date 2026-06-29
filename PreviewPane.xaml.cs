@@ -511,6 +511,7 @@ namespace Filey
                     nodes.Add(new FastNode
                     {
                         Name = displayName,
+                        FullPath = path,
                         Level = i,
                         X = i * historyIndent,
                         Y = currentY[0],
