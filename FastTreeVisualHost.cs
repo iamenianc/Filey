@@ -161,6 +161,14 @@ namespace Filey
                         // Offset text: history nodes and placeholders don't have folder icons.
                         double textXOffset = (node.IsHistory || node.IsPlaceholder) ? 0 : 20;
                         dc.DrawText(formattedText, new Point(node.X + textXOffset, node.Y));
+
+                        if (!node.IsHistory && !node.IsPlaceholder && node.FileCount >= 0)
+                        {
+                            string countLabel = node.FileCount == 1 ? " · 1 file" : $" · {node.FileCount} files";
+                            var countText = new FormattedText(countLabel, CultureInfo.InvariantCulture,
+                                FlowDirection.LeftToRight, font, 11, placeholderTextBrush, dpiScale);
+                            dc.DrawText(countText, new Point(node.X + textXOffset + formattedText.Width, node.Y + 0.5));
+                        }
                     }
                 }
             }
