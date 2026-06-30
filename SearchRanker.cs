@@ -91,19 +91,16 @@ namespace Filey
                     // Final score is average term score plus the overall query bonus
                     int finalScore = (totalScore / terms.Length) + queryBonus;
 
-                    // If active directory is provided, give a priority boost to items within it or its immediate children
-                    if (!string.IsNullOrEmpty(activeDirectory) && IsInOrImmediateChild(e.FullPath, activeDirectory))
-                    {
-                        finalScore += 40; // local tree priority boost
-                    }
-
                     return new KeyValuePair<int, IndexEntry>(finalScore, e);
                 })
                 .Where(kv => kv.Key >= MinScoreCutoff && kv.Value != null)
                 .ToList();
 
             return scored
-                .OrderByDescending(kv => kv.Key)
+                .OrderByDescending(kv => !string.IsNullOrEmpty(activeDirectory) && 
+                                         kv.Value.FullPath != null && 
+                                         kv.Value.FullPath.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(kv => kv.Key)
                 .ThenBy(kv => kv.Value.Name, StringComparer.OrdinalIgnoreCase)
                 .Take(max)
                 .Select(kv => kv.Value)
