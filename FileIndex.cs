@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using FuzzySharp;
 using Newtonsoft.Json;
 
 namespace Filey
@@ -87,55 +86,12 @@ namespace Filey
         /// </summary>
         public List<IndexEntry> Search(string query, int max = 100)
         {
-            var results = new List<IndexEntry>();
-            if (string.IsNullOrWhiteSpace(query)) return results;
-            query = query.Trim();
-            string q = query.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(query)) return new List<IndexEntry>();
 
             IndexEntry[] snapshot;
             lock (_gate) snapshot = _byPath.Values.ToArray();
 
-            var scored = new List<KeyValuePair<int, IndexEntry>>();
-            foreach (var e in snapshot)
-            {
-                string name = e.Name;
-                if (string.IsNullOrEmpty(name)) continue;
-                string nl = name.ToLowerInvariant();
-
-                int bonus;
-                if (!QuickMatch(nl, q, out bonus)) continue;
-
-                int score = Fuzz.WeightedRatio(q, nl) + bonus;
-                scored.Add(new KeyValuePair<int, IndexEntry>(score, e));
-            }
-
-            return scored
-                .OrderByDescending(kv => kv.Key)
-                .ThenBy(kv => kv.Value.Name, StringComparer.OrdinalIgnoreCase)
-                .Take(max)
-                .Select(kv => kv.Value)
-                .ToList();
-        }
-
-        /// <summary>
-        /// Cheap gate before fuzzy scoring: requires the query to appear as an in-order
-        /// subsequence of the name. Awards a bonus for exact/prefix/substring matches so
-        /// they outrank loose fuzzy hits.
-        /// </summary>
-        private static bool QuickMatch(string nameLower, string queryLower, out int bonus)
-        {
-            bonus = 0;
-            if (nameLower == queryLower) { bonus = 200; return true; }
-            if (nameLower.StartsWith(queryLower, StringComparison.Ordinal)) { bonus = 120; return true; }
-
-            int idx = nameLower.IndexOf(queryLower, StringComparison.Ordinal);
-            if (idx >= 0) { bonus = 60; return true; }
-
-            // Subsequence test (chars in order, gaps allowed).
-            int qi = 0;
-            for (int i = 0; i < nameLower.Length && qi < queryLower.Length; i++)
-                if (nameLower[i] == queryLower[qi]) qi++;
-            return qi == queryLower.Length;
+            return SearchRanker.Rank(query, snapshot, max);
         }
 
         // --- persistence ----------------------------------------------------------

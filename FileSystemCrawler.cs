@@ -106,6 +106,46 @@ namespace Filey
             return list;
         }
 
+        /// <summary>Cap on entries gathered for a single local-scope search pass.</summary>
+        private const int MaxLocalScopeEntries = 20000;
+
+        /// <summary>
+        /// Live "local scope" for search: the direct contents of <paramref name="activeDir"/>
+        /// plus the immediate contents of each (non-skipped) subfolder directly inside it.
+        /// Enumerated fresh so results reflect the folder the user is in whether or not it has
+        /// been indexed yet. Bounded by <see cref="MaxLocalScopeEntries"/>.
+        /// </summary>
+        public static List<IndexEntry> EnumerateLocalScope(string activeDir)
+        {
+            var list = new List<IndexEntry>();
+            if (string.IsNullOrEmpty(activeDir)) return list;
+
+            List<NativeFileEntry> top;
+            try { top = NativeDirectoryEnumerator.EnumerateEntries(activeDir); }
+            catch { return list; }
+
+            foreach (var e in top)
+            {
+                // Active directory's own direct children are always in scope.
+                list.Add(ToEntry(e, activeDir));
+                if (list.Count >= MaxLocalScopeEntries) return list;
+
+                // One level deeper: immediate contents of each subfolder in the active dir.
+                if (!e.IsDirectory || IndexPolicy.ShouldSkipDirectory(e.FullPath, e.Attributes)) continue;
+
+                List<NativeFileEntry> children;
+                try { children = NativeDirectoryEnumerator.EnumerateEntries(e.FullPath); }
+                catch { continue; }
+
+                foreach (var c in children)
+                {
+                    list.Add(ToEntry(c, e.FullPath));
+                    if (list.Count >= MaxLocalScopeEntries) return list;
+                }
+            }
+            return list;
+        }
+
         private static IndexEntry ToEntry(NativeFileEntry e, string parentPath)
         {
             return new IndexEntry

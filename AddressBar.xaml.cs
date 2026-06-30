@@ -207,7 +207,7 @@ namespace Filey
             string query = SearchTextBox.Text;
             if (string.IsNullOrWhiteSpace(query)) return;
 
-            var results = await IndexService.Instance.SearchAsync(query);
+            var results = await IndexService.Instance.SearchAsync(query, ResolveActiveDirectory());
 
             // Drop stale results if the query moved on while we were searching.
             if (!_isSearchMode || !string.Equals(query, SearchTextBox.Text, StringComparison.Ordinal)) return;
@@ -262,6 +262,16 @@ namespace Filey
             if (item == null) return;
             SearchResultChosen?.Invoke(this, item);
             ExitSearchMode();
+        }
+
+        /// <summary>The directory this pane is currently in (falls back to a selected item's parent).</summary>
+        private string ResolveActiveDirectory()
+        {
+            string p = CurrentPath;
+            if (string.IsNullOrEmpty(p)) return null;
+            if (Directory.Exists(p)) return p;
+            try { return Path.GetDirectoryName(p); }
+            catch { return null; }
         }
 
         /// <summary>

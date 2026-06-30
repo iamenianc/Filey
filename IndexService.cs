@@ -86,11 +86,35 @@ namespace Filey
                 _ = FileSystemCrawler.RecrawlRootAsync(root.Path, _index, _cts.Token);
         }
 
-        /// <summary>Ranked search over the index, projected to UI rows. Runs off the UI thread.</summary>
-        public Task<IReadOnlyList<FolderItem>> SearchAsync(string query, int max = 100)
+        /// <summary>
+        /// Ranked search projected to UI rows, run off the UI thread. The active directory and
+        /// the immediate contents of its subfolders are searched live and listed first
+        /// (whether or not they are indexed yet); index hits follow, de-duplicated by path.
+        /// </summary>
+        public Task<IReadOnlyList<FolderItem>> SearchAsync(string query, string activeDirectory, int max = 100)
         {
             return Task.Run<IReadOnlyList<FolderItem>>(() =>
-                _index.Search(query, max).Select(e => e.ToFolderItem()).ToList());
+            {
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var ordered = new List<IndexEntry>();
+
+                // 1) Local-first: active dir + immediate contents of its subfolders, enumerated live.
+                if (!string.IsNullOrEmpty(activeDirectory))
+                {
+                    var local = FileSystemCrawler.EnumerateLocalScope(activeDirectory);
+                    foreach (var e in SearchRanker.Rank(query, local, max))
+                        if (seen.Add(e.FullPath)) ordered.Add(e);
+                }
+
+                // 2) Index hits, appended (skipping anything the local pass already surfaced).
+                foreach (var e in _index.Search(query, max))
+                    if (seen.Add(e.FullPath)) ordered.Add(e);
+
+                return (IReadOnlyList<FolderItem>)ordered
+                    .Take(max)
+                    .Select(e => e.ToFolderItem())
+                    .ToList();
+            });
         }
 
         /// <summary>Stops watching/crawling and persists the index. Call on shutdown.</summary>

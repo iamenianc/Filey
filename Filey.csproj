@@ -144,6 +144,7 @@
     <Compile Include="MarkdownParser.cs" />
     <Compile Include="MarkdownRenderer.cs" />
     <Compile Include="NativeDirectoryEnumerator.cs" />
+    <Compile Include="SearchRanker.cs" />
     <Compile Include="IndexEntry.cs" />
     <Compile Include="IndexPolicy.cs" />
     <Compile Include="FileIndex.cs" />
