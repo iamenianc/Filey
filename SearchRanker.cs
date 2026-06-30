@@ -15,7 +15,7 @@ namespace Filey
         private const int MinScoreCutoff = 70;
 
         /// <summary>Ranks <paramref name="entries"/> against <paramref name="query"/>, best first.</summary>
-        public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max)
+        public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max, string activeDirectory = null)
         {
             var results = new List<IndexEntry>();
             if (string.IsNullOrWhiteSpace(query) || entries == null) return results;
@@ -85,6 +85,13 @@ namespace Filey
 
                     // Final score is average term score plus the overall query bonus
                     int finalScore = (totalScore / terms.Length) + queryBonus;
+
+                    // If active directory is provided, give a priority boost to items within it
+                    if (!string.IsNullOrEmpty(activeDirectory) && e.FullPath != null &&
+                        e.FullPath.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        finalScore += 40; // local tree priority boost
+                    }
 
                     return new KeyValuePair<int, IndexEntry>(finalScore, e);
                 })

@@ -94,6 +94,11 @@ namespace Filey
             return SearchRanker.Rank(query, snapshot, max);
         }
 
+        public IndexEntry[] GetSnapshot()
+        {
+            lock (_gate) return _byPath.Values.ToArray();
+        }
+
         // --- persistence ----------------------------------------------------------
 
         public void Save()
