@@ -383,7 +383,7 @@ namespace Filey
         private string _activePdfPath;
         private PdfRenderer _pdfRenderer;
         private CancellationTokenSource _pdfCts;
-        private CancellationTokenSource _pdfScrollCts;
+        private readonly System.Collections.Generic.Dictionary<int, (CancellationTokenSource Cts, uint Width)> _activePageRenders = new System.Collections.Generic.Dictionary<int, (CancellationTokenSource Cts, uint Width)>();
         private CancellationTokenSource _thumbnailCts;
         private bool _thumbnailsStarted;
         private System.Windows.Threading.DispatcherTimer _zoomDebounceTimer;
@@ -399,7 +399,14 @@ namespace Filey
         {
             base.OnClosed(e);
             _pdfCts?.Cancel();
-            _pdfScrollCts?.Cancel();
+            lock (_activePageRenders)
+            {
+                foreach (var pair in _activePageRenders.Values)
+                {
+                    pair.Cts?.Cancel();
+                }
+                _activePageRenders.Clear();
+            }
             _thumbnailCts?.Cancel();
             _zoomDebounceTimer?.Stop();
         }
@@ -717,47 +724,104 @@ namespace Filey
                 }
             }
 
-            _pdfScrollCts?.Cancel();
-            _pdfScrollCts = new CancellationTokenSource();
-            var scrollToken = _pdfScrollCts.Token;
-
             foreach (var page in _pdfPages)
             {
                 if (visiblePageIndices.Contains(page.PageIndex))
                 {
-                    if (page.Image == null)
+                    uint targetWidth = (uint)page.DisplayWidth;
+                    uint targetHeight = (uint)page.DisplayHeight;
+                    const uint maxResolution = 2560;
+                    if (targetWidth > maxResolution)
                     {
-                        var pageIndex = page.PageIndex;
-                        var targetWidth = (uint)page.DisplayWidth;
-                        var targetHeight = (uint)page.DisplayHeight;
-                        var renderer = _pdfRenderer;
+                        double ratio = (double)maxResolution / targetWidth;
+                        targetWidth = maxResolution;
+                        targetHeight = (uint)(targetHeight * ratio);
+                    }
 
-                        if (renderer == null) continue;
-
-                        Task.Run(async () =>
+                    bool needsRender = page.Image == null;
+                    if (!needsRender)
+                    {
+                        double renderedWidth = page.Image.PixelWidth;
+                        if (Math.Abs(renderedWidth - targetWidth) > 2.0)
                         {
-                            try
+                            needsRender = true;
+                        }
+                    }
+
+                    if (needsRender)
+                    {
+                        bool alreadyRendering = false;
+                        lock (_activePageRenders)
+                        {
+                            if (_activePageRenders.TryGetValue(page.PageIndex, out var active))
                             {
-                                await Task.Delay(80, scrollToken);
-                                if (scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
-
-                                var bitmap = await renderer.RenderPageAsync(pageIndex, targetWidth, targetHeight, scrollToken);
-                                if (bitmap == null || scrollToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
-
-                                Dispatcher.BeginInvoke(new Action(() =>
+                                if (active.Width == targetWidth)
                                 {
-                                    if (!scrollToken.IsCancellationRequested && !_pdfCts.IsCancellationRequested && (uint)page.DisplayWidth == targetWidth)
-                                    {
-                                        page.Image = bitmap;
-                                    }
-                                }));
+                                    alreadyRendering = true;
+                                }
+                                else
+                                {
+                                    active.Cts.Cancel();
+                                    _activePageRenders.Remove(page.PageIndex);
+                                }
                             }
-                            catch {}
-                        }, scrollToken);
+                        }
+
+                        if (!alreadyRendering)
+                        {
+                            var pageCts = new CancellationTokenSource();
+                            lock (_activePageRenders)
+                            {
+                                _activePageRenders[page.PageIndex] = (pageCts, targetWidth);
+                            }
+
+                            var pageIndex = page.PageIndex;
+                            var pageToken = pageCts.Token;
+                            var renderer = _pdfRenderer;
+
+                            if (renderer != null)
+                            {
+                                Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await Task.Delay(80, pageToken);
+                                        if (pageToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
+
+                                        var bitmap = await renderer.RenderPageAsync(pageIndex, targetWidth, targetHeight, pageToken);
+                                        if (bitmap == null || pageToken.IsCancellationRequested || _pdfCts.IsCancellationRequested) return;
+
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            if (!pageToken.IsCancellationRequested && !_pdfCts.IsCancellationRequested)
+                                            {
+                                                page.Image = bitmap;
+                                                lock (_activePageRenders)
+                                                {
+                                                    if (_activePageRenders.TryGetValue(pageIndex, out var currentActive) && currentActive.Cts == pageCts)
+                                                    {
+                                                        _activePageRenders.Remove(pageIndex);
+                                                    }
+                                                }
+                                            }
+                                        }));
+                                    }
+                                    catch {}
+                                }, pageToken);
+                            }
+                        }
                     }
                 }
                 else
                 {
+                    lock (_activePageRenders)
+                    {
+                        if (_activePageRenders.TryGetValue(page.PageIndex, out var active))
+                        {
+                            active.Cts.Cancel();
+                            _activePageRenders.Remove(page.PageIndex);
+                        }
+                    }
                     page.Image = null;
                 }
             }

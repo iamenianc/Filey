@@ -39,6 +39,7 @@ namespace Filey
         private string _activePdfPath;
         private PdfRenderer _pdfRenderer;
         private bool _isPdfActive;
+        private readonly Dictionary<int, (CancellationTokenSource Cts, uint Width)> _activePageRenders = new Dictionary<int, (CancellationTokenSource Cts, uint Width)>();
 
         private const double PdfPageMargin = 24.0;
 
@@ -986,12 +987,50 @@ namespace Filey
 
         private void DisposePdf()
         {
-            _scrollCts?.Cancel();
-            _scrollCts = null;
+            lock (_activePageRenders)
+            {
+                foreach (var pair in _activePageRenders.Values)
+                {
+                    pair.Cts?.Cancel();
+                }
+                _activePageRenders.Clear();
+            }
             _pdfPages = null;
             _activePdfPath = null;
             _pdfRenderer = null;
             _isPdfActive = false;
+        }
+
+        private void ApplyPdfSkimLayout(int pageCount)
+        {
+            if (pageCount < 4)
+            {
+                // 1x1 Grid layout
+                PdfSkimGrid.RowDefinitions.Clear();
+                PdfSkimGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                PdfSkimGrid.ColumnDefinitions.Clear();
+                PdfSkimGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                if (PdfSkimBorder1 != null) PdfSkimBorder1.Visibility = Visibility.Collapsed;
+                if (PdfSkimBorder2 != null) PdfSkimBorder2.Visibility = Visibility.Collapsed;
+                if (PdfSkimBorder3 != null) PdfSkimBorder3.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                // 2x2 Grid layout
+                PdfSkimGrid.RowDefinitions.Clear();
+                PdfSkimGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                PdfSkimGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                PdfSkimGrid.ColumnDefinitions.Clear();
+                PdfSkimGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                PdfSkimGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                if (PdfSkimBorder1 != null) PdfSkimBorder1.Visibility = Visibility.Visible;
+                if (PdfSkimBorder2 != null) PdfSkimBorder2.Visibility = Visibility.Visible;
+                if (PdfSkimBorder3 != null) PdfSkimBorder3.Visibility = Visibility.Visible;
+            }
         }
 
         private void LoadPdfFile(string filePath)
@@ -1012,6 +1051,7 @@ namespace Filey
             var cached = PdfSkimCache.Get(filePath);
             if (cached != null)
             {
+                ApplyPdfSkimLayout(cached.Length);
                 PdfSkimImage0.Source = cached.Length > 0 ? cached[0] : null;
                 PdfSkimImage1.Source = cached.Length > 1 ? cached[1] : null;
                 PdfSkimImage2.Source = cached.Length > 2 ? cached[2] : null;
@@ -1027,7 +1067,7 @@ namespace Filey
                     var renderer = new PdfRenderer();
                     if (!await renderer.LoadAsync(filePath, token)) return;
 
-                    int count = Math.Min(4, renderer.PageCount);
+                    int count = renderer.PageCount >= 4 ? 4 : (renderer.PageCount > 0 ? 1 : 0);
                     var images = new BitmapSource[count];
 
                     for (int i = 0; i < count; i++)
@@ -1043,6 +1083,7 @@ namespace Filey
                     {
                         if (_activePdfPath == filePath && !token.IsCancellationRequested && !_isPdfActive)
                         {
+                            ApplyPdfSkimLayout(images.Length);
                             PdfSkimImage0.Source = images.Length > 0 ? images[0] : null;
                             PdfSkimImage1.Source = images.Length > 1 ? images[1] : null;
                             PdfSkimImage2.Source = images.Length > 2 ? images[2] : null;
@@ -1141,47 +1182,104 @@ namespace Filey
             var visiblePageIndices = PdfLayout.VisiblePageIndices(
                 scrollOffset, viewportHeight, pageHeights, PdfPageMargin, viewportHeight);
 
-            _scrollCts?.Cancel();
-            _scrollCts = new CancellationTokenSource();
-            var scrollToken = _scrollCts.Token;
-
             foreach (var page in _pdfPages)
             {
                 if (visiblePageIndices.Contains(page.PageIndex))
                 {
-                    if (page.Image == null)
+                    uint targetWidth = (uint)page.DisplayWidth;
+                    uint targetHeight = (uint)page.DisplayHeight;
+                    const uint maxResolution = 2560;
+                    if (targetWidth > maxResolution)
                     {
-                        var pageIndex = page.PageIndex;
-                        var targetWidth = (uint)page.DisplayWidth;
-                        var targetHeight = (uint)page.DisplayHeight;
-                        var renderer = _pdfRenderer;
+                        double ratio = (double)maxResolution / targetWidth;
+                        targetWidth = maxResolution;
+                        targetHeight = (uint)(targetHeight * ratio);
+                    }
 
-                        if (renderer == null) continue;
-
-                        Task.Run(async () =>
+                    bool needsRender = page.Image == null;
+                    if (!needsRender)
+                    {
+                        double renderedWidth = page.Image.PixelWidth;
+                        if (Math.Abs(renderedWidth - targetWidth) > 2.0)
                         {
-                            try
+                            needsRender = true;
+                        }
+                    }
+
+                    if (needsRender)
+                    {
+                        bool alreadyRendering = false;
+                        lock (_activePageRenders)
+                        {
+                            if (_activePageRenders.TryGetValue(page.PageIndex, out var active))
                             {
-                                await Task.Delay(100, scrollToken);
-                                if (scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
-
-                                var bitmap = await renderer.RenderPageAsync(pageIndex, targetWidth, targetHeight, scrollToken);
-                                if (bitmap == null || scrollToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
-
-                                Dispatcher.BeginInvoke(new Action(() =>
+                                if (active.Width == targetWidth)
                                 {
-                                    if (!scrollToken.IsCancellationRequested && !_cts.IsCancellationRequested && (uint)page.DisplayWidth == targetWidth)
-                                    {
-                                        page.Image = bitmap;
-                                    }
-                                }));
+                                    alreadyRendering = true;
+                                }
+                                else
+                                {
+                                    active.Cts.Cancel();
+                                    _activePageRenders.Remove(page.PageIndex);
+                                }
                             }
-                            catch {}
-                        }, scrollToken);
+                        }
+
+                        if (!alreadyRendering)
+                        {
+                            var pageCts = new CancellationTokenSource();
+                            lock (_activePageRenders)
+                            {
+                                _activePageRenders[page.PageIndex] = (pageCts, targetWidth);
+                            }
+
+                            var pageIndex = page.PageIndex;
+                            var pageToken = pageCts.Token;
+                            var renderer = _pdfRenderer;
+
+                            if (renderer != null)
+                            {
+                                Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await Task.Delay(100, pageToken);
+                                        if (pageToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
+
+                                        var bitmap = await renderer.RenderPageAsync(pageIndex, targetWidth, targetHeight, pageToken);
+                                        if (bitmap == null || pageToken.IsCancellationRequested || _cts.IsCancellationRequested) return;
+
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            if (!pageToken.IsCancellationRequested && !_cts.IsCancellationRequested)
+                                            {
+                                                page.Image = bitmap;
+                                                lock (_activePageRenders)
+                                                {
+                                                    if (_activePageRenders.TryGetValue(pageIndex, out var currentActive) && currentActive.Cts == pageCts)
+                                                    {
+                                                        _activePageRenders.Remove(pageIndex);
+                                                    }
+                                                }
+                                            }
+                                        }));
+                                    }
+                                    catch {}
+                                }, pageToken);
+                            }
+                        }
                     }
                 }
                 else
                 {
+                    lock (_activePageRenders)
+                    {
+                        if (_activePageRenders.TryGetValue(page.PageIndex, out var active))
+                        {
+                            active.Cts.Cancel();
+                            _activePageRenders.Remove(page.PageIndex);
+                        }
+                    }
                     page.Image = null;
                 }
             }
