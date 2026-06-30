@@ -14,6 +14,13 @@ namespace Filey
     {
         private const int MinScoreCutoff = 70;
 
+        /// <summary>Per-segment bonus for each leading path component a result shares with the
+        /// active directory. Deliberately small so it nudges siblings/cousins of the active
+        /// directory upward without overriding the relevance score.</summary>
+        private const int RootParentBonus = 5;
+
+        private static readonly char[] PathSeparators = { '\\', '/' };
+
         /// <summary>Ranks <paramref name="entries"/> against <paramref name="query"/>, best first.</summary>
         public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max, string activeDirectory = null)
         {
@@ -30,6 +37,12 @@ namespace Filey
             try { userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).ToLowerInvariant(); }
             catch { }
 
+            // Scope and bonus are both relative to the active directory: results are limited to
+            // the same root drive (e.g. C:\, G:\), and earn a small bonus per shared leading path
+            // component. Both are no-ops when there's no active directory (e.g. global index search).
+            string activeDrive = GetRootDrive(activeDirectory);
+            string[] activeSegments = SplitPathSegments(activeDirectory);
+
             // Run ranking in parallel using PLINQ for performance
             var scored = entries
                 .AsParallel()
@@ -38,6 +51,10 @@ namespace Filey
                 {
                     string nl = e.NameLower;
                     if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
+
+                    // Limit search scope to items on the same root drive as the active directory.
+                    if (activeDrive != null && !string.Equals(GetRootDrive(e.FullPath), activeDrive, StringComparison.OrdinalIgnoreCase))
+                        return new KeyValuePair<int, IndexEntry>(-1, null);
 
                     string parentLower = GetCleanParentPath(e.ParentPath, userProfile);
 
@@ -88,8 +105,12 @@ namespace Filey
 
                     if (!allTermsMatched) return new KeyValuePair<int, IndexEntry>(-1, null);
 
-                    // Final score is average term score plus the overall query bonus
-                    int finalScore = (totalScore / terms.Length) + queryBonus;
+                    // Small bonus for each leading path component shared with the active directory,
+                    // so results nearer the active directory in the tree rank slightly higher.
+                    int rootParentBonus = CountMatchingRootParents(e.FullPath, activeSegments) * RootParentBonus;
+
+                    // Final score is average term score plus the overall query and root-parent bonuses
+                    int finalScore = (totalScore / terms.Length) + queryBonus + rootParentBonus;
 
                     return new KeyValuePair<int, IndexEntry>(finalScore, e);
                 })
@@ -136,6 +157,51 @@ namespace Filey
             }
 
             return path.TrimStart('\\', '/');
+        }
+
+        /// <summary>
+        /// Returns the root drive of <paramref name="path"/> (e.g. "c:" or "\\server\share"),
+        /// lowercased and without a trailing separator, or null if it has no determinable root.
+        /// Used to keep search results confined to the active directory's drive.
+        /// </summary>
+        private static string GetRootDrive(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            try
+            {
+                string root = System.IO.Path.GetPathRoot(path);
+                if (string.IsNullOrEmpty(root)) return null;
+                return root.TrimEnd('\\', '/').ToLowerInvariant();
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Splits a path into its components, or null/empty for a missing path.</summary>
+        private static string[] SplitPathSegments(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            return path.Split(PathSeparators, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        /// <summary>
+        /// Counts how many leading path components of <paramref name="fullPath"/> exactly match
+        /// (case-insensitively) the active directory's components, stopping at the first divergence.
+        /// e.g. C:\Users\ian\Docs vs an active dir of C:\Users\ian\Pics shares 3 root parents.
+        /// </summary>
+        private static int CountMatchingRootParents(string fullPath, string[] activeSegments)
+        {
+            if (activeSegments == null || activeSegments.Length == 0 || string.IsNullOrEmpty(fullPath)) return 0;
+
+            var segments = fullPath.Split(PathSeparators, StringSplitOptions.RemoveEmptyEntries);
+            int limit = Math.Min(segments.Length, activeSegments.Length);
+
+            int count = 0;
+            for (int i = 0; i < limit; i++)
+            {
+                if (!string.Equals(segments[i], activeSegments[i], StringComparison.OrdinalIgnoreCase)) break;
+                count++;
+            }
+            return count;
         }
 
         private static bool IsInOrImmediateChild(string fullPath, string activeDirectory)
