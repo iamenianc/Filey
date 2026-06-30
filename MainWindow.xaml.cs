@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -543,16 +542,20 @@ namespace Filey
 
         private void LeftAddressBar_SearchResultChosen(object sender, FolderItem item)
         {
-            OpenSearchResult(item, LeftViewModel);
+            OpenSearchResult(item, LeftViewModel, LeftDirectoryPane);
         }
 
         private void RightAddressBar_SearchResultChosen(object sender, FolderItem item)
         {
-            OpenSearchResult(item, RightViewModel);
+            OpenSearchResult(item, RightViewModel, RightDirectoryPane);
         }
 
-        /// <summary>Navigates the given pane to a search hit and selects it.</summary>
-        private void OpenSearchResult(FolderItem item, DirectoryViewModel vm)
+        /// <summary>
+        /// Opens a search hit. A folder hit opens that folder; a file hit opens the file's
+        /// containing folder and reveals (selects + scrolls to) the file — it is never
+        /// launched.
+        /// </summary>
+        private void OpenSearchResult(FolderItem item, DirectoryViewModel vm, DirectoryPane pane)
         {
             if (item == null || vm == null) return;
 
@@ -566,9 +569,7 @@ namespace Filey
             if (string.IsNullOrEmpty(parent)) return;
 
             vm.LoadDirectory(parent);
-            var match = vm.Contents.FirstOrDefault(
-                c => string.Equals(c.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase));
-            if (match != null) vm.SelectedItem = match;
+            pane?.RevealItem(item.FullPath, isDirectory: false);
         }
 
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject

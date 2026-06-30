@@ -240,6 +240,7 @@ namespace Filey
         private void SearchResultsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             ChooseSearchResult(SearchResultsList.SelectedItem as FolderItem);
+            e.Handled = true;
         }
 
         private void SearchResultsList_KeyDown(object sender, KeyEventArgs e)

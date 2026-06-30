@@ -417,6 +417,35 @@ namespace Filey
             }
         }
 
+        /// <summary>
+        /// Selects the item at <paramref name="fullPath"/> in the appropriate list and scrolls
+        /// it into view, so a search hit visibly lands on the item without launching it. The
+        /// caller is expected to have already navigated this pane to the containing folder.
+        /// </summary>
+        public void RevealItem(string fullPath, bool isDirectory)
+        {
+            if (string.IsNullOrEmpty(fullPath)) return;
+
+            var list = isDirectory ? FoldersListView : FilesListView;
+            if (list == null) return;
+
+            foreach (var obj in list.Items)
+            {
+                if (obj is FolderItem fi && string.Equals(fi.FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (ViewModel != null) ViewModel.SelectedItem = fi;
+                    list.SelectedItem = fi;
+                    list.ScrollIntoView(fi);
+
+                    list.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        (list.ItemContainerGenerator.ContainerFromItem(fi) as UIElement)?.Focus();
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                    break;
+                }
+            }
+        }
+
         private void Header_Click(object sender, RoutedEventArgs e)
         {
             if (e.OriginalSource is GridViewColumnHeader header && header.Column != null)
