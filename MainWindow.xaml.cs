@@ -14,14 +14,6 @@ namespace Filey
     /// </summary>
     public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
-        // Set false to keep the native (light) Windows title bar.
-        private const bool UseDarkTitleBar = true;
-
-        [DllImport("dwmapi.dll", PreserveSig = true)]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
         public DirectoryViewModel LeftViewModel { get; }
         public DirectoryViewModel RightViewModel { get; }
 
@@ -31,12 +23,16 @@ namespace Filey
         private bool _rightPaneActivated = true;
         private int _fontSizeStep = 0;
 
+        /// <summary>Suppresses the theme toggle handler while its initial state is restored at startup.</summary>
+        private bool _restoringThemeToggle;
+
         public MainWindow()
         {
             LeftViewModel = new DirectoryViewModel();
             RightViewModel = new DirectoryViewModel();
 
             _settings = SettingsService.Load();
+            ThemeService.Apply(ThemeService.Parse(_settings.Theme));
             BookmarkStore.Instance.LoadFromDisk();
 
             var history = NavigationHistoryStore.Load();
@@ -79,13 +75,18 @@ namespace Filey
                 }
                 SetRightPaneMode(_currentRightPaneMode);
 
-                ShowHiddenToggle.IsChecked = _settings.ShowHidden;
+                // The Show-hidden toggle is intentionally session-only: it always starts
+                // off and is never persisted (see ShowHiddenToggle_Changed / AppSettings).
 
                 CompactModeToggle.IsChecked = _settings.CompactMode;
                 ApplyCompactMode(_settings.CompactMode);
-            };
 
-            DirectoryViewModel.ShowHidden = _settings.ShowHidden;
+                // Reflect the already-applied theme on the toggle without re-triggering Apply/Save.
+                _restoringThemeToggle = true;
+                ThemeToggle.IsChecked = ThemeService.Current == AppTheme.Light;
+                ThemeToggle.Content = ThemeService.IsDark ? "Theme: Dark" : "Theme: Light";
+                _restoringThemeToggle = false;
+            };
 
             RestorePersistedState();
         }
@@ -127,7 +128,7 @@ namespace Filey
         {
             _settings.RightPaneMode = (int)_currentRightPaneMode;
             _settings.RightPaneVisible = _currentRightPaneMode != RightPaneMode.Off;
-            _settings.ShowHidden = ShowHiddenToggle.IsChecked == true;
+            // ShowHidden is deliberately not persisted; the toggle resets to off each launch.
             _settings.CompactMode = CompactModeToggle.IsChecked == true;
 
             if (_currentRightPaneMode != RightPaneMode.Off)
@@ -156,12 +157,20 @@ namespace Filey
         {
             base.OnSourceInitialized(e);
 
-            if (UseDarkTitleBar)
-            {
-                IntPtr hwnd = new WindowInteropHelper(this).Handle;
-                int useDark = 1;
-                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
-            }
+            // Match the title bar to the active theme now that the window has a native handle.
+            ThemeService.ApplyTitleBar(this, ThemeService.IsDark);
+        }
+
+        private void ThemeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_restoringThemeToggle) return;
+
+            var theme = ThemeToggle.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
+            ThemeService.Apply(theme);
+            ThemeToggle.Content = theme == AppTheme.Light ? "Theme: Light" : "Theme: Dark";
+
+            _settings.Theme = ThemeService.ToSettingValue(theme);
+            SettingsService.Save(_settings);
         }
 
         private void SwapPanesButton_Click(object sender, RoutedEventArgs e)

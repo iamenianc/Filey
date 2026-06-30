@@ -12,7 +12,7 @@ namespace Filey
         {
             string markdown = File.ReadAllText(markdownFilePath);
             var blocks = MarkdownParser.Parse(markdown);
-            string html = RenderToHtml(blocks);
+            string html = RenderToHtml(blocks, ThemeService.IsDark);
 
             string tempPath = Path.Combine(
                 Path.GetTempPath(),
@@ -23,12 +23,12 @@ namespace Filey
             Process.Start(new ProcessStartInfo(tempPath) { UseShellExecute = true });
         }
 
-        public static string RenderToHtml(IReadOnlyList<Block> blocks)
+        public static string RenderToHtml(IReadOnlyList<Block> blocks, bool dark = true)
         {
             var sb = new StringBuilder();
             sb.Append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
             sb.Append("<title>Preview</title>\n<style>\n");
-            sb.Append(Css);
+            sb.Append(BuildCss(dark));
             sb.Append("\n</style>\n</head>\n<body>\n");
             RenderBlocks(blocks, sb);
             sb.Append("\n</body>\n</html>");
@@ -213,51 +213,76 @@ namespace Filey
             return Escape(s).Replace("\"", "&quot;");
         }
 
-        private const string Css = @"*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        // Theme-specific CSS custom properties. Only this :root block differs between Light and
+        // Dark; CssRules below references everything via var(...). The values mirror the WPF
+        // palette in Themes/Colors.*.xaml so the markdown preview matches the rest of the app.
+        private const string DarkRoot = @":root{
+    --bg:#1E1E1E; --text:#E0E0E0; --heading:#F0F0F0; --border:#333333; --border2:#2A2A2A;
+    --h5:#C8C8C8; --h6:#A0A0A0; --strong:#F5F5F5; --del:#888888;
+    --code-bg:#2A2A2A; --code-text:#CE9178; --code-border:#333333;
+    --pre-bg:#141414; --pre-border:#2D2D2D; --accent:#EAB308; --pre-code:#D4D4D4;
+    --quote-bg:#242424; --quote-text:#B8B8B8;
+    --th-bg:#252525; --td-border:#2D2D2D; --tr-even:#222222; --tr-hover:#2A2A2A;
+    --link:#60A5FA; --img-border:#2D2D2D;
+}";
+
+        private const string LightRoot = @":root{
+    --bg:#FFFFFF; --text:#1A1A1A; --heading:#111111; --border:#DDDDDD; --border2:#E5E5E5;
+    --h5:#333333; --h6:#6A6A6A; --strong:#000000; --del:#888888;
+    --code-bg:#F0F0F0; --code-text:#A3370F; --code-border:#DDDDDD;
+    --pre-bg:#F6F6F6; --pre-border:#DDDDDD; --accent:#B8860B; --pre-code:#222222;
+    --quote-bg:#F3F3F3; --quote-text:#555555;
+    --th-bg:#F0F0F0; --td-border:#DDDDDD; --tr-even:#F7F7F7; --tr-hover:#EFEFEF;
+    --link:#0067C0; --img-border:#DDDDDD;
+}";
+
+        private const string CssRules = @"*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
 body {
-    background: #1E1E1E; color: #E0E0E0;
+    background: var(--bg); color: var(--text);
     font-family: 'Segoe UI', system-ui, sans-serif;
     line-height: 1.7; padding: 28px 36px;
     max-width: 880px; margin: 0 auto;
 }
-h1,h2,h3,h4,h5,h6 { font-weight:600; line-height:1.25; margin-top:1.5em; margin-bottom:.5em; color:#F0F0F0; }
-h1 { font-size:2em;   border-bottom:1px solid #333; padding-bottom:.3em; }
-h2 { font-size:1.5em; border-bottom:1px solid #2A2A2A; padding-bottom:.25em; }
+h1,h2,h3,h4,h5,h6 { font-weight:600; line-height:1.25; margin-top:1.5em; margin-bottom:.5em; color:var(--heading); }
+h1 { font-size:2em;   border-bottom:1px solid var(--border); padding-bottom:.3em; }
+h2 { font-size:1.5em; border-bottom:1px solid var(--border2); padding-bottom:.25em; }
 h3 { font-size:1.25em; } h4 { font-size:1.1em; }
-h5 { font-size:.95em; color:#C8C8C8; } h6 { font-size:.85em; color:#A0A0A0; }
+h5 { font-size:.95em; color:var(--h5); } h6 { font-size:.85em; color:var(--h6); }
 p  { margin-bottom:1em; }
-strong { font-weight:700; color:#F5F5F5; } em { font-style:italic; }
-del { color:#888; }
+strong { font-weight:700; color:var(--strong); } em { font-style:italic; }
+del { color:var(--del); }
 code {
     font-family: 'Cascadia Code', Consolas, 'Courier New', monospace;
-    font-size:.88em; background:#2A2A2A; color:#CE9178;
-    padding:.15em .4em; border-radius:3px; border:1px solid #333;
+    font-size:.88em; background:var(--code-bg); color:var(--code-text);
+    padding:.15em .4em; border-radius:3px; border:1px solid var(--code-border);
 }
 pre {
-    background:#141414; border:1px solid #2D2D2D;
-    border-left:3px solid #EAB308; border-radius:4px;
+    background:var(--pre-bg); border:1px solid var(--pre-border);
+    border-left:3px solid var(--accent); border-radius:4px;
     padding:14px 18px; margin-bottom:1.2em; overflow-x:auto;
 }
-pre code { background:transparent; border:none; padding:0; color:#D4D4D4; font-size:.9em; line-height:1.6; }
+pre code { background:transparent; border:none; padding:0; color:var(--pre-code); font-size:.9em; line-height:1.6; }
 blockquote {
     margin:1em 0; padding:.6em 1em .6em 1.2em;
-    border-left:4px solid #EAB308; background:#242424;
-    border-radius:0 4px 4px 0; color:#B8B8B8;
+    border-left:4px solid var(--accent); background:var(--quote-bg);
+    border-radius:0 4px 4px 0; color:var(--quote-text);
 }
 blockquote p:last-child { margin-bottom:0; }
 ul, ol { margin:.5em 0 1em 1.5em; padding:0; }
 li { margin-bottom:.3em; }
 li > ul, li > ol { margin-top:.3em; }
-input[type=""checkbox""] { accent-color:#EAB308; margin-right:.4em; vertical-align:middle; }
-hr { border:none; border-top:1px solid #333; margin:1.5em 0; }
+input[type=""checkbox""] { accent-color:var(--accent); margin-right:.4em; vertical-align:middle; }
+hr { border:none; border-top:1px solid var(--border); margin:1.5em 0; }
 table { border-collapse:collapse; width:100%; margin-bottom:1.2em; font-size:.93em; }
-th { background:#252525; color:#EAB308; font-weight:600; text-align:left; padding:8px 12px; border:1px solid #333; }
-td { padding:7px 12px; border:1px solid #2D2D2D; }
-tr:nth-child(even) td { background:#222; }
-tr:hover td { background:#2A2A2A; }
-a { color:#60A5FA; text-decoration:none; border-bottom:1px solid transparent; }
-a:hover { border-bottom-color:#60A5FA; }
-img { max-width:100%; height:auto; border-radius:4px; border:1px solid #2D2D2D; }";
+th { background:var(--th-bg); color:var(--accent); font-weight:600; text-align:left; padding:8px 12px; border:1px solid var(--border); }
+td { padding:7px 12px; border:1px solid var(--td-border); }
+tr:nth-child(even) td { background:var(--tr-even); }
+tr:hover td { background:var(--tr-hover); }
+a { color:var(--link); text-decoration:none; border-bottom:1px solid transparent; }
+a:hover { border-bottom-color:var(--link); }
+img { max-width:100%; height:auto; border-radius:4px; border:1px solid var(--img-border); }";
+
+        private static string BuildCss(bool dark) => (dark ? DarkRoot : LightRoot) + "\n" + CssRules;
     }
 }

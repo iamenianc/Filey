@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Centralized font families, shared by every theme. Reference these via
+        {DynamicResource AppFontFamily} / {DynamicResource AppMonoFontFamily} instead of
+        hardcoding "Segoe UI" / "Consolas" throughout the app.
+    -->
+    <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
+    <FontFamily x:Key="AppMonoFontFamily">Consolas, Cascadia Code, Courier New</FontFamily>
+
+</ResourceDictionary>

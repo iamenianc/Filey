@@ -220,6 +220,7 @@ namespace Filey
                 {
                     parentWindow.KeyDown += ParentWindow_KeyDown;
                 }
+                ThemeService.ThemeChanged += OnThemeChanged;
             };
 
             this.Unloaded += (s, e) =>
@@ -227,6 +228,7 @@ namespace Filey
                 _cts?.Cancel();
                 DisposePdf();
                 DisposeWebView();
+                ThemeService.ThemeChanged -= OnThemeChanged;
 
                 var parentWindow = Window.GetWindow(this);
                 if (parentWindow != null)
@@ -234,6 +236,21 @@ namespace Filey
                     parentWindow.KeyDown -= ParentWindow_KeyDown;
                 }
             };
+        }
+
+        /// <summary>When the theme changes while a markdown file is being previewed, re-render it so
+        /// the WebView2 content matches the new Light/Dark palette.</summary>
+        private void OnThemeChanged()
+        {
+            if (WebViewHost.Visibility == Visibility.Visible
+                && !string.IsNullOrEmpty(_currentFilePath)
+                && Path.GetExtension(_currentFilePath).ToLower() == ".md")
+            {
+                _cts?.Cancel();
+                _cts = new CancellationTokenSource();
+                var token = _cts.Token;
+                Task.Run(() => LoadMarkdownAsync(_currentFilePath, token), token);
+            }
         }
 
         private void ParentWindow_KeyDown(object sender, KeyEventArgs e)
@@ -337,7 +354,8 @@ namespace Filey
                 string markdown = await Task.Run(() => File.ReadAllText(filePath), token);
                 if (token.IsCancellationRequested) return;
                 var blocks = MarkdownParser.Parse(markdown);
-                html = MarkdownRenderer.RenderToHtml(blocks);
+                bool dark = ThemeService.IsDark;
+                html = MarkdownRenderer.RenderToHtml(blocks, dark);
             }
             catch (OperationCanceledException) { return; }
             catch (Exception ex)
@@ -548,8 +566,8 @@ namespace Filey
 
         private void UpdateDepthButtonHighlights()
         {
-            var activeBrush = new SolidColorBrush(Color.FromRgb(234, 179, 8)); // Premium Gold/Amber accent
-            var inactiveBrush = new SolidColorBrush(Color.FromRgb(133, 133, 133)); // Muted gray
+            var activeBrush = ThemeService.Brush("AppGoldAccentBrush");
+            var inactiveBrush = ThemeService.Brush("AppTextMutedBrush");
 
             if (DepthButton1 != null) DepthButton1.Foreground = (_previewDepth == 1) ? activeBrush : inactiveBrush;
             if (DepthButton2 != null) DepthButton2.Foreground = (_previewDepth == 2) ? activeBrush : inactiveBrush;

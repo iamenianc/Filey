@@ -41,8 +41,8 @@
         <Border
             x:Name="PdfToolbarBorder"
             Grid.Row="1"
-            Background="#1B1B1B"
-            BorderBrush="#2D2D2D"
+            Background="{DynamicResource AppTopBarBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
             BorderThickness="0,0,0,1"
             Height="38"
             Visibility="Collapsed">
@@ -63,14 +63,14 @@
                     Grid.Column="0"
                     Content="📋 Sidebar"
                     Click="SidebarToggleButton_Click"
-                    Background="#2D2D2D"
-                    Foreground="#E0E0E0"
+                    Background="{DynamicResource AppBorderBrush}"
+                    Foreground="{DynamicResource AppTextPrimaryBrush}"
                     BorderThickness="0"
                     Padding="8,4"
                     FontSize="{DynamicResource HeaderFontSize}"
                     Cursor="Hand" />
 
-                <Border Grid.Column="1" Background="#2D2D2D" Width="1" Margin="8,8" />
+                <Border Grid.Column="1" Background="{DynamicResource AppBorderBrush}" Width="1" Margin="8,8" />
 
                 <!-- Single vs Dual Page Toggle -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
@@ -90,7 +90,7 @@
                         Style="{StaticResource ToggleTabRadioButtonStyle}" />
                 </StackPanel>
 
-                <Border Grid.Column="3" Background="#2D2D2D" Width="1" Margin="8,8" />
+                <Border Grid.Column="3" Background="{DynamicResource AppBorderBrush}" Width="1" Margin="8,8" />
 
                 <!-- Navigation Buttons -->
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
@@ -98,8 +98,8 @@
                         x:Name="PrevPageButton"
                         Content="◀ Prev"
                         Click="PrevPageButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -107,7 +107,7 @@
                     <TextBlock
                         x:Name="PageIndicatorText"
                         Text="Page 1 of 1"
-                        Foreground="#A0A0A0"
+                        Foreground="{DynamicResource AppTextMutedBrush}"
                         FontSize="{DynamicResource HeaderFontSize}"
                         VerticalAlignment="Center"
                         Margin="10,0" />
@@ -115,8 +115,8 @@
                         x:Name="NextPageButton"
                         Content="Next ▶"
                         Click="NextPageButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -129,8 +129,8 @@
                         x:Name="ZoomOutButton"
                         Content="➖"
                         Click="ZoomOutButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -140,7 +140,7 @@
                         Text="100%"
                         Width="45"
                         TextAlignment="Center"
-                        Foreground="#A0A0A0"
+                        Foreground="{DynamicResource AppTextMutedBrush}"
                         FontSize="{DynamicResource HeaderFontSize}"
                         VerticalAlignment="Center"
                         Margin="4,0" />
@@ -148,8 +148,8 @@
                         x:Name="ZoomInButton"
                         Content="➕"
                         Click="ZoomInButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -158,8 +158,8 @@
                         x:Name="FitWidthButton"
                         Content="↔ Width"
                         Click="FitWidthButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -169,8 +169,8 @@
                         x:Name="FitPageButton"
                         Content="↕ Page"
                         Click="FitPageButton_Click"
-                        Background="#2D2D2D"
-                        Foreground="#E0E0E0"
+                        Background="{DynamicResource AppBorderBrush}"
+                        Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"
                         Padding="8,4"
                         FontSize="{DynamicResource HeaderFontSize}"
@@ -185,10 +185,10 @@
             x:Name="ContentTextBox"
             Grid.Row="2"
             Visibility="Collapsed"
-            Background="#1E1E1E"
-            Foreground="#D4D4D4"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
+            Foreground="{DynamicResource AppTextHeaderBrush}"
             BorderThickness="0"
-            FontFamily="Consolas"
+            FontFamily="{DynamicResource AppMonoFontFamily}"
             FontSize="{DynamicResource NormalFontSize}"
             Padding="12"
             IsReadOnly="True"
@@ -197,8 +197,8 @@
             TextWrapping="Wrap"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto"
-            CaretBrush="#E0E0E0"
-            SelectionBrush="#094771"
+            CaretBrush="{DynamicResource AppTextPrimaryBrush}"
+            SelectionBrush="{DynamicResource AppSelectionBrush}"
             PreviewMouseWheel="ContentTextBox_PreviewMouseWheel" />
 
         <!-- Mode 2: Image Viewer -->
@@ -208,7 +208,7 @@
             Visibility="Collapsed"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Auto"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             PreviewMouseWheel="ImageScrollViewer_PreviewMouseWheel">
             <Grid
                 x:Name="ImageGrid"
@@ -238,7 +238,7 @@
             x:Name="PdfViewerGrid"
             Grid.Row="2"
             Visibility="Collapsed"
-            Background="#1E1E1E">
+            Background="{DynamicResource AppPanelBackgroundBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220" x:Name="PdfSidebarColumn" />
                 <ColumnDefinition Width="*" />
@@ -248,8 +248,8 @@
             <Border
                 x:Name="PdfSidebarBorder"
                 Grid.Column="0"
-                Background="#161616"
-                BorderBrush="#2D2D2D"
+                Background="{DynamicResource AppSurfaceDarkBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
                 BorderThickness="0,0,1,0">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
@@ -258,14 +258,14 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Margin="0,0,0,12">
-                        <TextBlock Text="Go to page:" Foreground="#858585" FontSize="{DynamicResource HeaderFontSize}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Go to page:" Foreground="{DynamicResource AppTextMutedBrush}" FontSize="{DynamicResource HeaderFontSize}" Margin="0,0,0,4"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="PdfPageJumpInput" Background="#1E1E1E" Foreground="#E0E0E0" BorderBrush="#2D2D2D" FontSize="{DynamicResource HeaderFontSize}" Padding="4" Height="24" KeyDown="PdfPageJumpInput_KeyDown"/>
-                            <Button Grid.Column="1" Content="Go" Width="40" Margin="4,0,0,0" Height="24" Click="PdfPageJumpButton_Click" Background="#2D2D2D" Foreground="#E0E0E0" FontSize="{DynamicResource HeaderFontSize}" BorderThickness="0" Cursor="Hand"/>
+                            <TextBox x:Name="PdfPageJumpInput" Background="{DynamicResource AppPanelBackgroundBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" BorderBrush="{DynamicResource AppBorderBrush}" FontSize="{DynamicResource HeaderFontSize}" Padding="4" Height="24" KeyDown="PdfPageJumpInput_KeyDown"/>
+                            <Button Grid.Column="1" Content="Go" Width="40" Margin="4,0,0,0" Height="24" Click="PdfPageJumpButton_Click" Background="{DynamicResource AppBorderBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="{DynamicResource HeaderFontSize}" BorderThickness="0" Cursor="Hand"/>
                         </Grid>
                     </StackPanel>
 
@@ -292,7 +292,7 @@
                                         Margin="0,6"
                                         Padding="4"
                                         Background="Transparent"
-                                        BorderBrush="#2D2D2D"
+                                        BorderBrush="{DynamicResource AppBorderBrush}"
                                         BorderThickness="1"
                                         Click="ThumbnailButton_Click"
                                         HorizontalAlignment="Center"
@@ -307,8 +307,8 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="border" Property="Background" Value="#2D2D2D"/>
-                                                                    <Setter TargetName="border" Property="BorderBrush" Value="#094771"/>
+                                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource AppHoverBrush}"/>
+                                                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AppSelectionBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -317,11 +317,11 @@
                                             </Style>
                                         </Button.Style>
                                         <Grid>
-                                            <Border Background="#101010" Width="100" Height="{Binding ThumbnailHeight}">
+                                            <Border Background="{DynamicResource AppSurfaceDarkBrush}" Width="100" Height="{Binding ThumbnailHeight}">
                                                 <Image Source="{Binding ThumbnailImage}" Stretch="Uniform" RenderOptions.BitmapScalingMode="LowQuality"/>
                                             </Border>
                                             <Border Background="#80000000" VerticalAlignment="Bottom" HorizontalAlignment="Right" Padding="4,2" CornerRadius="2,0,0,0">
-                                                <TextBlock Text="{Binding PageNumber}" Foreground="#E0E0E0" FontSize="{DynamicResource SmallFontSize}"/>
+                                                <TextBlock Text="{Binding PageNumber}" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="{DynamicResource SmallFontSize}"/>
                                             </Border>
                                         </Grid>
                                     </Button>
@@ -361,16 +361,16 @@
                                 <!-- Left Page -->
                                 <Border
                                     Margin="8,0"
-                                    BorderBrush="#2D2D2D"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
                                     BorderThickness="1"
-                                    Background="#1E1E1E"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
                                     Width="{Binding LeftPageWidth}"
                                     Height="{Binding DisplayHeight}"
                                     HorizontalAlignment="Center">
                                     <Grid>
                                         <TextBlock
                                             Text="Loading..."
-                                            Foreground="#555555"
+                                            Foreground="{DynamicResource AppTextDimBrush}"
                                             FontSize="{DynamicResource NormalFontSize}"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center">
@@ -402,9 +402,9 @@
                                 <!-- Right Page (Only visible in Dual Mode) -->
                                 <Border
                                     Margin="8,0"
-                                    BorderBrush="#2D2D2D"
+                                    BorderBrush="{DynamicResource AppBorderBrush}"
                                     BorderThickness="1"
-                                    Background="#1E1E1E"
+                                    Background="{DynamicResource AppPanelBackgroundBrush}"
                                     Width="{Binding RightPageWidth}"
                                     Height="{Binding DisplayHeight}"
                                     HorizontalAlignment="Center"
@@ -412,7 +412,7 @@
                                     <Grid>
                                         <TextBlock
                                             Text="Loading..."
-                                            Foreground="#555555"
+                                            Foreground="{DynamicResource AppTextDimBrush}"
                                             FontSize="{DynamicResource NormalFontSize}"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center">
@@ -450,8 +450,8 @@
         <!-- Status Bar -->
         <Border
             Grid.Row="3"
-            Background="#1B1B1B"
-            BorderBrush="#2D2D2D"
+            Background="{DynamicResource AppTopBarBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
             BorderThickness="0,1,0,0"
             Height="28"
             Padding="12,0">
@@ -468,7 +468,7 @@
                 <TextBlock
                     x:Name="PathTextBlock"
                     Grid.Column="0"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource HeaderFontSize}"
                     VerticalAlignment="Center"
                     TextTrimming="CharacterEllipsis" />
@@ -476,7 +476,7 @@
                 <TextBlock
                     x:Name="EncodingTextBlock"
                     Grid.Column="1"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource HeaderFontSize}"
                     VerticalAlignment="Center"
                     Margin="24,0,0,0" />
@@ -484,7 +484,7 @@
                 <TextBlock
                     x:Name="SizeTextBlock"
                     Grid.Column="2"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource HeaderFontSize}"
                     VerticalAlignment="Center"
                     Margin="24,0,0,0" />

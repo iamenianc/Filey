@@ -1,0 +1,80 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--
+        Dark theme palette. This is the single source of truth for dark-mode colors.
+        Colors.Light.xaml defines the SAME keys with light values. ThemeService swaps
+        between the two at runtime by locating the dictionary that carries "ThemeName".
+
+        Every consumer (XAML or C#) must reference these via DynamicResource / FindResource
+        so a runtime swap re-resolves them. Both a *Color and a matching *Brush are defined:
+        XAML uses the Brush keys; imperative drawing code may use the Color keys.
+    -->
+    <sys:String x:Key="ThemeName">Dark</sys:String>
+
+    <!-- Backgrounds / surfaces -->
+    <Color x:Key="AppBackgroundColor">#FF121212</Color>
+    <Color x:Key="AppPanelBackgroundColor">#FF1E1E1E</Color>
+    <Color x:Key="AppPanelDeepColor">#FF121212</Color>
+    <Color x:Key="AppSurfaceAltColor">#FF252526</Color>
+    <Color x:Key="AppSurfaceDarkColor">#FF161616</Color>
+    <Color x:Key="AppTopBarColor">#FF1B1B1B</Color>
+    <Color x:Key="AppHoverColor">#FF2A2A2A</Color>
+
+    <!-- Borders -->
+    <Color x:Key="AppBorderColor">#FF2D2D2D</Color>
+    <Color x:Key="AppBorderSubtleColor">#FF333333</Color>
+
+    <!-- Text -->
+    <Color x:Key="AppTextPrimaryColor">#FFE0E0E0</Color>
+    <Color x:Key="AppTextHeaderColor">#FFD4D4D4</Color>
+    <Color x:Key="AppTextSecondaryColor">#FFCCCCCC</Color>
+    <Color x:Key="AppTextMutedColor">#FF858585</Color>
+    <Color x:Key="AppTextDimColor">#FF555555</Color>
+    <Color x:Key="AppTextOnAccentColor">#FFFFFFFF</Color>
+
+    <!-- Accents / state -->
+    <Color x:Key="AppAccentColor">#FF007ACC</Color>
+    <Color x:Key="AppAccentHoverColor">#FF0098FF</Color>
+    <Color x:Key="AppSelectionColor">#FF094771</Color>
+    <Color x:Key="AppGoldAccentColor">#FFEAB308</Color>
+    <Color x:Key="AppLinkColor">#FF60A5FA</Color>
+    <Color x:Key="AppErrorColor">#FFFF4D4D</Color>
+    <Color x:Key="AppErrorBgColor">#FF3D1B1B</Color>
+    <Color x:Key="AppSuccessColor">#FF4EC9B0</Color>
+
+    <!-- Folder-tree (FastTreeVisualHost) palette -->
+    <Color x:Key="TreeLineColor">#FF475569</Color>
+    <Color x:Key="TreeFolderColor">#FFEAB308</Color>
+    <Color x:Key="TreeRootTextColor">#FFF8FAFC</Color>
+    <Color x:Key="TreeFolderTextColor">#FFF1F5F9</Color>
+    <Color x:Key="TreeDimTextColor">#FF94A3B8</Color>
+    <Color x:Key="TreeMutedTextColor">#FF64748B</Color>
+
+    <!-- Brushes (XAML consumers use these) -->
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource AppBackgroundColor}"/>
+    <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="{StaticResource AppPanelBackgroundColor}"/>
+    <SolidColorBrush x:Key="AppPanelDeepBrush" Color="{StaticResource AppPanelDeepColor}"/>
+    <SolidColorBrush x:Key="AppSurfaceAltBrush" Color="{StaticResource AppSurfaceAltColor}"/>
+    <SolidColorBrush x:Key="AppSurfaceDarkBrush" Color="{StaticResource AppSurfaceDarkColor}"/>
+    <SolidColorBrush x:Key="AppTopBarBrush" Color="{StaticResource AppTopBarColor}"/>
+    <SolidColorBrush x:Key="AppHoverBrush" Color="{StaticResource AppHoverColor}"/>
+    <SolidColorBrush x:Key="AppBorderBrush" Color="{StaticResource AppBorderColor}"/>
+    <SolidColorBrush x:Key="AppBorderSubtleBrush" Color="{StaticResource AppBorderSubtleColor}"/>
+    <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="{StaticResource AppTextPrimaryColor}"/>
+    <SolidColorBrush x:Key="AppTextHeaderBrush" Color="{StaticResource AppTextHeaderColor}"/>
+    <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="{StaticResource AppTextSecondaryColor}"/>
+    <SolidColorBrush x:Key="AppTextMutedBrush" Color="{StaticResource AppTextMutedColor}"/>
+    <SolidColorBrush x:Key="AppTextDimBrush" Color="{StaticResource AppTextDimColor}"/>
+    <SolidColorBrush x:Key="AppTextOnAccentBrush" Color="{StaticResource AppTextOnAccentColor}"/>
+    <SolidColorBrush x:Key="AppAccentBrush" Color="{StaticResource AppAccentColor}"/>
+    <SolidColorBrush x:Key="AppAccentHoverBrush" Color="{StaticResource AppAccentHoverColor}"/>
+    <SolidColorBrush x:Key="AppSelectionBrush" Color="{StaticResource AppSelectionColor}"/>
+    <SolidColorBrush x:Key="AppGoldAccentBrush" Color="{StaticResource AppGoldAccentColor}"/>
+    <SolidColorBrush x:Key="AppLinkBrush" Color="{StaticResource AppLinkColor}"/>
+    <SolidColorBrush x:Key="AppErrorBrush" Color="{StaticResource AppErrorColor}"/>
+    <SolidColorBrush x:Key="AppErrorBgBrush" Color="{StaticResource AppErrorBgColor}"/>
+    <SolidColorBrush x:Key="AppSuccessBrush" Color="{StaticResource AppSuccessColor}"/>
+
+</ResourceDictionary>

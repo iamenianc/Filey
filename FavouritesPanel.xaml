@@ -11,7 +11,7 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         </Style>
@@ -24,7 +24,7 @@
         <Style x:Key="FavListBox" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>
         </Style>
@@ -51,7 +51,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="GroupItem">
                         <StackPanel>
-                            <TextBlock Text="{Binding Name}" Foreground="#666666"
+                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AppTextDimBrush}"
                                        FontSize="{DynamicResource SmallFontSize}" FontWeight="SemiBold"
                                        Margin="4,6,0,2"/>
                             <ItemsPresenter/>
@@ -62,7 +62,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Border Background="#1E1E1E" BorderBrush="#2D2D2D" BorderThickness="1" CornerRadius="3"
+    <Border Background="{DynamicResource AppPanelBackgroundBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="3"
             AllowDrop="True"
             PreviewDragOver="Panel_DragOver"
             Drop="Panel_Drop">
@@ -76,13 +76,13 @@
 
             <!-- Header -->
             <Border Grid.Row="0"
-                    Background="#252526"
-                    BorderBrush="#2D2D2D"
+                    Background="{DynamicResource AppSurfaceAltBrush}"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="0,0,0,1"
                     Height="32"
                     Margin="-4,-4,-4,6"
                     Padding="8,0">
-                <TextBlock Text="Favourites" Foreground="#CCCCCC"
+                <TextBlock Text="Favourites" Foreground="{DynamicResource AppTextSecondaryBrush}"
                            FontSize="{DynamicResource NormalFontSize}" FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
             </Border>
@@ -105,12 +105,12 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
-                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"
+                            <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="{DynamicResource AppTextPrimaryBrush}"
                                        TextTrimming="CharacterEllipsis"/>
                             <TextBox x:Name="NameEdit"
                                      Text="{Binding Name, UpdateSourceTrigger=Explicit}"
-                                     Background="#121212" Foreground="#E0E0E0"
-                                     BorderBrush="#007ACC" BorderThickness="1" Padding="2,1"
+                                     Background="{DynamicResource AppPanelDeepBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource AppAccentBrush}" BorderThickness="1" Padding="2,1"
                                      Margin="-2" Visibility="Collapsed"
                                      LostFocus="NameEdit_LostFocus"
                                      KeyDown="NameEdit_KeyDown"
@@ -128,8 +128,8 @@
 
             <!-- Drives group -->
             <StackPanel Grid.Row="2" x:Name="DrivesSection" Margin="0,6,0,0">
-                <Border BorderBrush="#333333" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
-                <TextBlock Text="DRIVES" Foreground="#666666"
+                <Border BorderBrush="{DynamicResource AppBorderSubtleBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
+                <TextBlock Text="DRIVES" Foreground="{DynamicResource AppTextDimBrush}"
                            FontSize="{DynamicResource SmallFontSize}" FontWeight="SemiBold" Margin="2,0,0,4"/>
                 <ItemsControl x:Name="DrivesList" FontSize="{DynamicResource AppFontSize}">
                     <ItemsControl.ItemTemplate>
@@ -140,12 +140,12 @@
                                     <Style TargetType="Border">
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#2A2D2E"/>
+                                                <Setter Property="Background" Value="{DynamicResource AppHoverBrush}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding Label}" Foreground="#C0C0C0"
+                                <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AppTextSecondaryBrush}"
                                            TextTrimming="CharacterEllipsis"/>
                             </Border>
                         </DataTemplate>
@@ -161,10 +161,10 @@
             <Popup x:Name="GroupPopup" Grid.Row="3" Placement="Top"
                    PlacementTarget="{Binding ElementName=AddButton}" StaysOpen="False"
                    AllowsTransparency="True" PopupAnimation="Fade">
-                <Border Background="#252526" BorderBrush="#3D3D3D" BorderThickness="1"
+                <Border Background="{DynamicResource AppSurfaceAltBrush}" BorderBrush="{DynamicResource AppBorderSubtleBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="10" Width="200">
                     <StackPanel>
-                        <TextBlock Text="Set group" Foreground="#E0E0E0"
+                        <TextBlock Text="Set group" Foreground="{DynamicResource AppTextPrimaryBrush}"
                                    FontWeight="SemiBold" Margin="0,0,0,8"/>
                         <TextBox x:Name="GroupNameBox" Style="{StaticResource FavTextBox}" Margin="0,2,0,10"
                                  KeyDown="GroupNameBox_KeyDown"/>
@@ -172,7 +172,7 @@
                             <Button Style="{StaticResource FavFlatButton}" Content="Cancel"
                                     Margin="0,0,6,0" Click="GroupPopupCancel_Click"/>
                             <Button Style="{StaticResource FavFlatButton}" Content="Set"
-                                    Foreground="#4EC9B0" Click="GroupPopupConfirm_Click"/>
+                                    Foreground="{DynamicResource AppSuccessBrush}" Click="GroupPopupConfirm_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

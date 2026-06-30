@@ -10,6 +10,13 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <!-- Centralized fonts (theme-independent) and the active color palette.
+                     The palette is swapped at runtime by ThemeService; Styles.xaml and all
+                     views reference these via DynamicResource so they re-resolve on swap.
+                     The palette must sit after the WPF-UI dictionaries (so our keys win) and
+                     before Styles.xaml (so styles can resolve our brushes). -->
+                <ResourceDictionary Source="Themes/Fonts.xaml"/>
+                <ResourceDictionary Source="Themes/Colors.Dark.xaml"/>
                 <ResourceDictionary Source="Themes/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 

@@ -9,7 +9,7 @@
     <UserControl.Resources>
         <!-- Breadcrumb specific Button Style -->
         <Style x:Key="BreadcrumbButtonStyle" TargetType="Button" BasedOn="{StaticResource FlatButtonStyle}">
-            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
         </Style>
@@ -17,9 +17,9 @@
         <!-- Style for the PathTextBox to match theme and prevent white background on focus -->
         <Style x:Key="PathTextBoxStyle" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CaretBrush" Value="#E0E0E0"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource AppTextPrimaryBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -32,13 +32,13 @@
         </Style>
 
         <!-- Active/Last Segment Text Color -->
-        <SolidColorBrush x:Key="BreadcrumbActiveTextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BreadcrumbActiveTextBrush" Color="{DynamicResource AppTextPrimaryColor}"/>
         <!-- Chevron Color -->
-        <SolidColorBrush x:Key="BreadcrumbChevronBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BreadcrumbChevronBrush" Color="{DynamicResource AppTextSecondaryColor}"/>
     </UserControl.Resources>
 
     <Border Margin="0,0,0,8"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             CornerRadius="6"
             Padding="6,5,6,5">
         <Grid VerticalAlignment="Center">
@@ -115,8 +115,8 @@
         <!-- Main Bar Area -->
         <Border x:Name="MainBarBorder"
                 Grid.Column="4"
-                Background="#121212"
-                BorderBrush="#2D2D2D"
+                Background="{DynamicResource AppPanelDeepBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="4"
                 Height="32">
@@ -144,7 +144,7 @@
                              Grid.Column="0"
                              Style="{StaticResource PathTextBoxStyle}"
                              Padding="8,0,8,0" 
-                             FontFamily="Consolas, Courier New"
+                             FontFamily="{DynamicResource AppMonoFontFamily}"
                              FontSize="12"
                              KeyDown="TextBox_KeyDown"
                              LostFocus="TextBox_LostFocus"
@@ -153,7 +153,7 @@
                     <!-- Error Text Block placed inside the Address Bar on the right -->
                     <TextBlock x:Name="ErrorTextBlock" 
                                Grid.Column="1"
-                               Foreground="#FF4D4D" 
+                               Foreground="{DynamicResource AppErrorBrush}"
                                VerticalAlignment="Center" 
                                Margin="0,0,10,0" 
                                FontSize="11" 

@@ -24,15 +24,51 @@ namespace Filey
         private readonly VisualCollection _children;
         private readonly DrawingVisual _drawingVisual;
 
+        // Cached arguments of the last render so the tree can be redrawn when the theme changes.
+        private List<FastNode> _lastNodes;
+        private double _lastVerticalOffset;
+        private double _lastViewportHeight;
+
         public FastTreeVisualHost()
         {
             _children = new VisualCollection(this);
             _drawingVisual = new DrawingVisual();
             _children.Add(_drawingVisual);
+
+            // Re-render with the new palette when the theme is switched at runtime.
+            Loaded += (s, e) => ThemeService.ThemeChanged += OnThemeChanged;
+            Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
+        }
+
+        private void OnThemeChanged()
+        {
+            if (_lastNodes != null)
+                RenderTree(_lastNodes, _lastVerticalOffset, _lastViewportHeight);
+        }
+
+        /// <summary>Resolves a frozen brush from a palette Color resource, falling back to
+        /// <paramref name="fallback"/> when the resource is unavailable (e.g. at design time).</summary>
+        private static SolidColorBrush PaletteBrush(string colorKey, Color fallback)
+        {
+            object found = Application.Current?.TryFindResource(colorKey);
+            var color = found is Color c ? c : fallback;
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
+
+        private static FontFamily PaletteFontFamily()
+        {
+            return Application.Current?.TryFindResource("AppFontFamily") as FontFamily ?? new FontFamily("Segoe UI");
         }
 
         public void RenderTree(List<FastNode> nodes, double verticalOffset = 0, double viewportHeight = 0)
         {
+            _lastNodes = nodes;
+            _lastVerticalOffset = verticalOffset;
+            _lastViewportHeight = viewportHeight;
+
+
             using (DrawingContext dc = _drawingVisual.RenderOpen())
             {
                 if (nodes == null || nodes.Count == 0) return;
@@ -42,26 +78,18 @@ namespace Filey
                 double minY = verticalOffset - 300;
                 double maxY = verticalOffset + viewportHeight + 300;
 
-                // Premium colors for lines and text in dark theme
-                var linePen = new Pen(new SolidColorBrush(Color.FromRgb(71, 85, 105)), 1); // Slate 600
+                // Colors come from the active theme palette (see Themes/Colors.*.xaml). The tree is
+                // redrawn on every theme change so these reflect the current Light/Dark values.
+                var linePen = new Pen(PaletteBrush("TreeLineColor", Color.FromRgb(71, 85, 105)), 1);
                 linePen.Freeze();
 
-                var folderBrush = new SolidColorBrush(Color.FromRgb(234, 179, 8)); // Premium amber-yellow folder color
-                folderBrush.Freeze();
+                var folderBrush = PaletteBrush("TreeFolderColor", Color.FromRgb(234, 179, 8));
+                var rootTextBrush = PaletteBrush("TreeRootTextColor", Color.FromRgb(248, 250, 252));
+                var folderTextBrush = PaletteBrush("TreeFolderTextColor", Color.FromRgb(241, 245, 249));
+                var fileTextBrush = PaletteBrush("TreeDimTextColor", Color.FromRgb(148, 163, 184));
+                var placeholderTextBrush = PaletteBrush("TreeMutedTextColor", Color.FromRgb(100, 116, 139));
 
-                var rootTextBrush = new SolidColorBrush(Color.FromRgb(248, 250, 252)); // Slate 50 (Off-white)
-                rootTextBrush.Freeze();
-
-                var folderTextBrush = new SolidColorBrush(Color.FromRgb(241, 245, 249)); // Slate 100
-                folderTextBrush.Freeze();
-
-                var fileTextBrush = new SolidColorBrush(Color.FromRgb(148, 163, 184)); // Slate 400 (Dimmed for history)
-                fileTextBrush.Freeze();
-
-                var placeholderTextBrush = new SolidColorBrush(Color.FromRgb(100, 116, 139)); // Slate 500 (Muted/Subtle for file counts)
-                placeholderTextBrush.Freeze();
-
-                var font = new Typeface("Segoe UI");
+                var font = new Typeface(PaletteFontFamily(), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
                 var italicFont = new Typeface(font.FontFamily, FontStyles.Italic, FontWeights.Normal, FontStretches.Normal);
                 var boldFont = new Typeface(font.FontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
 

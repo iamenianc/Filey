@@ -28,8 +28,8 @@ namespace Filey
 
             var border = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E1E1E")),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2D2D2D")),
+                Background = Palette("AppPanelBackgroundBrush", "#1E1E1E"),
+                BorderBrush = Palette("AppBorderBrush", "#2D2D2D"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(16)
@@ -44,7 +44,7 @@ namespace Filey
             var header = new TextBlock
             {
                 Text = prompt,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
+                Foreground = Palette("AppTextPrimaryBrush", "#FFFFFF"),
                 FontWeight = FontWeights.SemiBold,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 12)
@@ -55,13 +55,13 @@ namespace Filey
             _textBox = new TextBox
             {
                 Text = initialValue ?? string.Empty,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#121212")),
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E0E0E0")),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2D2D2D")),
+                Background = Palette("AppPanelDeepBrush", "#121212"),
+                Foreground = Palette("AppTextPrimaryBrush", "#E0E0E0"),
+                BorderBrush = Palette("AppBorderBrush", "#2D2D2D"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(8, 6, 8, 6),
-                SelectionBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC")),
-                FontFamily = new FontFamily("Segoe UI")
+                SelectionBrush = Palette("AppAccentBrush", "#007ACC"),
+                FontFamily = Application.Current?.TryFindResource("AppFontFamily") as FontFamily ?? new FontFamily("Segoe UI")
             };
             _textBox.SetResourceReference(TextBox.FontSizeProperty, "NormalFontSize");
             _textBox.KeyDown += TextBox_KeyDown;
@@ -75,11 +75,19 @@ namespace Filey
             };
             Grid.SetRow(buttons, 2);
 
-            var cancel = MakeButton("Cancel", "#00000000", "#E0E0E0", "#2D2D2D", "#2D2D30");
+            var cancel = MakeButton("Cancel",
+                Brushes.Transparent,
+                Palette("AppTextPrimaryBrush", "#E0E0E0"),
+                Palette("AppBorderBrush", "#2D2D2D"),
+                Palette("AppHoverBrush", "#2D2D30"));
             cancel.Margin = new Thickness(0, 0, 8, 0);
             cancel.Click += (s, e) => { DialogResult = false; Close(); };
 
-            var ok = MakeButton("OK", "#007ACC", "#FFFFFF", "#007ACC", "#0098FF");
+            var ok = MakeButton("OK",
+                Palette("AppAccentBrush", "#007ACC"),
+                Palette("AppTextOnAccentBrush", "#FFFFFF"),
+                Palette("AppAccentBrush", "#007ACC"),
+                Palette("AppAccentHoverBrush", "#0098FF"));
             ok.Click += (s, e) => Submit();
 
             buttons.Children.Add(cancel);
@@ -94,16 +102,24 @@ namespace Filey
             Loaded += (s, e) => { _textBox.Focus(); _textBox.SelectAll(); };
         }
 
-        private static Button MakeButton(string content, string bg, string fg, string borderBrush, string hoverBg)
+        /// <summary>Resolves a brush from the active theme palette, falling back to a literal hex
+        /// color if the resource is unavailable.</summary>
+        private static Brush Palette(string key, string fallbackHex)
+        {
+            return Application.Current?.TryFindResource(key) as Brush
+                ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString(fallbackHex));
+        }
+
+        private static Button MakeButton(string content, Brush bg, Brush fg, Brush borderBrush, Brush hoverBg)
         {
             var button = new Button
             {
                 Content = content,
                 Width = 75,
                 Height = 26,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(fg)),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bg)),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(borderBrush)),
+                Foreground = fg,
+                Background = bg,
+                BorderBrush = borderBrush,
                 BorderThickness = new Thickness(1)
             };
 
@@ -120,7 +136,7 @@ namespace Filey
             template.VisualTree = borderFactory;
 
             var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            hover.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverBg))));
+            hover.Setters.Add(new Setter(Control.BackgroundProperty, hoverBg));
             template.Triggers.Add(hover);
 
             button.Template = template;

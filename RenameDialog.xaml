@@ -11,9 +11,9 @@
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True">
-    <Border Background="#1E1E1E" 
-            BorderBrush="#2D2D2D" 
-            BorderThickness="1" 
+    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="1"
             CornerRadius="8"
             Padding="16"
             MouseLeftButtonDown="Border_MouseLeftButtonDown">
@@ -26,8 +26,8 @@
 
             <!-- Header -->
             <TextBlock Grid.Row="0" 
-                       Text="Rename" 
-                       Foreground="#FFFFFF" 
+                       Text="Rename"
+                       Foreground="{DynamicResource AppTextPrimaryBrush}"
                        FontSize="{DynamicResource TitleFontSize}" 
                        FontWeight="SemiBold" 
                        Margin="0,0,0,12"/>

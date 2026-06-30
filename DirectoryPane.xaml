@@ -71,8 +71,8 @@
             <!-- Parent Folders Panel -->
             <Border x:Name="ParentFoldersPanel"
                     Grid.Column="0"
-                    Background="#1E1E1E"
-                    BorderBrush="#2D2D2D"
+                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="3">
                 <Grid>
@@ -84,8 +84,8 @@
 
                     <!-- Header strip with Back Icon -->
                     <Border Grid.Row="0"
-                            Background="#252526"
-                            BorderBrush="#2D2D2D"
+                            Background="{DynamicResource AppSurfaceAltBrush}"
+                            BorderBrush="{DynamicResource AppBorderBrush}"
                             BorderThickness="0,0,0,1"
                             Height="32"
                             Padding="4,0">
@@ -115,7 +115,7 @@
                             </Button>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ParentFolderName}"
-                                       Foreground="#CCCCCC"
+                                       Foreground="{DynamicResource AppTextSecondaryBrush}"
                                        FontSize="{DynamicResource NormalFontSize}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center"
@@ -127,12 +127,12 @@
                     <!-- Search bar -->
                     <Grid Grid.Row="1" Margin="4,4,4,2">
                         <TextBox x:Name="ParentFoldersSearch"
-                                 Background="#121212" Foreground="#E0E0E0" CaretBrush="#E0E0E0"
-                                 BorderBrush="#2D2D2D" BorderThickness="1"
+                                 Background="{DynamicResource AppPanelDeepBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" CaretBrush="{DynamicResource AppTextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1"
                                  Padding="6,3,4,3" VerticalContentAlignment="Center"
                                  TextChanged="ParentFoldersSearch_TextChanged"/>
                         <TextBlock x:Name="ParentFoldersSearchPlaceholder" Text="search…"
-                                   Foreground="#666666" Margin="8,0,0,0"
+                                   Foreground="{DynamicResource AppTextDimBrush}" Margin="8,0,0,0"
                                    VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
 
@@ -146,12 +146,12 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid VerticalAlignment="Center" Margin="{DynamicResource RowCellMargin}">
-                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                    <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                                     <TextBox x:Name="NameEdit"
                                              Text="{Binding Name, UpdateSourceTrigger=Explicit}"
-                                             Background="#121212"
-                                             Foreground="#E0E0E0"
-                                             BorderBrush="#007ACC"
+                                             Background="{DynamicResource AppPanelDeepBrush}"
+                                             Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                             BorderBrush="{DynamicResource AppAccentBrush}"
                                              BorderThickness="1"
                                              Padding="2,1"
                                              Margin="-2,-2,-2,-2"
@@ -208,12 +208,12 @@
                                         <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                             <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                             <Grid VerticalAlignment="Center">
-                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                                                 <TextBox x:Name="NameEdit" 
                                                          Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                         Background="#121212" 
-                                                         Foreground="#E0E0E0" 
-                                                         BorderBrush="#007ACC" 
+                                                         Background="{DynamicResource AppPanelDeepBrush}" 
+                                                         Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                                         BorderBrush="{DynamicResource AppAccentBrush}" 
                                                          BorderThickness="1" 
                                                          Padding="2,1"
                                                          Margin="-2,-2,-2,-2"
@@ -284,12 +284,12 @@
                                         <StackPanel Orientation="Horizontal" Margin="{DynamicResource RowCellMargin}">
                                             <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center" Stretch="Uniform"/>
                                             <Grid VerticalAlignment="Center">
-                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="#E0E0E0"/>
+                                                <TextBlock x:Name="NameText" Text="{Binding Name}" Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                                                 <TextBox x:Name="NameEdit" 
                                                          Text="{Binding Name, UpdateSourceTrigger=Explicit}" 
-                                                         Background="#121212" 
-                                                         Foreground="#E0E0E0" 
-                                                         BorderBrush="#007ACC" 
+                                                         Background="{DynamicResource AppPanelDeepBrush}" 
+                                                         Foreground="{DynamicResource AppTextPrimaryBrush}" 
+                                                         BorderBrush="{DynamicResource AppAccentBrush}" 
                                                          BorderThickness="1" 
                                                          Padding="2,1"
                                                          Margin="-2,-2,-2,-2"

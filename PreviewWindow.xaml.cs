@@ -19,13 +19,6 @@ namespace Filey
     /// </summary>
     public partial class PreviewWindow : Wpf.Ui.Controls.FluentWindow
     {
-        private const bool UseDarkTitleBar = true;
-
-        [DllImport("dwmapi.dll", PreserveSig = true)]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
         private double _zoomFactor = 1.0;
         private double _rotationAngle = 0;
         private Point _panStart;
@@ -75,12 +68,8 @@ namespace Filey
         {
             base.OnSourceInitialized(e);
 
-            if (UseDarkTitleBar)
-            {
-                IntPtr hwnd = new WindowInteropHelper(this).Handle;
-                int useDark = 1;
-                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
-            }
+            // Match the title bar to the active theme now that the window has a native handle.
+            ThemeService.ApplyTitleBar(this, ThemeService.IsDark);
         }
 
         private void LoadFile(string filePath)

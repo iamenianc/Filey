@@ -9,8 +9,8 @@
     mc:Ignorable="d"
     d:DesignHeight="600"
     d:DesignWidth="400"
-    Background="#1E1E1E"
-    Foreground="#E0E0E0">
+    Background="{DynamicResource AppPanelBackgroundBrush}"
+    Foreground="{DynamicResource AppTextPrimaryBrush}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition
@@ -24,10 +24,10 @@
             x:Name="ContentTextBox"
             Grid.Row="0"
             Visibility="Collapsed"
-            Background="#1E1E1E"
-            Foreground="#D4D4D4"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
+            Foreground="{DynamicResource AppTextHeaderBrush}"
             BorderThickness="0"
-            FontFamily="Consolas"
+            FontFamily="{DynamicResource AppMonoFontFamily}"
             FontSize="{DynamicResource NormalFontSize}"
             Padding="10"
             IsReadOnly="True"
@@ -36,8 +36,8 @@
             TextWrapping="Wrap"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto"
-            CaretBrush="#E0E0E0"
-            SelectionBrush="#094771"
+            CaretBrush="{DynamicResource AppTextPrimaryBrush}"
+            SelectionBrush="{DynamicResource AppSelectionBrush}"
             PreviewMouseWheel="ContentTextBox_PreviewMouseWheel" />
 
         <!-- Mode 2: Image Viewer -->
@@ -47,7 +47,7 @@
             Visibility="Collapsed"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Auto"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             PreviewMouseWheel="ImageScrollViewer_PreviewMouseWheel">
             <Grid
                 x:Name="ImageGrid"
@@ -76,7 +76,7 @@
         <Border
             x:Name="EmptyStateBorder"
             Grid.Row="0"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             Visibility="Visible">
             <StackPanel
                 VerticalAlignment="Center"
@@ -85,7 +85,7 @@
                 <TextBlock
                     x:Name="EmptyStateMainText"
                     Text="Select a file to preview"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource NormalFontSize}"
                     FontWeight="SemiBold"
                     HorizontalAlignment="Center"
@@ -94,7 +94,7 @@
                 <TextBlock
                     x:Name="EmptyStateSubText"
                     Text="Support for text, code files, and images"
-                    Foreground="#555555"
+                    Foreground="{DynamicResource AppTextDimBrush}"
                     FontSize="{DynamicResource HeaderFontSize}"
                     HorizontalAlignment="Center"
                     Margin="0,4,0,0"
@@ -109,7 +109,7 @@
             Grid.Row="0"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Auto"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             Padding="16"
             Visibility="Collapsed"
             PreviewMouseWheel="FolderScrollViewer_PreviewMouseWheel"
@@ -148,9 +148,9 @@
                     Grid.Row="0"
                     Grid.Column="0"
                     Margin="4"
-                    BorderBrush="#2D2D2D"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
-                    Background="#161616">
+                    Background="{DynamicResource AppSurfaceDarkBrush}">
                     <Image
                         x:Name="PdfSkimImage0"
                         Stretch="Uniform"
@@ -160,9 +160,9 @@
                     Grid.Row="0"
                     Grid.Column="1"
                     Margin="4"
-                    BorderBrush="#2D2D2D"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
-                    Background="#161616">
+                    Background="{DynamicResource AppSurfaceDarkBrush}">
                     <Image
                         x:Name="PdfSkimImage1"
                         Stretch="Uniform"
@@ -172,9 +172,9 @@
                     Grid.Row="1"
                     Grid.Column="0"
                     Margin="4"
-                    BorderBrush="#2D2D2D"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
-                    Background="#161616">
+                    Background="{DynamicResource AppSurfaceDarkBrush}">
                     <Image
                         x:Name="PdfSkimImage2"
                         Stretch="Uniform"
@@ -184,9 +184,9 @@
                     Grid.Row="1"
                     Grid.Column="1"
                     Margin="4"
-                    BorderBrush="#2D2D2D"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
-                    Background="#161616">
+                    Background="{DynamicResource AppSurfaceDarkBrush}">
                     <Image
                         x:Name="PdfSkimImage3"
                         Stretch="Uniform"
@@ -200,7 +200,7 @@
                     Grid.RowSpan="2"
                     Grid.ColumnSpan="2"
                     Background="#B00C0C0C"
-                    BorderBrush="#2D2D2D"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="4"
                     VerticalAlignment="Bottom"
@@ -210,7 +210,7 @@
                     IsHitTestVisible="False">
                     <TextBlock
                         Text="🖱️ Double-click to open in full preview window"
-                        Foreground="#CCCCCC"
+                        Foreground="{DynamicResource AppTextSecondaryBrush}"
                         FontSize="{DynamicResource HeaderFontSize}"
                         FontWeight="SemiBold" />
                 </Border>
@@ -237,16 +237,16 @@
                         <DataTemplate>
                             <Border
                                 Margin="8,12"
-                                BorderBrush="#2D2D2D"
+                                BorderBrush="{DynamicResource AppBorderBrush}"
                                 BorderThickness="1"
-                                Background="#1E1E1E"
+                                Background="{DynamicResource AppPanelBackgroundBrush}"
                                 Width="{Binding DisplayWidth}"
                                 Height="{Binding DisplayHeight}"
                                 HorizontalAlignment="Center">
                                 <Grid>
                                     <TextBlock
                                         Text="Loading..."
-                                        Foreground="#555555"
+                                        Foreground="{DynamicResource AppTextDimBrush}"
                                         FontSize="{DynamicResource NormalFontSize}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center">
@@ -285,7 +285,7 @@
         <Grid
             x:Name="WebViewHost"
             Grid.Row="0"
-            Background="#1E1E1E"
+            Background="{DynamicResource AppPanelBackgroundBrush}"
             Visibility="Collapsed" />
 
         <!-- Subtle Scroll Reminder Prompt -->
@@ -293,7 +293,7 @@
             x:Name="ScrollPromptTextBlock"
             Grid.Row="0"
             Text="Ctrl + Scroll Wheel to adjust folder depth"
-            Foreground="#475569"
+            Foreground="{DynamicResource AppTextDimBrush}"
             FontSize="{DynamicResource NormalFontSize}"
             FontStyle="Italic"
             HorizontalAlignment="Right"
@@ -305,8 +305,8 @@
         <!-- Status Bar -->
         <Border
             Grid.Row="1"
-            Background="#1B1B1B"
-            BorderBrush="#2D2D2D"
+            Background="{DynamicResource AppTopBarBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
             BorderThickness="0,1,0,0"
             Height="24"
             Padding="8,0">
@@ -327,7 +327,7 @@
                 <TextBlock
                     x:Name="PathTextBlock"
                     Grid.Column="0"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     TextTrimming="CharacterEllipsis" />
@@ -341,7 +341,7 @@
                     Visibility="Collapsed">
                     <TextBlock
                         Text="Depth: "
-                        Foreground="#858585"
+                        Foreground="{DynamicResource AppTextMutedBrush}"
                         FontSize="{DynamicResource SmallFontSize}"
                         VerticalAlignment="Center" />
                     <Button
@@ -409,7 +409,7 @@
                 <TextBlock
                     x:Name="EncodingTextBlock"
                     Grid.Column="2"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0" />
@@ -417,7 +417,7 @@
                 <TextBlock
                     x:Name="SizeTextBlock"
                     Grid.Column="3"
-                    Foreground="#858585"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     FontSize="{DynamicResource SmallFontSize}"
                     VerticalAlignment="Center"
                     Margin="12,0,0,0" />
@@ -427,7 +427,7 @@
                     Grid.Column="4"
                     Content="↗ Pop Out"
                     Click="PopOutButton_Click"
-                    Foreground="#A0A0A0"
+                    Foreground="{DynamicResource AppTextMutedBrush}"
                     Background="Transparent"
                     BorderThickness="0"
                     FontSize="{DynamicResource SmallFontSize}"

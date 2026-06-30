@@ -20,9 +20,6 @@ namespace Filey
         /// <summary>The display mode for the right column: 0=Off, 1=PreviewPane, 2=RightPane (Dual).</summary>
         public int RightPaneMode { get; set; } = 1;
 
-        /// <summary>Whether hidden/system folders and files are shown in the panes. Off by default.</summary>
-        public bool ShowHidden { get; set; } = false;
-
         /// <summary>Whether list views use reduced row spacing (compact density).</summary>
         public bool CompactMode { get; set; } = false;
 

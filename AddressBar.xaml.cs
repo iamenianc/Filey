@@ -42,16 +42,10 @@ namespace Filey
         public event EventHandler SetHomeRequested;
 
         private bool _isEditMode;
-        private Brush _restingBackground;
-        private Brush _restingBorderBrush;
 
         public AddressBar()
         {
             InitializeComponent();
-
-            // Capture the canonical resting brushes so error state always reverts to them.
-            _restingBackground = MainBarBorder.Background;
-            _restingBorderBrush = MainBarBorder.BorderBrush;
 
             // Pasting a path navigates immediately, with no Enter required.
             DataObject.AddPastingHandler(PathTextBox, PathTextBox_Pasting);
@@ -136,16 +130,17 @@ namespace Filey
             ErrorTextBlock.Text = message;
             ErrorTextBlock.Visibility = Visibility.Visible;
 
-            // Crimson red background tint and red border for error state
-            MainBarBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 77, 77));
-            MainBarBorder.Background = new SolidColorBrush(Color.FromRgb(61, 27, 27));
+            // Error background tint and border, sourced from the active theme palette.
+            MainBarBorder.BorderBrush = ThemeService.Brush("AppErrorBrush");
+            MainBarBorder.Background = ThemeService.Brush("AppErrorBgBrush");
         }
 
         private void HideError()
         {
             ErrorTextBlock.Visibility = Visibility.Collapsed;
-            MainBarBorder.BorderBrush = _restingBorderBrush;
-            MainBarBorder.Background = _restingBackground;
+            // Re-establish the dynamic-resource bindings so the bar keeps following the theme.
+            MainBarBorder.SetResourceReference(Border.BorderBrushProperty, "AppBorderBrush");
+            MainBarBorder.SetResourceReference(Border.BackgroundProperty, "AppPanelDeepBrush");
         }
 
         private void BreadcrumbsWrapper_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

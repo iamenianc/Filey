@@ -52,8 +52,8 @@
         <!-- Global Top Menu Bar: slim container for toggles/buttons added in later patches -->
         <Border x:Name="TopMenuBar"
                 Grid.Row="1"
-                Background="#1B1B1B"
-                BorderBrush="#2D2D2D"
+                Background="{DynamicResource AppTopBarBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
                 BorderThickness="0,0,0,1"
                 Height="28">
             <StackPanel x:Name="TopMenuBarItems"
@@ -98,6 +98,13 @@
                     Content="Font: Default"
                     ToolTip="Toggle large font size"
                     Click="FontSizeButton_Click" />
+                <ToggleButton
+                    x:Name="ThemeToggle"
+                    Style="{StaticResource TopBarToggleStyle}"
+                    Content="Theme: Dark"
+                    ToolTip="Switch between Light and Dark theme"
+                    Checked="ThemeToggle_Changed"
+                    Unchecked="ThemeToggle_Changed" />
             </StackPanel>
         </Border>
 
