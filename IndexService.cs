@@ -95,33 +95,8 @@ namespace Filey
         {
             return Task.Run<IReadOnlyList<FolderItem>>(() =>
             {
-                var candidates = new List<IndexEntry>();
-                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                // 1) Local-first: active dir + immediate contents of its subfolders
-                if (!string.IsNullOrEmpty(activeDirectory))
-                {
-                    var local = FileSystemCrawler.EnumerateLocalScope(activeDirectory);
-                    foreach (var e in local)
-                    {
-                        if (e != null && seen.Add(e.FullPath))
-                        {
-                            candidates.Add(e);
-                        }
-                    }
-                }
-
-                // 2) Index snapshot
                 var snapshot = _index.GetSnapshot();
-                foreach (var e in snapshot)
-                {
-                    if (e != null && seen.Add(e.FullPath))
-                    {
-                        candidates.Add(e);
-                    }
-                }
-
-                var ordered = SearchRanker.Rank(query, candidates, max, activeDirectory);
+                var ordered = SearchRanker.Rank(query, snapshot, max, activeDirectory);
 
                 return (IReadOnlyList<FolderItem>)ordered
                     .Select(e => e.ToFolderItem())

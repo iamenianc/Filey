@@ -25,6 +25,11 @@ namespace Filey
             var terms = q.Split(new[] { ' ', '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             if (terms.Length == 0) return results;
 
+            // Pre-fetch user profile path for stripping in path cleaning
+            string userProfile = "";
+            try { userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).ToLowerInvariant(); }
+            catch { }
+
             // Run ranking in parallel using PLINQ for performance
             var scored = entries
                 .AsParallel()
@@ -34,7 +39,7 @@ namespace Filey
                     string nl = e.NameLower;
                     if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
 
-                    string parentLower = e.ParentPath?.ToLowerInvariant() ?? "";
+                    string parentLower = GetCleanParentPath(e.ParentPath, userProfile);
 
                     int totalScore = 0;
                     bool allTermsMatched = true;
@@ -86,9 +91,8 @@ namespace Filey
                     // Final score is average term score plus the overall query bonus
                     int finalScore = (totalScore / terms.Length) + queryBonus;
 
-                    // If active directory is provided, give a priority boost to items within it
-                    if (!string.IsNullOrEmpty(activeDirectory) && e.FullPath != null &&
-                        e.FullPath.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
+                    // If active directory is provided, give a priority boost to items within it or its immediate children
+                    if (!string.IsNullOrEmpty(activeDirectory) && IsInOrImmediateChild(e.FullPath, activeDirectory))
                     {
                         finalScore += 40; // local tree priority boost
                     }
@@ -104,6 +108,62 @@ namespace Filey
                 .Take(max)
                 .Select(kv => kv.Value)
                 .ToList();
+        }
+
+        private static string GetCleanParentPath(string parentPath, string userProfile)
+        {
+            if (string.IsNullOrEmpty(parentPath)) return "";
+
+            string path = parentPath.ToLowerInvariant();
+            
+            if (!string.IsNullOrEmpty(userProfile) && path.StartsWith(userProfile))
+            {
+                // Strip user profile prefix
+                return path.Substring(userProfile.Length).TrimStart('\\', '/');
+            }
+
+            // Strip drive letter prefix like "c:\"
+            if (path.Length >= 3 && path[1] == ':' && path[2] == '\\')
+            {
+                path = path.Substring(3);
+            }
+            
+            // Also strip "users\" if it is at the start
+            if (path.StartsWith("users\\"))
+            {
+                path = path.Substring(6);
+            }
+            else if (path.StartsWith("users/"))
+            {
+                path = path.Substring(6);
+            }
+
+            return path.TrimStart('\\', '/');
+        }
+
+        private static bool IsInOrImmediateChild(string fullPath, string activeDirectory)
+        {
+            if (string.IsNullOrEmpty(fullPath) || string.IsNullOrEmpty(activeDirectory)) return false;
+
+            // Extract the directory path of the file
+            string path = System.IO.Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(path)) return false;
+
+            string normPath = path.TrimEnd('\\', '/').ToLowerInvariant();
+            string normActive = activeDirectory.TrimEnd('\\', '/').ToLowerInvariant();
+
+            // Case 1: directly in the active directory
+            if (normPath == normActive) return true;
+
+            // Case 2: in an immediate child folder of active directory
+            string parentOfPath = System.IO.Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(parentOfPath))
+            {
+                string normParent = parentOfPath.TrimEnd('\\', '/').ToLowerInvariant();
+                if (normParent == normActive) return true;
+            }
+
+            return false;
         }
 
         private static bool PassPreFilter(string target, string term)
