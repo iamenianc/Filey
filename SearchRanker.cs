@@ -43,18 +43,16 @@ namespace Filey
             string activeDrive = GetRootDrive(activeDirectory);
             string[] activeSegments = SplitPathSegments(activeDirectory);
 
-            // Run ranking in parallel using PLINQ for performance
+            // Run ranking in parallel using PLINQ for performance. The drive-scope filter runs
+            // first, before any scoring, so off-drive entries are dropped without paying for the
+            // (far more expensive) fuzzy match — and excluded from the results completely.
             var scored = entries
                 .AsParallel()
-                .Where(e => e != null)
+                .Where(e => e != null && OnActiveDrive(e.FullPath, activeDrive))
                 .Select(e =>
                 {
                     string nl = e.NameLower;
                     if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
-
-                    // Limit search scope to items on the same root drive as the active directory.
-                    if (activeDrive != null && !string.Equals(GetRootDrive(e.FullPath), activeDrive, StringComparison.OrdinalIgnoreCase))
-                        return new KeyValuePair<int, IndexEntry>(-1, null);
 
                     string parentLower = GetCleanParentPath(e.ParentPath, userProfile);
 
@@ -157,6 +155,30 @@ namespace Filey
             }
 
             return path.TrimStart('\\', '/');
+        }
+
+        /// <summary>
+        /// Whether <paramref name="fullPath"/> lives on <paramref name="activeDrive"/> (the active
+        /// directory's root, already lowercased). Returns true when there is no active drive, so
+        /// the scope limit is a no-op for the global index search. Kept allocation-free on the hot
+        /// drive-letter path (the common case) since it runs once per indexed entry per search.
+        /// </summary>
+        private static bool OnActiveDrive(string fullPath, string activeDrive)
+        {
+            if (activeDrive == null) return true;
+            if (string.IsNullOrEmpty(fullPath)) return false;
+
+            // Fast path for drive-letter roots ("c:"): compare the leading "X:" directly instead
+            // of calling Path.GetPathRoot, which would allocate a substring for every entry.
+            if (activeDrive.Length == 2 && activeDrive[1] == ':')
+            {
+                return fullPath.Length >= 2
+                    && fullPath[1] == ':'
+                    && char.ToLowerInvariant(fullPath[0]) == activeDrive[0];
+            }
+
+            // UNC or other roots: fall back to the exact (already-lowercased) root comparison.
+            return string.Equals(GetRootDrive(fullPath), activeDrive, StringComparison.Ordinal);
         }
 
         /// <summary>
