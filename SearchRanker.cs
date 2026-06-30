@@ -12,6 +12,8 @@ namespace Filey
     /// </summary>
     internal static class SearchRanker
     {
+        private const int MinScoreCutoff = 70;
+
         /// <summary>Ranks <paramref name="entries"/> against <paramref name="query"/>, best first.</summary>
         public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max)
         {
@@ -86,7 +88,7 @@ namespace Filey
 
                     return new KeyValuePair<int, IndexEntry>(finalScore, e);
                 })
-                .Where(kv => kv.Key >= 0 && kv.Value != null)
+                .Where(kv => kv.Key >= MinScoreCutoff && kv.Value != null)
                 .ToList();
 
             return scored
