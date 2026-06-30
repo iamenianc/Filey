@@ -663,7 +663,7 @@ namespace Filey
             if (availableWidth <= 0) availableWidth = this.Width - (_isSidebarVisible ? 220 : 0);
             if (availableWidth <= 0) availableWidth = 800;
 
-            double displayWidth = PdfLayout.DisplayWidth(availableWidth, 48, _isDualPage, 24, _pdfZoomLevel);
+            double displayWidth = Math.Round(PdfLayout.DisplayWidth(availableWidth, 48, _isDualPage, 24, _pdfZoomLevel));
 
             foreach (var page in _pdfPages)
             {

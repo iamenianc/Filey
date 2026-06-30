@@ -246,7 +246,8 @@
                                 Background="{DynamicResource AppPanelBackgroundBrush}"
                                 Width="{Binding DisplayWidth}"
                                 Height="{Binding DisplayHeight}"
-                                HorizontalAlignment="Center">
+                                HorizontalAlignment="Center"
+                                SnapsToDevicePixels="True">
                                 <Grid>
                                     <TextBlock
                                         Text="Loading..."
@@ -275,7 +276,8 @@
                                     <Image
                                         Source="{Binding Image}"
                                         Stretch="Uniform"
-                                        RenderOptions.BitmapScalingMode="HighQuality" />
+                                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                        SnapsToDevicePixels="True" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

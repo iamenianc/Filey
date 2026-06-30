@@ -366,7 +366,8 @@
                                     Background="{DynamicResource AppPanelBackgroundBrush}"
                                     Width="{Binding LeftPageWidth}"
                                     Height="{Binding DisplayHeight}"
-                                    HorizontalAlignment="Center">
+                                    HorizontalAlignment="Center"
+                                    SnapsToDevicePixels="True">
                                     <Grid>
                                         <TextBlock
                                             Text="Loading..."
@@ -395,7 +396,8 @@
                                         <Image
                                             Source="{Binding LeftPageImage}"
                                             Stretch="Uniform"
-                                            RenderOptions.BitmapScalingMode="HighQuality" />
+                                            RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                            SnapsToDevicePixels="True" />
                                     </Grid>
                                 </Border>
 
@@ -408,7 +410,8 @@
                                     Width="{Binding RightPageWidth}"
                                     Height="{Binding DisplayHeight}"
                                     HorizontalAlignment="Center"
-                                    Visibility="{Binding RightPageVisibility}">
+                                    Visibility="{Binding RightPageVisibility}"
+                                    SnapsToDevicePixels="True">
                                     <Grid>
                                         <TextBlock
                                             Text="Loading..."
@@ -437,7 +440,8 @@
                                         <Image
                                             Source="{Binding RightPageImage}"
                                             Stretch="Uniform"
-                                            RenderOptions.BitmapScalingMode="HighQuality" />
+                                            RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                            SnapsToDevicePixels="True" />
                                     </Grid>
                                 </Border>
                             </StackPanel>

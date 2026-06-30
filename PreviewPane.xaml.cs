@@ -1161,7 +1161,7 @@ namespace Filey
             if (_pdfPages == null) return;
             double availableWidth = PdfActiveViewer.ViewportWidth;
             if (availableWidth <= 0) availableWidth = PdfActiveViewer.ActualWidth;
-            double displayWidth = PdfLayout.DisplayWidth(availableWidth, 48, false, 0, 1.0);
+            double displayWidth = Math.Round(PdfLayout.DisplayWidth(availableWidth, 48, false, 0, 1.0));
 
             foreach (var page in _pdfPages)
             {
@@ -1415,7 +1415,7 @@ namespace Filey
             }
         }
 
-        public double DisplayHeight => DisplayWidth * AspectRatio;
+        public double DisplayHeight => Math.Round(DisplayWidth * AspectRatio);
     }
 
     public static class PdfSkimCache
