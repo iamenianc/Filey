@@ -175,7 +175,8 @@
                                  Padding="8,0,8,0"
                                  FontSize="12"
                                  KeyDown="SearchTextBox_KeyDown"
-                                 TextChanged="SearchTextBox_TextChanged"/>
+                                 TextChanged="SearchTextBox_TextChanged"
+                                 LostKeyboardFocus="Search_LostKeyboardFocus"/>
                         <TextBlock x:Name="SearchPlaceholder"
                                    Text="Search indexed files and folders…"
                                    Margin="9,0,0,0"
@@ -228,7 +229,8 @@
                                  Background="Transparent"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  MouseDoubleClick="SearchResultsList_MouseDoubleClick"
-                                 KeyDown="SearchResultsList_KeyDown">
+                                 KeyDown="SearchResultsList_KeyDown"
+                                 LostKeyboardFocus="Search_LostKeyboardFocus">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="4,2">

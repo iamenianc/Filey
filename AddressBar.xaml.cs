@@ -264,6 +264,32 @@ namespace Filey
             ExitSearchMode();
         }
 
+        /// <summary>
+        /// Auto-dismisses search mode once the user is no longer searching, i.e. keyboard
+        /// focus has left the search box, the results list, and the toggle button.
+        /// </summary>
+        private void Search_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (!_isSearchMode) return;
+            if (IsWithinSearchUi(e.NewFocus)) return;
+            ExitSearchMode();
+        }
+
+        private bool IsWithinSearchUi(IInputElement element)
+        {
+            DependencyObject d = element as DependencyObject;
+            while (d != null)
+            {
+                if (d == SearchTextBox || d == SearchResultsList
+                    || d == SearchResultsPopup || d == SearchToggleButton)
+                    return true;
+
+                DependencyObject parent = (d is Visual) ? VisualTreeHelper.GetParent(d) : null;
+                d = parent ?? LogicalTreeHelper.GetParent(d);
+            }
+            return false;
+        }
+
         private void ShowError(string message)
         {
             ErrorTextBlock.Text = message;

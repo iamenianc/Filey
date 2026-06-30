@@ -44,6 +44,26 @@ namespace Filey
             }
         }
 
+        /// <summary>
+        /// Reconciles only the direct children of <paramref name="dirPath"/> (one level),
+        /// leaving any deeper indexed entries untouched. Used to index the directory the
+        /// user is actively viewing without disturbing a deeper crawl already in place.
+        /// </summary>
+        public void ReplaceDirectoryLevel(string dirPath, IEnumerable<IndexEntry> entries)
+        {
+            if (string.IsNullOrEmpty(dirPath)) return;
+            lock (_gate)
+            {
+                var stale = _byPath.Values
+                    .Where(v => string.Equals(v.ParentPath, dirPath, StringComparison.OrdinalIgnoreCase))
+                    .Select(v => v.FullPath)
+                    .ToList();
+                foreach (var k in stale) _byPath.Remove(k);
+                foreach (var e in entries)
+                    if (e != null && !string.IsNullOrEmpty(e.FullPath)) _byPath[e.FullPath] = e;
+            }
+        }
+
         /// <summary>Replaces every entry under <paramref name="rootPath"/> with a freshly crawled set.</summary>
         public void ReplaceSubtree(string rootPath, IEnumerable<IndexEntry> entries)
         {

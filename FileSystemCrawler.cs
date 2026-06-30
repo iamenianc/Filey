@@ -85,6 +85,27 @@ namespace Filey
             index.ReplaceSubtree(rootPath, collected);
         }
 
+        /// <summary>
+        /// Indexes just the direct contents of <paramref name="dirPath"/> (no recursion).
+        /// Fast single pass used to prioritise the directory the user is currently viewing.
+        /// </summary>
+        public static List<IndexEntry> IndexDirectoryLevel(string dirPath)
+        {
+            var list = new List<IndexEntry>();
+            if (string.IsNullOrEmpty(dirPath)) return list;
+
+            List<NativeFileEntry> entries;
+            try { entries = NativeDirectoryEnumerator.EnumerateEntries(dirPath); }
+            catch { return list; }
+
+            foreach (var e in entries)
+            {
+                if (e.IsDirectory && IndexPolicy.ShouldSkipDirectory(e.FullPath, e.Attributes)) continue;
+                list.Add(ToEntry(e, dirPath));
+            }
+            return list;
+        }
+
         private static IndexEntry ToEntry(NativeFileEntry e, string parentPath)
         {
             return new IndexEntry

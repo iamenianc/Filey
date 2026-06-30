@@ -58,6 +58,19 @@ namespace Filey
                 }
             };
 
+            // Prioritise indexing of whichever directory a pane navigates to, so the folder
+            // the user is currently in is searchable immediately (ahead of the seed crawl).
+            LeftViewModel.PropertyChanged += (s, ev) =>
+            {
+                if (ev.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+                    IndexService.Instance.PrioritizeActiveDirectory(LeftViewModel.CurrentDirectory);
+            };
+            RightViewModel.PropertyChanged += (s, ev) =>
+            {
+                if (ev.PropertyName == nameof(DirectoryViewModel.CurrentPath))
+                    IndexService.Instance.PrioritizeActiveDirectory(RightViewModel.CurrentDirectory);
+            };
+
             RightPreviewControl.DirectoryClicked += (s, path) =>
             {
                 GetActiveViewModel()?.LoadDirectory(path);
@@ -91,8 +104,12 @@ namespace Filey
                 ThemeToggle.Content = ThemeService.IsDark ? "Theme: Dark" : "Theme: Light";
                 _restoringThemeToggle = false;
 
-                // Build/refresh the selective file index in the background.
+                // Build/refresh the selective file index in the background, indexing the
+                // already-open directory first so it's searchable immediately.
                 IndexService.Instance.Start(_settings);
+                IndexService.Instance.PrioritizeActiveDirectory(LeftViewModel.CurrentDirectory);
+                if (!string.IsNullOrEmpty(RightViewModel.CurrentDirectory))
+                    IndexService.Instance.PrioritizeActiveDirectory(RightViewModel.CurrentDirectory);
             };
 
             RestorePersistedState();

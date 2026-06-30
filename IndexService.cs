@@ -24,6 +24,7 @@ namespace Filey
         private IndexWatcher _watcher;
         private Timer _warmTimer;
         private List<IndexRoot> _roots = new List<IndexRoot>();
+        private string _lastPrioritized;
         private bool _started;
 
         private IndexService() { }
@@ -55,6 +56,26 @@ namespace Filey
 
             // Periodically refresh the warm roots (history-derived, not live-watched).
             _warmTimer = new Timer(_ => RefreshWarmRoots(), null, WarmRefreshInterval, WarmRefreshInterval);
+        }
+
+        /// <summary>
+        /// Immediately indexes the directory the user is currently viewing so its contents
+        /// are searchable right away, ahead of the background seed crawl. Shallow (one level)
+        /// and de-duplicated against the last prioritised path, so it's cheap to call on every
+        /// navigation.
+        /// </summary>
+        public void PrioritizeActiveDirectory(string path)
+        {
+            if (!_started || _cts.IsCancellationRequested) return;
+            if (string.IsNullOrEmpty(path) || !IndexPolicy.IsIndexablePath(path)) return;
+            if (string.Equals(path, _lastPrioritized, StringComparison.OrdinalIgnoreCase)) return;
+            _lastPrioritized = path;
+
+            _ = Task.Run(() =>
+            {
+                try { _index.ReplaceDirectoryLevel(path, FileSystemCrawler.IndexDirectoryLevel(path)); }
+                catch { /* directory vanished or inaccessible; ignore */ }
+            }, _cts.Token);
         }
 
         /// <summary>Re-crawls the warm (history-derived) roots. Safe to call on app activation.</summary>
