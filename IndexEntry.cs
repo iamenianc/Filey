@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 
 namespace Filey
 {
@@ -9,7 +10,26 @@ namespace Filey
     /// </summary>
     public class IndexEntry
     {
-        public string Name { get; set; }
+        private string _name;
+
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                _name = value;
+                NameLower = value?.ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// Lowercased <see cref="Name"/>, cached so search doesn't re-lowercase every entry on
+        /// each keystroke. Derived from <see cref="Name"/> (recomputed on set / deserialize),
+        /// so it is not persisted.
+        /// </summary>
+        [JsonIgnore]
+        public string NameLower { get; private set; }
+
         public string FullPath { get; set; }
         public string ParentPath { get; set; }
         public bool IsDirectory { get; set; }

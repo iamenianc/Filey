@@ -22,8 +22,9 @@ namespace Filey
             var scored = new List<KeyValuePair<int, IndexEntry>>();
             foreach (var e in entries)
             {
-                if (e == null || string.IsNullOrEmpty(e.Name)) continue;
-                string nl = e.Name.ToLowerInvariant();
+                if (e == null) continue;
+                string nl = e.NameLower;
+                if (string.IsNullOrEmpty(nl)) continue;
 
                 int bonus;
                 if (!QuickMatch(nl, q, out bonus)) continue;
