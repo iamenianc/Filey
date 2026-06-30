@@ -105,48 +105,6 @@
                     ToolTip="Switch between Light and Dark theme"
                     Checked="ThemeToggle_Changed"
                     Unchecked="ThemeToggle_Changed" />
-
-                <!-- Selective-index search: matches names across indexed (likely-visited) locations -->
-                <TextBox
-                    x:Name="SearchBox"
-                    Width="280"
-                    Height="22"
-                    Margin="12,0,0,0"
-                    VerticalContentAlignment="Center"
-                    ToolTip="Search indexed files and folders"
-                    TextChanged="SearchBox_TextChanged"
-                    KeyDown="SearchBox_KeyDown" />
-                <Popup
-                    x:Name="SearchResultsPopup"
-                    PlacementTarget="{Binding ElementName=SearchBox}"
-                    Placement="Bottom"
-                    StaysOpen="False"
-                    AllowsTransparency="True"
-                    PopupAnimation="Fade">
-                    <Border
-                        Background="{DynamicResource AppTopBarBrush}"
-                        BorderBrush="{DynamicResource AppBorderBrush}"
-                        BorderThickness="1"
-                        Width="480"
-                        MaxHeight="420">
-                        <ListBox
-                            x:Name="SearchResultsList"
-                            BorderThickness="0"
-                            Background="Transparent"
-                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                            MouseDoubleClick="SearchResultsList_MouseDoubleClick"
-                            KeyDown="SearchResultsList_KeyDown">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="4,2">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding FullPath}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Border>
-                </Popup>
             </StackPanel>
         </Border>
 
@@ -179,7 +137,8 @@
                               GoBackRequested="LeftAddressBar_GoBackRequested"
                               GoForwardRequested="LeftAddressBar_GoForwardRequested"
                               HomeRequested="LeftAddressBar_HomeRequested"
-                              SetHomeRequested="LeftAddressBar_SetHomeRequested"/>
+                              SetHomeRequested="LeftAddressBar_SetHomeRequested"
+                              SearchResultChosen="LeftAddressBar_SearchResultChosen"/>
 
             <local:AddressBar x:Name="RightAddressBar"
                               Grid.Row="0" Grid.Column="4"
@@ -191,7 +150,8 @@
                               GoBackRequested="RightAddressBar_GoBackRequested"
                               GoForwardRequested="RightAddressBar_GoForwardRequested"
                               HomeRequested="RightAddressBar_HomeRequested"
-                              SetHomeRequested="RightAddressBar_SetHomeRequested"/>
+                              SetHomeRequested="RightAddressBar_SetHomeRequested"
+                              SearchResultChosen="RightAddressBar_SearchResultChosen"/>
 
             <!-- Favourites panel on the far left -->
             <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Row="1" Grid.Column="0" Side="Left"/>

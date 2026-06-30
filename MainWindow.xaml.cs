@@ -27,9 +27,6 @@ namespace Filey
         /// <summary>Suppresses the theme toggle handler while its initial state is restored at startup.</summary>
         private bool _restoringThemeToggle;
 
-        /// <summary>Debounces index searches so we query at most once per short pause in typing.</summary>
-        private readonly System.Windows.Threading.DispatcherTimer _searchDebounce;
-
         public MainWindow()
         {
             LeftViewModel = new DirectoryViewModel();
@@ -47,12 +44,6 @@ namespace Filey
 
             this.Closing += MainWindow_Closing;
             this.SizeChanged += MainWindow_SizeChanged;
-
-            _searchDebounce = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(250)
-            };
-            _searchDebounce.Tick += SearchDebounce_Tick;
 
             // Refresh warm (history-derived) roots when the window regains focus.
             this.Activated += (s, ev) => IndexService.Instance.RefreshWarmRoots();
@@ -533,82 +524,20 @@ namespace Filey
 
         // --- Index search -----------------------------------------------------------
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void LeftAddressBar_SearchResultChosen(object sender, FolderItem item)
         {
-            _searchDebounce.Stop();
-            if (string.IsNullOrWhiteSpace(SearchBox.Text))
-            {
-                SearchResultsPopup.IsOpen = false;
-                SearchResultsList.ItemsSource = null;
-                return;
-            }
-            _searchDebounce.Start();
+            OpenSearchResult(item, LeftViewModel);
         }
 
-        private async void SearchDebounce_Tick(object sender, EventArgs e)
+        private void RightAddressBar_SearchResultChosen(object sender, FolderItem item)
         {
-            _searchDebounce.Stop();
-            string query = SearchBox.Text;
-            if (string.IsNullOrWhiteSpace(query)) return;
-
-            var results = await IndexService.Instance.SearchAsync(query);
-
-            // Ignore stale results if the query changed while we were searching.
-            if (!string.Equals(query, SearchBox.Text, StringComparison.Ordinal)) return;
-
-            SearchResultsList.ItemsSource = results;
-            SearchResultsPopup.IsOpen = results.Count > 0;
+            OpenSearchResult(item, RightViewModel);
         }
 
-        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+        /// <summary>Navigates the given pane to a search hit and selects it.</summary>
+        private void OpenSearchResult(FolderItem item, DirectoryViewModel vm)
         {
-            if (e.Key == Key.Escape)
-            {
-                SearchResultsPopup.IsOpen = false;
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Down && SearchResultsPopup.IsOpen && SearchResultsList.Items.Count > 0)
-            {
-                SearchResultsList.SelectedIndex = 0;
-                var first = SearchResultsList.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem;
-                first?.Focus();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Enter)
-            {
-                OpenSearchResult((SearchResultsList.SelectedItem ?? SearchResultsList.Items.Cast<object>().FirstOrDefault()) as FolderItem);
-                e.Handled = true;
-            }
-        }
-
-        private void SearchResultsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            OpenSearchResult(SearchResultsList.SelectedItem as FolderItem);
-        }
-
-        private void SearchResultsList_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                OpenSearchResult(SearchResultsList.SelectedItem as FolderItem);
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Escape)
-            {
-                SearchResultsPopup.IsOpen = false;
-                SearchBox.Focus();
-                e.Handled = true;
-            }
-        }
-
-        /// <summary>Navigates the active pane to a search hit and selects it.</summary>
-        private void OpenSearchResult(FolderItem item)
-        {
-            if (item == null) return;
-            SearchResultsPopup.IsOpen = false;
-
-            var vm = GetActiveViewModel();
-            if (vm == null) return;
+            if (item == null || vm == null) return;
 
             if (item.IsDirectory)
             {

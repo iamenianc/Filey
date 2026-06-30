@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Filey
 {
@@ -41,7 +43,12 @@ namespace Filey
         /// <summary>Raised on right-click of the Home button: set this pane's Home to its current path.</summary>
         public event EventHandler SetHomeRequested;
 
+        /// <summary>Raised when the user activates a result from the inline index search.</summary>
+        public event EventHandler<FolderItem> SearchResultChosen;
+
         private bool _isEditMode;
+        private bool _isSearchMode;
+        private readonly DispatcherTimer _searchDebounce;
 
         public AddressBar()
         {
@@ -49,6 +56,9 @@ namespace Filey
 
             // Pasting a path navigates immediately, with no Enter required.
             DataObject.AddPastingHandler(PathTextBox, PathTextBox_Pasting);
+
+            _searchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _searchDebounce.Tick += SearchDebounce_Tick;
         }
 
         private void PathTextBox_Pasting(object sender, DataObjectPastingEventArgs e)
@@ -95,6 +105,7 @@ namespace Filey
         public void EnterEditMode()
         {
             if (_isEditMode) return;
+            if (_isSearchMode) ExitSearchMode();
             _isEditMode = true;
 
             HideError();
@@ -123,6 +134,134 @@ namespace Filey
             BreadcrumbsWrapper.Visibility = Visibility.Visible;
 
             UpdateBreadcrumbs();
+        }
+
+        // --- Inline index search ----------------------------------------------------
+
+        private void SearchToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isSearchMode)
+                ExitSearchMode();
+            else
+                EnterSearchMode();
+        }
+
+        /// <summary>Switches the bar into search mode and puts the cursor in the search box immediately.</summary>
+        public void EnterSearchMode()
+        {
+            if (_isSearchMode) return;
+            if (_isEditMode) ExitEditMode();
+            _isSearchMode = true;
+
+            HideError();
+
+            BreadcrumbsWrapper.Visibility = Visibility.Collapsed;
+            EditModeGrid.Visibility = Visibility.Collapsed;
+            SearchModeGrid.Visibility = Visibility.Visible;
+
+            SearchTextBox.Text = string.Empty;
+            SearchPlaceholder.Visibility = Visibility.Visible;
+
+            // Activate the caret right away so the user can start typing without a second click.
+            SearchTextBox.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                SearchTextBox.Focus();
+                Keyboard.Focus(SearchTextBox);
+            }), DispatcherPriority.Background);
+        }
+
+        private void ExitSearchMode()
+        {
+            if (!_isSearchMode) return;
+            _isSearchMode = false;
+
+            _searchDebounce.Stop();
+            SearchResultsPopup.IsOpen = false;
+            SearchResultsList.ItemsSource = null;
+
+            SearchModeGrid.Visibility = Visibility.Collapsed;
+            BreadcrumbsWrapper.Visibility = Visibility.Visible;
+
+            UpdateBreadcrumbs();
+        }
+
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            SearchPlaceholder.Visibility = string.IsNullOrEmpty(SearchTextBox.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            _searchDebounce.Stop();
+            if (string.IsNullOrWhiteSpace(SearchTextBox.Text))
+            {
+                SearchResultsPopup.IsOpen = false;
+                SearchResultsList.ItemsSource = null;
+                return;
+            }
+            _searchDebounce.Start();
+        }
+
+        private async void SearchDebounce_Tick(object sender, EventArgs e)
+        {
+            _searchDebounce.Stop();
+            string query = SearchTextBox.Text;
+            if (string.IsNullOrWhiteSpace(query)) return;
+
+            var results = await IndexService.Instance.SearchAsync(query);
+
+            // Drop stale results if the query moved on while we were searching.
+            if (!_isSearchMode || !string.Equals(query, SearchTextBox.Text, StringComparison.Ordinal)) return;
+
+            SearchResultsList.ItemsSource = results;
+            SearchResultsPopup.IsOpen = results.Count > 0;
+        }
+
+        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                ExitSearchMode();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Down && SearchResultsPopup.IsOpen && SearchResultsList.Items.Count > 0)
+            {
+                SearchResultsList.SelectedIndex = 0;
+                (SearchResultsList.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem)?.Focus();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Enter)
+            {
+                ChooseSearchResult((SearchResultsList.SelectedItem
+                    ?? SearchResultsList.Items.Cast<object>().FirstOrDefault()) as FolderItem);
+                e.Handled = true;
+            }
+        }
+
+        private void SearchResultsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            ChooseSearchResult(SearchResultsList.SelectedItem as FolderItem);
+        }
+
+        private void SearchResultsList_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                ChooseSearchResult(SearchResultsList.SelectedItem as FolderItem);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                SearchResultsPopup.IsOpen = false;
+                SearchTextBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void ChooseSearchResult(FolderItem item)
+        {
+            if (item == null) return;
+            SearchResultChosen?.Invoke(this, item);
+            ExitSearchMode();
         }
 
         private void ShowError(string message)

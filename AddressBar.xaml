@@ -122,44 +122,124 @@
                 Height="32">
             
             <Grid>
-                <!-- Breadcrumbs Mode (Visible by Default) -->
-                <Border x:Name="BreadcrumbsWrapper" 
-                        Background="Transparent" 
-                        MouseLeftButtonDown="BreadcrumbsWrapper_MouseLeftButtonDown"
-                        SizeChanged="BreadcrumbsWrapper_SizeChanged"
-                        Padding="6,0,6,0">
-                    <StackPanel x:Name="BreadcrumbsContainer" 
-                                Orientation="Horizontal" 
-                                VerticalAlignment="Center"/>
-                </Border>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                <!-- Edit Mode (Hidden by Default) -->
-                <Grid x:Name="EditModeGrid" Visibility="Collapsed">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Mode host: breadcrumbs / path-edit / search all occupy this cell -->
+                <Grid Grid.Column="0">
+                    <!-- Breadcrumbs Mode (Visible by Default) -->
+                    <Border x:Name="BreadcrumbsWrapper"
+                            Background="Transparent"
+                            MouseLeftButtonDown="BreadcrumbsWrapper_MouseLeftButtonDown"
+                            SizeChanged="BreadcrumbsWrapper_SizeChanged"
+                            Padding="6,0,6,0">
+                        <StackPanel x:Name="BreadcrumbsContainer"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"/>
+                    </Border>
 
-                    <TextBox x:Name="PathTextBox" 
-                             Grid.Column="0"
-                             Style="{StaticResource PathTextBoxStyle}"
-                             Padding="8,0,8,0" 
-                             FontFamily="{DynamicResource AppMonoFontFamily}"
-                             FontSize="12"
-                             KeyDown="TextBox_KeyDown"
-                             LostFocus="TextBox_LostFocus"
-                             TextChanged="TextBox_TextChanged"/>
+                    <!-- Edit Mode (Hidden by Default) -->
+                    <Grid x:Name="EditModeGrid" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Error Text Block placed inside the Address Bar on the right -->
-                    <TextBlock x:Name="ErrorTextBlock" 
-                               Grid.Column="1"
-                               Foreground="{DynamicResource AppErrorBrush}"
-                               VerticalAlignment="Center" 
-                               Margin="0,0,10,0" 
-                               FontSize="11" 
-                               FontWeight="SemiBold"
-                               Visibility="Collapsed"/>
+                        <TextBox x:Name="PathTextBox"
+                                 Grid.Column="0"
+                                 Style="{StaticResource PathTextBoxStyle}"
+                                 Padding="8,0,8,0"
+                                 FontFamily="{DynamicResource AppMonoFontFamily}"
+                                 FontSize="12"
+                                 KeyDown="TextBox_KeyDown"
+                                 LostFocus="TextBox_LostFocus"
+                                 TextChanged="TextBox_TextChanged"/>
+
+                        <!-- Error Text Block placed inside the Address Bar on the right -->
+                        <TextBlock x:Name="ErrorTextBlock"
+                                   Grid.Column="1"
+                                   Foreground="{DynamicResource AppErrorBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Visibility="Collapsed"/>
+                    </Grid>
+
+                    <!-- Search Mode (Hidden by Default) -->
+                    <Grid x:Name="SearchModeGrid" Visibility="Collapsed">
+                        <TextBox x:Name="SearchTextBox"
+                                 Style="{StaticResource PathTextBoxStyle}"
+                                 Padding="8,0,8,0"
+                                 FontSize="12"
+                                 KeyDown="SearchTextBox_KeyDown"
+                                 TextChanged="SearchTextBox_TextChanged"/>
+                        <TextBlock x:Name="SearchPlaceholder"
+                                   Text="Search indexed files and folders…"
+                                   Margin="9,0,0,0"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Opacity="0.5"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource AppTextPrimaryBrush}"/>
+                    </Grid>
                 </Grid>
+
+                <!-- Search activate / close toggle at the right end of the bar -->
+                <Button x:Name="SearchToggleButton"
+                        Grid.Column="1"
+                        Width="28"
+                        Height="28"
+                        Margin="2,0,2,0"
+                        Style="{StaticResource FlatButtonStyle}"
+                        ToolTip="Search indexed files (click to type)"
+                        Click="SearchToggleButton_Click">
+                    <Grid Width="14" Height="14">
+                        <Ellipse Width="9" Height="9"
+                                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                                 Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                 StrokeThickness="1.5"/>
+                        <Line X1="8.5" Y1="8.5" X2="13" Y2="13"
+                              Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                              StrokeThickness="1.5"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"/>
+                    </Grid>
+                </Button>
+
+                <!-- Search results dropdown, anchored under the bar -->
+                <Popup x:Name="SearchResultsPopup"
+                       PlacementTarget="{Binding ElementName=MainBarBorder}"
+                       Placement="Bottom"
+                       StaysOpen="False"
+                       AllowsTransparency="True"
+                       PopupAnimation="Fade"
+                       Width="{Binding ActualWidth, ElementName=MainBarBorder}">
+                    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource AppBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            MaxHeight="360"
+                            Margin="0,2,0,0">
+                        <ListBox x:Name="SearchResultsList"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 MouseDoubleClick="SearchResultsList_MouseDoubleClick"
+                                 KeyDown="SearchResultsList_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4,2">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding FullPath}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
             </Grid>
         </Border>
         </Grid>
