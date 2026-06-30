@@ -46,6 +46,12 @@ namespace Filey
         /// <summary>Raised when the user activates a result from the inline index search.</summary>
         public event EventHandler<FolderItem> SearchResultChosen;
 
+        /// <summary>
+        /// Raised when the user presses Enter on a search query without picking a specific
+        /// result, asking for the full ranked result set to be shown in a dedicated pane.
+        /// </summary>
+        public event EventHandler<SearchAllRequest> SearchAllRequested;
+
         private bool _isEditMode;
         private bool _isSearchMode;
         private readonly DispatcherTimer _searchDebounce;
@@ -231,10 +237,25 @@ namespace Filey
             }
             else if (e.Key == Key.Enter)
             {
-                ChooseSearchResult((SearchResultsList.SelectedItem
-                    ?? SearchResultsList.Items.Cast<object>().FirstOrDefault()) as FolderItem);
+                if (SearchResultsList.SelectedItem is FolderItem selected)
+                    ChooseSearchResult(selected);
+                else
+                    RequestAllResults();
                 e.Handled = true;
             }
+        }
+
+        /// <summary>
+        /// Hands the current query off to the host so it can show the full ranked result set
+        /// in a dedicated pane, then leaves search mode.
+        /// </summary>
+        private void RequestAllResults()
+        {
+            string query = SearchTextBox.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(query)) return;
+
+            SearchAllRequested?.Invoke(this, new SearchAllRequest(query, ResolveActiveDirectory()));
+            ExitSearchMode();
         }
 
         private void SearchResultsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)

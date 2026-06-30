@@ -75,6 +75,22 @@ namespace Filey
                 GetActiveViewModel()?.LoadDirectory(path);
             };
 
+            // Search-results overlays: opening a hit reveals it in the side's pane and dismisses
+            // the overlay; closing just dismisses it.
+            LeftSearchResults.ResultActivated += (s, item) =>
+            {
+                HideSearchResults(LeftSearchResults);
+                OpenSearchResult(item, LeftViewModel, LeftDirectoryPane);
+            };
+            LeftSearchResults.CloseRequested += (s, e) => HideSearchResults(LeftSearchResults);
+
+            RightSearchResults.ResultActivated += (s, item) =>
+            {
+                HideSearchResults(RightSearchResults);
+                OpenSearchResult(item, RightViewModel, RightDirectoryPane);
+            };
+            RightSearchResults.CloseRequested += (s, e) => HideSearchResults(RightSearchResults);
+
             // Wire up the (single, shared) Favourites panel. It adds bookmarks for the
             // active side's current path and navigates that side.
             LeftFavouritesPanel.CurrentPathProvider = () => GetActiveViewModel().CurrentPath;
@@ -548,6 +564,41 @@ namespace Filey
         private void RightAddressBar_SearchResultChosen(object sender, FolderItem item)
         {
             OpenSearchResult(item, RightViewModel, RightDirectoryPane);
+        }
+
+        private void LeftAddressBar_SearchAllRequested(object sender, SearchAllRequest request)
+        {
+            ShowSearchResults(LeftSearchResults, request);
+        }
+
+        private void RightAddressBar_SearchAllRequested(object sender, SearchAllRequest request)
+        {
+            ShowSearchResults(RightSearchResults, request);
+        }
+
+        /// <summary>
+        /// Reveals the given side's search-results pane and loads the full ranked result set
+        /// for the committed query. Results are fetched off the UI thread; a stale request is
+        /// dropped if the pane was closed meanwhile.
+        /// </summary>
+        private async void ShowSearchResults(SearchResultsView view, SearchAllRequest request)
+        {
+            if (view == null || request == null) return;
+
+            view.Visibility = Visibility.Visible;
+            view.ShowSearching(request.Query);
+
+            var results = await IndexService.Instance.SearchAsync(
+                request.Query, request.ActiveDirectory, max: 500);
+
+            if (view.Visibility != Visibility.Visible) return;
+            view.ShowResults(request.Query, results);
+        }
+
+        private void HideSearchResults(SearchResultsView view)
+        {
+            if (view == null) return;
+            view.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>

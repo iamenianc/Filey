@@ -138,7 +138,8 @@
                               GoForwardRequested="LeftAddressBar_GoForwardRequested"
                               HomeRequested="LeftAddressBar_HomeRequested"
                               SetHomeRequested="LeftAddressBar_SetHomeRequested"
-                              SearchResultChosen="LeftAddressBar_SearchResultChosen"/>
+                              SearchResultChosen="LeftAddressBar_SearchResultChosen"
+                              SearchAllRequested="LeftAddressBar_SearchAllRequested"/>
 
             <local:AddressBar x:Name="RightAddressBar"
                               Grid.Row="0" Grid.Column="4"
@@ -151,7 +152,8 @@
                               GoForwardRequested="RightAddressBar_GoForwardRequested"
                               HomeRequested="RightAddressBar_HomeRequested"
                               SetHomeRequested="RightAddressBar_SetHomeRequested"
-                              SearchResultChosen="RightAddressBar_SearchResultChosen"/>
+                              SearchResultChosen="RightAddressBar_SearchResultChosen"
+                              SearchAllRequested="RightAddressBar_SearchAllRequested"/>
 
             <!-- Favourites panel on the far left -->
             <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Row="1" Grid.Column="0" Side="Left"/>
@@ -175,6 +177,19 @@
                 x:Name="RightPreviewControl"
                 Grid.Row="0"
                 Grid.RowSpan="2"
+                Grid.Column="4"
+                Visibility="Collapsed" />
+
+            <!-- Search results overlays: cover each side's pane area when a query is committed -->
+            <local:SearchResultsView
+                x:Name="LeftSearchResults"
+                Grid.Row="1"
+                Grid.Column="0" Grid.ColumnSpan="3"
+                Visibility="Collapsed" />
+
+            <local:SearchResultsView
+                x:Name="RightSearchResults"
+                Grid.Row="1"
                 Grid.Column="4"
                 Visibility="Collapsed" />
         </Grid>

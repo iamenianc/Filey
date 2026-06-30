@@ -28,6 +28,9 @@ namespace Filey
         public string Type { get; set; }
         public ImageSource Icon { get; set; }
 
+        /// <summary>1-based position in the ranked search results, shown in the results pane.</summary>
+        public int Rank { get; set; }
+
         public bool IsEditing
         {
             get => _isEditing;
@@ -54,5 +57,16 @@ namespace Filey
 
         public string DateModifiedFormatted => DateModified?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty;
         public string DateCreatedFormatted => DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? string.Empty;
+
+        /// <summary>Containing folder of this item, shown in the search-results pane.</summary>
+        public string ParentFolder
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(FullPath)) return string.Empty;
+                try { return System.IO.Path.GetDirectoryName(FullPath) ?? string.Empty; }
+                catch { return string.Empty; }
+            }
+        }
     }
 }

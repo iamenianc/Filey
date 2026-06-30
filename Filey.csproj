@@ -96,6 +96,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="SearchResultsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -111,6 +115,10 @@
     </Compile>
     <Compile Include="FavouritesPanel.xaml.cs">
       <DependentUpon>FavouritesPanel.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SearchResultsView.xaml.cs">
+      <DependentUpon>SearchResultsView.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DirectoryPane.xaml.cs">
@@ -145,6 +153,7 @@
     <Compile Include="MarkdownRenderer.cs" />
     <Compile Include="NativeDirectoryEnumerator.cs" />
     <Compile Include="SearchRanker.cs" />
+    <Compile Include="SearchAllRequest.cs" />
     <Compile Include="IndexEntry.cs" />
     <Compile Include="IndexPolicy.cs" />
     <Compile Include="FileIndex.cs" />
