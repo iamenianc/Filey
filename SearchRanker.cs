@@ -19,19 +19,75 @@ namespace Filey
             if (string.IsNullOrWhiteSpace(query) || entries == null) return results;
             string q = query.Trim().ToLowerInvariant();
 
-            var scored = new List<KeyValuePair<int, IndexEntry>>();
-            foreach (var e in entries)
-            {
-                if (e == null) continue;
-                string nl = e.NameLower;
-                if (string.IsNullOrEmpty(nl)) continue;
+            // Split the query into terms by spaces and common directory separators
+            var terms = q.Split(new[] { ' ', '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            if (terms.Length == 0) return results;
 
-                int bonus;
-                if (!QuickMatch(nl, q, out bonus)) continue;
+            // Run ranking in parallel using PLINQ for performance
+            var scored = entries
+                .AsParallel()
+                .Where(e => e != null)
+                .Select(e =>
+                {
+                    string nl = e.NameLower;
+                    if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
 
-                int score = Fuzz.WeightedRatio(q, nl) + bonus;
-                scored.Add(new KeyValuePair<int, IndexEntry>(score, e));
-            }
+                    string parentLower = e.ParentPath?.ToLowerInvariant() ?? "";
+
+                    int totalScore = 0;
+                    bool allTermsMatched = true;
+
+                    // A query-wide exact/prefix/substring bonus on the filename
+                    int queryBonus = 0;
+                    if (nl == q) queryBonus = 200;
+                    else if (nl.StartsWith(q, StringComparison.Ordinal)) queryBonus = 120;
+                    else if (nl.IndexOf(q, StringComparison.Ordinal) >= 0) queryBonus = 60;
+                    else if (e.FullPath != null && e.FullPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) queryBonus = 30; // whole path match bonus
+
+                    foreach (var term in terms)
+                    {
+                        // Check if this term matches either the name or the parent path
+                        int termNameScore = 0;
+                        int termPathScore = 0;
+
+                        bool nameMatch = PassPreFilter(nl, term);
+                        bool pathMatch = !string.IsNullOrEmpty(parentLower) && PassPreFilter(parentLower, term);
+
+                        if (!nameMatch && !pathMatch)
+                        {
+                            allTermsMatched = false;
+                            break;
+                        }
+
+                        if (nameMatch)
+                        {
+                            // WeightedRatio is the best FuzzySharp implementation for composite matching
+                            termNameScore = Fuzz.WeightedRatio(term, nl);
+                            
+                            // Extra bonus if it's an exact/prefix match of the term
+                            if (nl == term) termNameScore += 50;
+                            else if (nl.StartsWith(term, StringComparison.Ordinal)) termNameScore += 30;
+                            else if (nl.IndexOf(term, StringComparison.Ordinal) >= 0) termNameScore += 15;
+                        }
+
+                        if (pathMatch)
+                        {
+                            termPathScore = Fuzz.WeightedRatio(term, parentLower);
+                        }
+
+                        // Combine term scores: filename match is prioritized
+                        totalScore += Math.Max(termNameScore, (int)(termPathScore * 0.6));
+                    }
+
+                    if (!allTermsMatched) return new KeyValuePair<int, IndexEntry>(-1, null);
+
+                    // Final score is average term score plus the overall query bonus
+                    int finalScore = (totalScore / terms.Length) + queryBonus;
+
+                    return new KeyValuePair<int, IndexEntry>(finalScore, e);
+                })
+                .Where(kv => kv.Key >= 0 && kv.Value != null)
+                .ToList();
 
             return scored
                 .OrderByDescending(kv => kv.Key)
@@ -39,6 +95,89 @@ namespace Filey
                 .Take(max)
                 .Select(kv => kv.Value)
                 .ToList();
+        }
+
+        private static bool PassPreFilter(string target, string term)
+        {
+            if (term.Length <= 3)
+            {
+                // For very short terms, require substring match (extremely fast)
+                return target.IndexOf(term, StringComparison.Ordinal) >= 0;
+            }
+
+            // A term matches if its characters are mostly present in the target string
+            // AND the term's first character or second character is present in the target string.
+            // This is extremely fast and avoids matching completely unrelated words.
+            char firstChar = term[0];
+            char secondChar = term[1];
+            if (target.IndexOf(firstChar) < 0 && target.IndexOf(secondChar) < 0)
+            {
+                return false;
+            }
+
+            int maxErrors = term.Length <= 6 ? 1 : 2;
+            return FastOverlap(target, term, maxErrors);
+        }
+
+        private static bool FastOverlap(string target, string term, int maxErrors)
+        {
+            if (term.Length <= maxErrors) return true;
+
+            // Check if target is mostly ASCII
+            bool isAscii = true;
+            for (int i = 0; i < target.Length; i++)
+            {
+                if (target[i] >= 256) { isAscii = false; break; }
+            }
+            for (int i = 0; i < term.Length; i++)
+            {
+                if (term[i] >= 256) { isAscii = false; break; }
+            }
+
+            if (isAscii)
+            {
+                int[] counts = new int[256];
+                for (int i = 0; i < target.Length; i++)
+                {
+                    counts[target[i]]++;
+                }
+
+                int matchCount = 0;
+                for (int i = 0; i < term.Length; i++)
+                {
+                    char c = term[i];
+                    if (counts[c] > 0)
+                    {
+                        counts[c]--;
+                        matchCount++;
+                    }
+                }
+                return matchCount >= (term.Length - maxErrors);
+            }
+            else
+            {
+                var counts = new Dictionary<char, int>();
+                for (int i = 0; i < target.Length; i++)
+                {
+                    char c = target[i];
+                    if (counts.TryGetValue(c, out int count))
+                        counts[c] = count + 1;
+                    else
+                        counts[c] = 1;
+                }
+
+                int matchCount = 0;
+                for (int i = 0; i < term.Length; i++)
+                {
+                    char c = term[i];
+                    if (counts.TryGetValue(c, out int count) && count > 0)
+                    {
+                        counts[c] = count - 1;
+                        matchCount++;
+                    }
+                }
+                return matchCount >= (term.Length - maxErrors);
+            }
         }
 
         /// <summary>
