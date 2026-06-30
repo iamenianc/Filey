@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,6 +27,9 @@ namespace Filey
         /// <summary>Suppresses the theme toggle handler while its initial state is restored at startup.</summary>
         private bool _restoringThemeToggle;
 
+        /// <summary>Debounces index searches so we query at most once per short pause in typing.</summary>
+        private readonly System.Windows.Threading.DispatcherTimer _searchDebounce;
+
         public MainWindow()
         {
             LeftViewModel = new DirectoryViewModel();
@@ -43,6 +47,15 @@ namespace Filey
 
             this.Closing += MainWindow_Closing;
             this.SizeChanged += MainWindow_SizeChanged;
+
+            _searchDebounce = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _searchDebounce.Tick += SearchDebounce_Tick;
+
+            // Refresh warm (history-derived) roots when the window regains focus.
+            this.Activated += (s, ev) => IndexService.Instance.RefreshWarmRoots();
 
             // Track left selection and path updates to trigger preview load
             LeftViewModel.PropertyChanged += (s, ev) =>
@@ -86,6 +99,9 @@ namespace Filey
                 ThemeToggle.IsChecked = ThemeService.Current == AppTheme.Light;
                 ThemeToggle.Content = ThemeService.IsDark ? "Theme: Dark" : "Theme: Light";
                 _restoringThemeToggle = false;
+
+                // Build/refresh the selective file index in the background.
+                IndexService.Instance.Start(_settings);
             };
 
             RestorePersistedState();
@@ -151,6 +167,8 @@ namespace Filey
                 Left = LeftViewModel.GetBackStackSnapshot(),
                 Right = RightViewModel.GetBackStackSnapshot(),
             });
+
+            IndexService.Instance.Shutdown();
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -511,6 +529,100 @@ namespace Filey
             }
 
             return LeftViewModel;
+        }
+
+        // --- Index search -----------------------------------------------------------
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _searchDebounce.Stop();
+            if (string.IsNullOrWhiteSpace(SearchBox.Text))
+            {
+                SearchResultsPopup.IsOpen = false;
+                SearchResultsList.ItemsSource = null;
+                return;
+            }
+            _searchDebounce.Start();
+        }
+
+        private async void SearchDebounce_Tick(object sender, EventArgs e)
+        {
+            _searchDebounce.Stop();
+            string query = SearchBox.Text;
+            if (string.IsNullOrWhiteSpace(query)) return;
+
+            var results = await IndexService.Instance.SearchAsync(query);
+
+            // Ignore stale results if the query changed while we were searching.
+            if (!string.Equals(query, SearchBox.Text, StringComparison.Ordinal)) return;
+
+            SearchResultsList.ItemsSource = results;
+            SearchResultsPopup.IsOpen = results.Count > 0;
+        }
+
+        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                SearchResultsPopup.IsOpen = false;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Down && SearchResultsPopup.IsOpen && SearchResultsList.Items.Count > 0)
+            {
+                SearchResultsList.SelectedIndex = 0;
+                var first = SearchResultsList.ItemContainerGenerator.ContainerFromIndex(0) as ListBoxItem;
+                first?.Focus();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Enter)
+            {
+                OpenSearchResult((SearchResultsList.SelectedItem ?? SearchResultsList.Items.Cast<object>().FirstOrDefault()) as FolderItem);
+                e.Handled = true;
+            }
+        }
+
+        private void SearchResultsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            OpenSearchResult(SearchResultsList.SelectedItem as FolderItem);
+        }
+
+        private void SearchResultsList_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                OpenSearchResult(SearchResultsList.SelectedItem as FolderItem);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                SearchResultsPopup.IsOpen = false;
+                SearchBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>Navigates the active pane to a search hit and selects it.</summary>
+        private void OpenSearchResult(FolderItem item)
+        {
+            if (item == null) return;
+            SearchResultsPopup.IsOpen = false;
+
+            var vm = GetActiveViewModel();
+            if (vm == null) return;
+
+            if (item.IsDirectory)
+            {
+                vm.LoadDirectory(item.FullPath);
+                return;
+            }
+
+            string parent = System.IO.Path.GetDirectoryName(item.FullPath);
+            if (string.IsNullOrEmpty(parent)) return;
+
+            vm.LoadDirectory(parent);
+            var match = vm.Contents.FirstOrDefault(
+                c => string.Equals(c.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase));
+            if (match != null) vm.SelectedItem = match;
         }
 
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject

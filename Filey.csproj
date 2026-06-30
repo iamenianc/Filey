@@ -143,6 +143,13 @@
     <Compile Include="FastTreeVisualHost.cs" />
     <Compile Include="MarkdownParser.cs" />
     <Compile Include="MarkdownRenderer.cs" />
+    <Compile Include="NativeDirectoryEnumerator.cs" />
+    <Compile Include="IndexEntry.cs" />
+    <Compile Include="IndexPolicy.cs" />
+    <Compile Include="FileIndex.cs" />
+    <Compile Include="FileSystemCrawler.cs" />
+    <Compile Include="IndexWatcher.cs" />
+    <Compile Include="IndexService.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

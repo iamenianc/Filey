@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,147 +44,6 @@ namespace Filey
 
         private WebView2 _webView;
         private string _pendingHtml;
-        #region Win32 FindFirstFileEx Declarations
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr FindFirstFileEx(
-            string lpFileName,
-            FINDEX_INFO_LEVELS fInfoLevelId,
-            ref WIN32_FIND_DATA lpFindFileData,
-            FINDEX_SEARCH_OPS fSearchOp,
-            IntPtr lpSearchFilter,
-            int dwAdditionalFlags);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern bool FindNextFile(IntPtr hFindFile, ref WIN32_FIND_DATA lpFindFileData);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FindClose(IntPtr hFindFile);
-
-        private const int FIND_FIRST_EX_LARGE_FETCH = 2;
-        private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
-
-        private enum FINDEX_INFO_LEVELS
-        {
-            FindExInfoStandard,
-            FindExInfoBasic,
-            FindExInfoMaxInfoLevel
-        }
-
-        private enum FINDEX_SEARCH_OPS
-        {
-            FindExSearchNameMatch,
-            FindExSearchLimitToDirectories,
-            FindExSearchLimitToDevices,
-            FindExSearchMaxSearchOp
-        }
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct WIN32_FIND_DATA
-        {
-            public uint dwFileAttributes;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftCreationTime;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftLastAccessTime;
-            public System.Runtime.InteropServices.ComTypes.FILETIME ftLastWriteTime;
-            public uint nFileSizeHigh;
-            public uint nFileSizeLow;
-            public uint dwReserved0;
-            public uint dwReserved1;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-            public string cFileName;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)]
-            public string cAlternateFileName;
-        }
-
-        private struct SimpleDirectoryInfo
-        {
-            public string Name;
-            public string FullPath;
-            public System.IO.FileAttributes Attributes;
-        }
-
-        private static List<SimpleDirectoryInfo> GetSubDirectoriesWin32(string parentPath)
-        {
-            var list = new List<SimpleDirectoryInfo>();
-            string searchPath = System.IO.Path.Combine(parentPath, "*");
-            
-            WIN32_FIND_DATA findData = new WIN32_FIND_DATA();
-            IntPtr hFind = FindFirstFileEx(
-                searchPath,
-                FINDEX_INFO_LEVELS.FindExInfoBasic, // Bypasses querying the short file name, reducing metadata sizes
-                ref findData,
-                FINDEX_SEARCH_OPS.FindExSearchNameMatch,
-                IntPtr.Zero,
-                FIND_FIRST_EX_LARGE_FETCH // Enables large-buffer querying, critical for high-latency SMB
-            );
-
-            if (hFind != INVALID_HANDLE_VALUE)
-            {
-                try
-                {
-                    do
-                    {
-                        if ((findData.dwFileAttributes & 0x10) != 0) // FILE_ATTRIBUTE_DIRECTORY
-                        {
-                            string name = findData.cFileName;
-                            if (name != "." && name != "..")
-                            {
-                                list.Add(new SimpleDirectoryInfo
-                                {
-                                    Name = name,
-                                    FullPath = System.IO.Path.Combine(parentPath, name),
-                                    Attributes = (System.IO.FileAttributes)findData.dwFileAttributes
-                                });
-                            }
-                        }
-                    }
-                    while (FindNextFile(hFind, ref findData));
-                }
-                finally
-                {
-                    FindClose(hFind);
-                }
-            }
-
-            return list;
-        }
-
-        #endregion
-
-        private static int GetFileCountWin32(string dirPath, bool showHidden, CancellationToken token)
-        {
-            int count = 0;
-            WIN32_FIND_DATA findData = new WIN32_FIND_DATA();
-            IntPtr hFind = FindFirstFileEx(System.IO.Path.Combine(dirPath, "*"),
-                FINDEX_INFO_LEVELS.FindExInfoBasic, ref findData,
-                FINDEX_SEARCH_OPS.FindExSearchNameMatch, IntPtr.Zero, FIND_FIRST_EX_LARGE_FETCH);
-            if (hFind == INVALID_HANDLE_VALUE) return 0;
-            try
-            {
-                do
-                {
-                    if (token.IsCancellationRequested) break;
-                    uint attr = findData.dwFileAttributes;
-                    if ((attr & 0x10) != 0) continue; // skip directories
-                    if (!showHidden && ((attr & 0x02) != 0 || (attr & 0x04) != 0)) continue; // skip hidden/system
-                    count++;
-                }
-                while (FindNextFile(hFind, ref findData));
-            }
-            finally { FindClose(hFind); }
-            return count;
-        }
-
-        private static async Task<List<SimpleDirectoryInfo>> FetchChildrenAsync(
-            string path, SemaphoreSlim semaphore, CancellationToken token)
-        {
-            await semaphore.WaitAsync(token);
-            try   { return await Task.Run(() => GetSubDirectoriesWin32(path), token); }
-            catch (OperationCanceledException) { throw; }
-            catch  { return new List<SimpleDirectoryInfo>(); }
-            finally { semaphore.Release(); }
-        }
-
         private static readonly string[] TextExtensions = new[]
         {
             ".txt", ".ini", ".sql", ".cs", ".json", ".xml", ".log", ".py",
@@ -774,7 +632,7 @@ namespace Filey
 
             try
             {
-                var allSubDirs = preEnumeratedChildren ?? GetSubDirectoriesWin32(dirPath);
+                var allSubDirs = preEnumeratedChildren ?? NativeDirectoryEnumerator.GetSubDirectories(dirPath);
                 var subDirsList = new List<SimpleDirectoryInfo>();
 
                 // Pre-filter hidden/system directories if ShowHidden is false
@@ -792,14 +650,14 @@ namespace Filey
 
                 if (subDirsList.Count == 0)
                 {
-                    node.FileCount = GetFileCountWin32(dirPath, DirectoryViewModel.ShowHidden, token);
+                    node.FileCount = NativeDirectoryEnumerator.GetFileCount(dirPath, DirectoryViewModel.ShowHidden, token);
                     return;
                 }
 
                 // Kick off all siblings' directory enumerations concurrently (bounded by semaphore).
                 // Recursion below is sequential to preserve DFS display order; only the I/O is parallelised.
                 var prefetchTasks = subDirsList.ConvertAll(sd =>
-                    FetchChildrenAsync(sd.FullPath, semaphore, token));
+                    NativeDirectoryEnumerator.FetchSubDirectoriesAsync(sd.FullPath, semaphore, token));
 
                 for (int i = 0; i < subDirsList.Count; i++)
                 {
