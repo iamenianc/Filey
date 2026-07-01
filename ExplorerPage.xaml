@@ -14,16 +14,6 @@
         <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
         <Thickness x:Key="RowItemPadding">4,1,4,1</Thickness>
         <Thickness x:Key="RowCellMargin">2,0,2,0</Thickness>
-
-        <!-- Shared right-click context menu for all folder/file/bookmark items in MainWindow (e.g. Favourites) -->
-        <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
-            <MenuItem
-                Header="Open in Right Pane"
-                Click="CtxOpenRightPane_Click" />
-            <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
-            <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
-            <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
-        </ContextMenu>
     </Page.Resources>
 
     <Grid>
