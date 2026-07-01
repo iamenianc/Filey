@@ -178,6 +178,10 @@ namespace Filey
             try
             {
                 string full = Path.GetFullPath(path);
+                if (string.Equals(full, Path.GetPathRoot(full), StringComparison.OrdinalIgnoreCase))
+                {
+                    return full;
+                }
                 return full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             }
             catch { return null; }
