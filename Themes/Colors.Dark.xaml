@@ -35,11 +35,11 @@
     <Color x:Key="AppTextOnAccentColor">#FFFFFFFF</Color>
 
     <!-- Accents / state -->
-    <Color x:Key="AppAccentColor">#FF007ACC</Color>
-    <Color x:Key="AppAccentHoverColor">#FF0098FF</Color>
-    <Color x:Key="AppSelectionColor">#FF094771</Color>
+    <Color x:Key="AppAccentColor">#FF4A5568</Color>
+    <Color x:Key="AppAccentHoverColor">#FF5A6778</Color>
+    <Color x:Key="AppSelectionColor">#FF2D3748</Color>
     <Color x:Key="AppGoldAccentColor">#FFEAB308</Color>
-    <Color x:Key="AppLinkColor">#FF60A5FA</Color>
+    <Color x:Key="AppLinkColor">#FF94A3B8</Color>
     <Color x:Key="AppErrorColor">#FFFF4D4D</Color>
     <Color x:Key="AppErrorBgColor">#FF3D1B1B</Color>
     <Color x:Key="AppSuccessColor">#FF4EC9B0</Color>

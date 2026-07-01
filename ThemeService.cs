@@ -67,6 +67,16 @@ namespace Filey
                 Wpf.Ui.Controls.WindowBackdropType.Mica,
                 updateAccent: false);
 
+            // Set our custom neutral accent color for WPF-UI (changes shade based on theme)
+            if (theme == AppTheme.Light)
+            {
+                ApplicationAccentColorManager.Apply(System.Windows.Media.Color.FromRgb(113, 128, 150), ApplicationTheme.Light);
+            }
+            else
+            {
+                ApplicationAccentColorManager.Apply(System.Windows.Media.Color.FromRgb(74, 85, 104), ApplicationTheme.Dark);
+            }
+
             // 2) Swap our semantic palette dictionary in place.
             SwapPalette(theme);
 
