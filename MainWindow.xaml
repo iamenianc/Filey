@@ -15,29 +15,12 @@
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True">
-    <Window.Resources>
-        <!-- Row density values, swapped at runtime by the Compact Mode toggle. -->
-        <Thickness x:Key="RowItemPadding">4,1,4,1</Thickness>
-        <Thickness x:Key="RowCellMargin">2,0,2,0</Thickness>
-
-        <!-- Shared right-click context menu for all folder/file/bookmark items in MainWindow (e.g. Favourites) -->
-        <ContextMenu x:Key="ItemContextMenu" Opened="ItemContextMenu_Opened">
-            <MenuItem
-                Header="Open in Right Pane"
-                Click="CtxOpenRightPane_Click" />
-            <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
-            <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
-            <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
-        </ContextMenu>
-    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <!-- Title Bar -->
             <RowDefinition Height="Auto"/>
-            <!-- Top Menu Bar -->
-            <RowDefinition Height="Auto"/>
-            <!-- Main Pane Layout -->
+            <!-- Main Content (NavigationView + Frame) -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -49,155 +32,45 @@
             ShowMinimize="True"
             ShowClose="True" />
 
-        <!-- Global Top Menu Bar: slim container for toggles/buttons added in later patches -->
-        <Border x:Name="TopMenuBar"
-                Grid.Row="1"
-                Background="{DynamicResource AppTopBarBrush}"
-                BorderBrush="{DynamicResource AppBorderBrush}"
-                BorderThickness="0,0,0,1"
-                MinHeight="28">
-            <StackPanel x:Name="TopMenuBarItems"
-                        Orientation="Horizontal"
-                        VerticalAlignment="Center"
-                        Margin="6,0">
-                <ToggleButton
-                    x:Name="PreviewModeButton"
-                    Style="{StaticResource TopBarToggleStyle}"
-                    Content="Preview View"
-                    ToolTip="Switch right pane to File Preview"
-                    Click="PreviewModeButton_Click" />
-                <ToggleButton
-                    x:Name="DualModeButton"
-                    Style="{StaticResource TopBarToggleStyle}"
-                    Content="Dual Pane"
-                    ToolTip="Switch right pane to Dual Directory Pane"
-                    Click="DualModeButton_Click" />
-                <ToggleButton
-                    x:Name="ShowHiddenToggle"
-                    Style="{StaticResource TopBarToggleStyle}"
-                    Content="Show hidden"
-                    ToolTip="Show or hide hidden and system items"
-                    Checked="ShowHiddenToggle_Changed"
-                    Unchecked="ShowHiddenToggle_Changed" />
-                <ToggleButton
-                    x:Name="CompactModeToggle"
-                    Style="{StaticResource TopBarToggleStyle}"
-                    Content="Compact"
-                    ToolTip="Reduce row spacing in the file lists"
-                    Checked="CompactModeToggle_Changed"
-                    Unchecked="CompactModeToggle_Changed" />
-                <Button
-                    x:Name="SwapPanesButton"
-                    Style="{StaticResource TopBarButtonStyle}"
-                    Content="⇄ Swap"
-                    ToolTip="Swap the paths shown in the left and right panes"
-                    Click="SwapPanesButton_Click" />
-                <Button
-                    x:Name="FontSizeButton"
-                    Style="{StaticResource TopBarButtonStyle}"
-                    Content="Font: Default"
-                    ToolTip="Toggle large font size"
-                    Click="FontSizeButton_Click" />
-                <ToggleButton
-                    x:Name="ThemeToggle"
-                    Style="{StaticResource TopBarToggleStyle}"
-                    Content="Theme: Dark"
-                    ToolTip="Switch between Light and Dark theme"
-                    Checked="ThemeToggle_Changed"
-                    Unchecked="ThemeToggle_Changed" />
-                <Button
-                    x:Name="SettingsButton"
-                    Style="{StaticResource TopBarButtonStyle}"
-                    Content="Settings"
-                    ToolTip="Open application settings"
-                    Click="SettingsButton_Click" />
-            </StackPanel>
-        </Border>
-
-        <Grid Grid.Row="2" Margin="8">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+        <!-- Main Layout with NavigationView and Frame -->
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <!-- Col 0: Favourites L -->
-                <ColumnDefinition x:Name="LeftFavouritesCol" Width="150" MinWidth="50"/>
-                <!-- Divider 1 -->
-                <ColumnDefinition Width="4" />
-                <!-- Col 2: Left Side Pane -->
-                <ColumnDefinition x:Name="LeftPaneCol" Width="1000*" MinWidth="200" />
-                <!-- Centre Splitter -->
-                <ColumnDefinition x:Name="CentreSplitterCol" Width="12" />
-                <!-- Col 4: Right Side Pane -->
-                <ColumnDefinition x:Name="RightPaneCol" Width="440*" MinWidth="440" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Row 0: Spanning Address Bars -->
-            <local:AddressBar x:Name="LeftAddressBar"
-                              Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                              Margin="0,0,0,8"
-                              CurrentPath="{Binding LeftViewModel.CurrentPath, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              CanGoBack="{Binding LeftViewModel.CanGoBack, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              CanGoForward="{Binding LeftViewModel.CanGoForward, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              NavigationRequested="LeftAddressBar_NavigationRequested"
-                              GoBackRequested="LeftAddressBar_GoBackRequested"
-                              GoForwardRequested="LeftAddressBar_GoForwardRequested"
-                              HomeRequested="LeftAddressBar_HomeRequested"
-                              SetHomeRequested="LeftAddressBar_SetHomeRequested"
-                              SearchResultChosen="LeftAddressBar_SearchResultChosen"
-                              SearchAllRequested="LeftAddressBar_SearchAllRequested"/>
+            <!-- Shell Navigation -->
+            <ui:NavigationView
+                x:Name="RootNavigationView"
+                Grid.Column="0"
+                PaneDisplayMode="LeftCompact"
+                IsPaneOpen="False"
+                SelectionChanged="RootNavigationView_SelectionChanged">
+                
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem
+                        x:Name="ExplorerItem"
+                        Content="Explorer"
+                        Icon="{ui:SymbolIcon Folder24}" />
+                    <ui:NavigationViewItem
+                        x:Name="IndexerItem"
+                        Content="Crawler Status"
+                        Icon="{ui:SymbolIcon Database24}" />
+                </ui:NavigationView.MenuItems>
 
-            <local:AddressBar x:Name="RightAddressBar"
-                              Grid.Row="0" Grid.Column="4"
-                              Margin="0,0,0,8"
-                              CurrentPath="{Binding RightViewModel.CurrentPath, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              CanGoBack="{Binding RightViewModel.CanGoBack, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              CanGoForward="{Binding RightViewModel.CanGoForward, RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
-                              NavigationRequested="RightAddressBar_NavigationRequested"
-                              GoBackRequested="RightAddressBar_GoBackRequested"
-                              GoForwardRequested="RightAddressBar_GoForwardRequested"
-                              HomeRequested="RightAddressBar_HomeRequested"
-                              SetHomeRequested="RightAddressBar_SetHomeRequested"
-                              SearchResultChosen="RightAddressBar_SearchResultChosen"
-                              SearchAllRequested="RightAddressBar_SearchAllRequested"/>
+                <ui:NavigationView.FooterMenuItems>
+                    <ui:NavigationViewItem
+                        x:Name="SettingsItem"
+                        Content="Settings"
+                        Icon="{ui:SymbolIcon Settings24}" />
+                </ui:NavigationView.FooterMenuItems>
+            </ui:NavigationView>
 
-            <!-- Favourites panel on the far left -->
-            <local:FavouritesPanel x:Name="LeftFavouritesPanel" Grid.Row="1" Grid.Column="0" Side="Left"/>
-
-            <!-- GridSplitter between Favourites and Left Pane -->
-            <GridSplitter Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
-
-            <!-- Left Directory Pane -->
-            <local:DirectoryPane x:Name="LeftDirectoryPane" Grid.Row="1" Grid.Column="2" ShowAddressBar="False" ViewModel="{Binding LeftViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Left" HomeRequested="LeftDirectoryPane_HomeRequested" SetHomeRequested="LeftDirectoryPane_SetHomeRequested"/>
-
-            <!-- Centre Splitter between Left and Right Panes -->
-            <GridSplitter x:Name="CentreSplitter" Grid.Row="0" Grid.RowSpan="2" Grid.Column="3" Style="{StaticResource ModernGridSplitter}" Width="12" />
-
-            <!-- Right Pane Grid (includes the DirectoryPane and the Inactive Overlay) -->
-            <Grid x:Name="RightPaneGrid" Grid.Row="1" Grid.Column="4" DataContext="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}">
-                <local:DirectoryPane x:Name="RightDirectoryPane" ShowAddressBar="False" ViewModel="{Binding RightViewModel, RelativeSource={RelativeSource AncestorType=local:MainWindow}}" Side="Right" HomeRequested="RightDirectoryPane_HomeRequested" SetHomeRequested="RightDirectoryPane_SetHomeRequested"/>
-            </Grid>
-
-            <!-- Inline Dynamic File Preview Panel -->
-            <local:PreviewPane
-                x:Name="RightPreviewControl"
-                Grid.Row="0"
-                Grid.RowSpan="2"
-                Grid.Column="4"
-                Visibility="Collapsed" />
-
-            <!-- Search results overlays: cover each side's pane area when a query is committed -->
-            <local:SearchResultsView
-                x:Name="LeftSearchResults"
-                Grid.Row="1"
-                Grid.Column="0" Grid.ColumnSpan="3"
-                Visibility="Collapsed" />
-
-            <local:SearchResultsView
-                x:Name="RightSearchResults"
-                Grid.Row="1"
-                Grid.Column="4"
-                Visibility="Collapsed" />
+            <!-- Main Page Frame -->
+            <Frame
+                x:Name="RootFrame"
+                Grid.Column="1"
+                NavigationUIVisibility="Hidden"/>
         </Grid>
     </Grid>
 </ui:FluentWindow>

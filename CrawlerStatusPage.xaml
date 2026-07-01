@@ -1,0 +1,97 @@
+<Page x:Class="Filey.CrawlerStatusPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Filey"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d" 
+      d:DesignHeight="600" d:DesignWidth="800"
+      Title="CrawlerStatusPage"
+      Loaded="Page_Loaded">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <!-- Title -->
+            <RowDefinition Height="Auto"/>
+            <!-- Metrics Cards -->
+            <RowDefinition Height="Auto"/>
+            <!-- Roots List Title -->
+            <RowDefinition Height="Auto"/>
+            <!-- Roots List Grid -->
+            <RowDefinition Height="*"/>
+            <!-- Bottom Action Panel -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Indexer &amp; Crawler Status"
+                   Foreground="{DynamicResource AppTextPrimaryBrush}"
+                   FontSize="28"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,24"/>
+
+        <!-- Metrics Cards Section -->
+        <Grid Grid.Row="1" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Indexed files card -->
+            <Border Grid.Column="0" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Background="{DynamicResource AppPanelBackgroundBrush}">
+                <StackPanel>
+                    <TextBlock Text="Indexed Items" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="IndexedCountText" Text="0" Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" FontSize="36" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <TextBlock Text="Total files and directories indexed in database" Foreground="{DynamicResource AppTextMutedBrush}" FontSize="12" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Watcher files card -->
+            <Border Grid.Column="2" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Background="{DynamicResource AppPanelBackgroundBrush}">
+                <StackPanel>
+                    <TextBlock Text="Active Watchers" Foreground="{DynamicResource AppTextSecondaryBrush}" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="WatcherCountText" Text="0" Foreground="{DynamicResource SystemAccentColorSecondaryBrush}" FontSize="36" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <TextBlock Text="Folders watched for real-time filesystem updates" Foreground="{DynamicResource AppTextMutedBrush}" FontSize="12" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Section Title -->
+        <TextBlock Grid.Row="2"
+                   Text="Configured Index Roots"
+                   Foreground="{DynamicResource AppTextSecondaryBrush}"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+        <!-- List of Index Roots -->
+        <Border Grid.Row="3" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Background="{DynamicResource AppPanelBackgroundBrush}" Padding="4" Margin="0,0,0,16">
+            <ui:ListView x:Name="RootsListView" Style="{StaticResource ModernListView}">
+                <ui:ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Directory Path" DisplayMemberBinding="{Binding Path}" Width="450"/>
+                        <GridViewColumn Header="Crawler Tier" DisplayMemberBinding="{Binding Tier}" Width="150"/>
+                    </GridView>
+                </ui:ListView.View>
+            </ui:ListView>
+        </Border>
+
+        <!-- Action Panel -->
+        <Border Grid.Row="4" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Background="{DynamicResource AppPanelBackgroundBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Diagnostic Actions" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="14"/>
+                    <TextBlock Text="Force a background crawl to refresh search listings" Foreground="{DynamicResource AppTextMutedBrush}" FontSize="12" Margin="0,2,0,0"/>
+                </StackPanel>
+                <ui:Button Grid.Column="1" x:Name="ReCrawlButton" Content="Force Re-Crawl" Width="130" Height="32" Click="ReCrawlButton_Click" Appearance="Primary" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

@@ -107,15 +107,7 @@
                                     VerticalAlignment="Center"
                                     IsEnabled="{Binding CanGoToParent}"
                                     Click="ParentBackButton_Click">
-                                <Path Width="8"
-                                      Height="8"
-                                      Stretch="Uniform"
-                                      Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
-                                      StrokeThickness="1.5"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"
-                                      Data="M 6,2 L 2,5 L 6,8 M 2,5 L 8,5"/>
+                                <ui:SymbolIcon Symbol="ArrowUp24" />
                             </Button>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ParentFolderName}"

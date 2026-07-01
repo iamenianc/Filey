@@ -121,7 +121,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="SettingsDialog.xaml">
+    <Page Include="ExplorerPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="SettingsPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="CrawlerStatusPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -158,8 +166,16 @@
       <DependentUpon>PreviewPane.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SettingsDialog.xaml.cs">
-      <DependentUpon>SettingsDialog.xaml</DependentUpon>
+    <Compile Include="ExplorerPage.xaml.cs">
+      <DependentUpon>ExplorerPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SettingsPage.xaml.cs">
+      <DependentUpon>SettingsPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CrawlerStatusPage.xaml.cs">
+      <DependentUpon>CrawlerStatusPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="AppSettings.cs" />
@@ -229,7 +245,7 @@
     <PackageReference Include="FuzzySharp">
       <Version>2.0.2</Version>
     </PackageReference>
-    <PackageReference Include="Material.Icons" Version="3.0.2" />
+
     <PackageReference Include="OpenMcdf" Version="3.1.4" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.4</Version>

@@ -35,6 +35,9 @@ namespace Filey
         /// <summary>Number of live watchers (should equal the hot-root count).</summary>
         public int WatcherCount => _watcher?.WatcherCount ?? 0;
 
+        /// <summary>Configured crawler roots.</summary>
+        public IReadOnlyList<IndexRoot> Roots => _roots;
+
         /// <summary>
         /// Loads the persisted index (instant search), then starts the background crawl,
         /// hot-root watchers, and warm-root refresh timer. Non-blocking past the load.
@@ -126,6 +129,13 @@ namespace Filey
                     .Select(e => e.ToFolderItem())
                     .ToList();
             });
+        }
+
+        /// <summary>Forces a background re-crawl of all configured roots.</summary>
+        public void ForceReCrawl()
+        {
+            if (!_started || _cts.IsCancellationRequested) return;
+            _ = FileSystemCrawler.CrawlAsync(_roots, _index, _cts.Token);
         }
 
         /// <summary>Stops watching/crawling and persists the index. Call on shutdown.</summary>

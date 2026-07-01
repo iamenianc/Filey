@@ -52,7 +52,39 @@ namespace Filey
         /// pick up the current theme.</summary>
         public static Brush Brush(string key) => (Brush)Application.Current.FindResource(key);
 
+        static ThemeService()
+        {
+            // Hook system theme change event to keep custom palette in sync
+            ApplicationThemeManager.Changed += (theme, accent) =>
+            {
+                AppTheme appTheme = theme == ApplicationTheme.Light ? AppTheme.Light : AppTheme.Dark;
+                Current = appTheme;
+                SwapPalette(appTheme);
+                MapAccentBrushes();
+                foreach (Window w in Application.Current.Windows)
+                {
+                    ApplyTitleBar(w, appTheme == AppTheme.Dark);
+                }
+                ThemeChanged?.Invoke();
+            };
+        }
+
         public static Color Color(string key) => (Color)Application.Current.FindResource(key);
+
+        public static void MapAccentBrushes()
+        {
+            if (Application.Current == null) return;
+
+            if (Application.Current.Resources.Contains("SystemAccentColorSecondaryBrush"))
+            {
+                Application.Current.Resources["AppAccentBrush"] = Application.Current.Resources["SystemAccentColorSecondaryBrush"];
+                Application.Current.Resources["AppSelectionBrush"] = Application.Current.Resources["SystemAccentColorSecondaryBrush"];
+            }
+            if (Application.Current.Resources.Contains("SystemAccentColorTertiaryBrush"))
+            {
+                Application.Current.Resources["AppAccentHoverBrush"] = Application.Current.Resources["SystemAccentColorTertiaryBrush"];
+            }
+        }
 
         /// <summary>Applies the given theme: WPF-UI recolor first, then our palette swap (so our
         /// keys win over WPF-UI defaults), then per-window title bars, then notifies listeners.</summary>
@@ -60,27 +92,19 @@ namespace Filey
         {
             Current = theme;
 
-            // 1) Recolor WPF-UI controls. This rewrites the WPF-UI ThemesDictionary entry, so it
-            //    must run BEFORE our palette swap. Keep our own accent (updateAccent: false).
+            // Apply system accent (updates the resources)
+            ApplicationAccentColorManager.ApplySystemAccent();
+
+            // Recolor WPF-UI controls. Keep our own accent (updateAccent: false).
             ApplicationThemeManager.Apply(
                 theme == AppTheme.Light ? ApplicationTheme.Light : ApplicationTheme.Dark,
                 Wpf.Ui.Controls.WindowBackdropType.Mica,
                 updateAccent: false);
 
-            // Set our custom neutral accent color for WPF-UI (changes shade based on theme)
-            if (theme == AppTheme.Light)
-            {
-                ApplicationAccentColorManager.Apply(System.Windows.Media.Color.FromRgb(113, 128, 150), ApplicationTheme.Light);
-            }
-            else
-            {
-                ApplicationAccentColorManager.Apply(System.Windows.Media.Color.FromRgb(74, 85, 104), ApplicationTheme.Dark);
-            }
-
-            // 2) Swap our semantic palette dictionary in place.
+            // Explicitly run the mappings in case the Theme didn't change (no Changed event)
             SwapPalette(theme);
+            MapAccentBrushes();
 
-            // 3) Update the title bar on every open window (MainWindow + any PreviewWindow).
             foreach (Window w in Application.Current.Windows)
             {
                 ApplyTitleBar(w, IsDark);
