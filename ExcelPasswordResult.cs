@@ -1,6 +1,6 @@
 namespace Filey
 {
-    internal sealed class ExcelPasswordResult
+    public sealed class ExcelPasswordResult
     {
         public string Path { get; set; }
         public string OutputPath { get; set; }
