@@ -78,7 +78,15 @@ namespace Filey
             if (Application.Current.Resources.Contains("SystemAccentColorSecondaryBrush"))
             {
                 Application.Current.Resources["AppAccentBrush"] = Application.Current.Resources["SystemAccentColorSecondaryBrush"];
-                Application.Current.Resources["AppSelectionBrush"] = Application.Current.Resources["SystemAccentColorSecondaryBrush"];
+
+                if (Current == AppTheme.Light && Application.Current.Resources.Contains("SystemAccentColorLight3Brush"))
+                {
+                    Application.Current.Resources["AppSelectionBrush"] = Application.Current.Resources["SystemAccentColorLight3Brush"];
+                }
+                else
+                {
+                    Application.Current.Resources["AppSelectionBrush"] = Application.Current.Resources["SystemAccentColorSecondaryBrush"];
+                }
             }
             if (Application.Current.Resources.Contains("SystemAccentColorTertiaryBrush"))
             {
