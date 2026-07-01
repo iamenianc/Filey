@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -675,6 +677,27 @@ namespace Filey
             return null;
         }
 
+        /// <summary>
+        /// Returns the full multi-selection for the list the context menu was opened on (currently
+        /// only <see cref="FilesListView"/> supports multi-select), falling back to the single
+        /// clicked item for everything else (e.g. FoldersListView).
+        /// </summary>
+        private List<FolderItem> SelectedFileItemsFromMenu(object sender)
+        {
+            if (sender is MenuItem mi && mi.Parent is ContextMenu menu
+                && menu.PlacementTarget is DependencyObject placementTarget)
+            {
+                var listView = FindAncestor<ListView>(placementTarget);
+                if (ReferenceEquals(listView, FilesListView))
+                {
+                    return FilesListView.SelectedItems.Cast<FolderItem>().ToList();
+                }
+            }
+
+            var single = ItemFromMenu(sender);
+            return single != null ? new List<FolderItem> { single } : new List<FolderItem>();
+        }
+
         private static readonly string[] TextExtensions = new[]
         {
             ".txt", ".ini", ".sql", ".cs", ".json", ".md", ".xml", ".log", ".py",
@@ -694,6 +717,15 @@ namespace Filey
             return Array.Exists(TextExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))
                 || Array.Exists(ImageExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase))
                 || string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static readonly string[] ExcelExtensions = new[] { ".xlsx", ".xls", ".xlsm" };
+
+        private static bool IsExcelFile(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            string ext = System.IO.Path.GetExtension(path);
+            return Array.Exists(ExcelExtensions, e => string.Equals(e, ext, StringComparison.OrdinalIgnoreCase));
         }
 
         private void ItemContextMenu_Opened(object sender, RoutedEventArgs e)
@@ -720,6 +752,13 @@ namespace Filey
                         {
                             mi.Visibility = Visibility.Collapsed;
                         }
+                    }
+                    else if (string.Equals(mi.Name, "CtxRemoveExcelPasswordItem"))
+                    {
+                        var selectedItems = SelectedFileItemsFromMenu(mi);
+                        bool allExcel = selectedItems.Count > 0
+                            && selectedItems.All(i => !i.IsDirectory && IsExcelFile(i.FullPath));
+                        mi.Visibility = allExcel ? Visibility.Visible : Visibility.Collapsed;
                     }
                 }
             }
@@ -778,6 +817,62 @@ namespace Filey
                 {
                     mainWindow.LeftFavouritesPanel.AddFavourite(item.FullPath);
                 }
+            }
+        }
+
+        private async void CtxRemoveExcelPassword_Click(object sender, RoutedEventArgs e)
+        {
+            var excelItems = SelectedFileItemsFromMenu(sender)
+                .Where(i => !i.IsDirectory && IsExcelFile(i.FullPath))
+                .ToList();
+            if (excelItems.Count == 0) return;
+
+            string prompt = excelItems.Count == 1
+                ? $"Enter the password for \"{excelItems[0].Name}\":"
+                : $"Enter the password shared by all {excelItems.Count} selected files:";
+
+            var dialog = new PasswordPromptDialog("Remove Excel Password", prompt)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            List<ExcelPasswordResult> results;
+            try
+            {
+                results = await ContextActions.RemoveExcelPasswordAsync(
+                    excelItems.Select(i => i.FullPath), dialog.Password);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not run the password removal script: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            int successCount = results.Count(r => r.Success);
+            int failCount = results.Count - successCount;
+
+            if (failCount == 0)
+            {
+                MessageBox.Show(
+                    successCount == 1
+                        ? "Password removed. A new copy was created."
+                        : $"Password removed from all {successCount} files. New copies were created.",
+                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                var lines = results
+                    .Where(r => !r.Success)
+                    .Select(r => $"- {System.IO.Path.GetFileName(r.Path)}: {r.Error}");
+                string summary = $"{successCount} of {results.Count} succeeded.\n\nFailed:\n" + string.Join("\n", lines);
+                MessageBox.Show(summary, "Some files failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            if (successCount > 0 && ViewModel != null)
+            {
+                ViewModel.LoadDirectory(ViewModel.CurrentPath);
             }
         }
 
