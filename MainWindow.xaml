@@ -43,7 +43,7 @@
             <ui:NavigationView
                 x:Name="RootNavigationView"
                 Grid.Column="0"
-                PaneDisplayMode="LeftCompact"
+                PaneDisplayMode="Left"
                 IsPaneOpen="False"
                 SelectionChanged="RootNavigationView_SelectionChanged">
                 
