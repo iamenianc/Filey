@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using Newtonsoft.Json;
 
 namespace Filey
 {
@@ -42,114 +40,59 @@ namespace Filey
         }
 
         /// <summary>
-        /// Removes the password from each Excel file via a bundled PowerShell script that drives
-        /// Excel COM Automation, saving password-free copies alongside the originals. The password
-        /// is piped over the child process's stdin rather than passed as a command-line argument,
-        /// so it never appears in a process listing (e.g. Task Manager's "Command line" column).
+        /// Removes the open (encryption) password from each Excel workbook entirely in managed code
+        /// (see <see cref="ExcelDecryptor"/>) - no Excel, COM, or PowerShell - saving a password-free
+        /// copy alongside each original. Runs on a background thread; decryption is byte-preserving,
+        /// so macros and formatting survive intact. Supports Agile-encrypted .xlsx/.xlsm files.
         /// </summary>
         public static async Task<List<ExcelPasswordResult>> RemoveExcelPasswordAsync(IEnumerable<string> filePaths, string password)
         {
             var paths = filePaths.ToList();
-            string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "RemoveExcelPassword.ps1");
 
-            if (!File.Exists(scriptPath))
+            return await Task.Run(() =>
             {
-                return paths.Select(p => new ExcelPasswordResult
+                var results = new List<ExcelPasswordResult>(paths.Count);
+                foreach (string path in paths)
                 {
-                    Path = p,
-                    Success = false,
-                    Error = $"The password-removal script was not found at: {scriptPath}"
-                }).ToList();
-            }
-
-            var argumentsBuilder = new StringBuilder();
-            argumentsBuilder.Append("-NoProfile -ExecutionPolicy Bypass -File \"").Append(scriptPath).Append("\" -Path");
-            foreach (string path in paths)
-            {
-                argumentsBuilder.Append(" \"").Append(path).Append('"');
-            }
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = argumentsBuilder.ToString(),
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            // Excel COM startup and the whole launch/IO sequence run on a background thread so the
-            // caller's UI thread is never blocked (process.Start() and the stdin write are otherwise
-            // synchronous). Excel can also hang on an unexpected dialog, so the wait is time-capped.
-            const int timeoutMs = 120000;
-            string stdout = string.Empty, stderr = string.Empty;
-            int exitCode = -1;
-            bool timedOut = false;
-
-            await Task.Run(() =>
-            {
-                using (var process = new Process { StartInfo = psi })
-                {
-                    process.Start();
-
-                    process.StandardInput.WriteLine(password);
-                    process.StandardInput.Close();
-
-                    Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
-                    Task<string> stderrTask = process.StandardError.ReadToEndAsync();
-
-                    if (!process.WaitForExit(timeoutMs))
+                    try
                     {
-                        timedOut = true;
-                        try { process.Kill(); } catch { /* already exiting */ }
+                        byte[] decrypted = ExcelDecryptor.Decrypt(path, password);
+                        string outputPath = GetCollisionSafeOutputPath(path);
+                        File.WriteAllBytes(outputPath, decrypted);
+
+                        results.Add(new ExcelPasswordResult { Path = path, OutputPath = outputPath, Success = true });
                     }
-
-                    // Both reads complete once the streams close (on exit or kill).
-                    stdout = stdoutTask.Result ?? string.Empty;
-                    stderr = stderrTask.Result ?? string.Empty;
-                    exitCode = process.HasExited ? process.ExitCode : -1;
+                    catch (ExcelDecryptException ex)
+                    {
+                        results.Add(new ExcelPasswordResult { Path = path, Success = false, Error = ex.Message });
+                    }
+                    catch (Exception ex)
+                    {
+                        results.Add(new ExcelPasswordResult { Path = path, Success = false, Error = ex.Message });
+                    }
                 }
+                return results;
             });
+        }
 
-            if (timedOut)
+        /// <summary>
+        /// Returns "<name> (pw removed)<ext>" next to the original, appending " (2)", " (3)", ...
+        /// until it finds a path that does not already exist.
+        /// </summary>
+        private static string GetCollisionSafeOutputPath(string originalPath)
+        {
+            string dir = Path.GetDirectoryName(originalPath) ?? string.Empty;
+            string name = Path.GetFileNameWithoutExtension(originalPath);
+            string ext = Path.GetExtension(originalPath);
+
+            string candidate = Path.Combine(dir, $"{name} (pw removed){ext}");
+            int n = 2;
+            while (File.Exists(candidate))
             {
-                return paths.Select(p => new ExcelPasswordResult
-                {
-                    Path = p,
-                    Success = false,
-                    Error = "Timed out waiting for Excel to respond. It may be blocked on a dialog or not installed correctly."
-                }).ToList();
+                candidate = Path.Combine(dir, $"{name} (pw removed) ({n}){ext}");
+                n++;
             }
-
-            try
-            {
-                var results = JsonConvert.DeserializeObject<List<ExcelPasswordResult>>(stdout);
-                if (results != null && results.Count > 0) return results;
-            }
-            catch (JsonException)
-            {
-                // Fall through to the synthesized failure below.
-            }
-
-            // The script produced no usable JSON. Surface whatever diagnostics we captured so the
-            // real cause (stderr, unexpected stdout, or a non-zero exit) is visible instead of a
-            // generic message.
-            string message;
-            if (!string.IsNullOrWhiteSpace(stderr))
-                message = stderr.Trim();
-            else if (!string.IsNullOrWhiteSpace(stdout))
-                message = $"Unexpected script output: {stdout.Trim()}";
-            else
-                message = $"The password removal script returned no result (exit code {exitCode}).";
-
-            return paths.Select(p => new ExcelPasswordResult
-            {
-                Path = p,
-                Success = false,
-                Error = message
-            }).ToList();
+            return candidate;
         }
     }
 }

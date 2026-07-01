@@ -170,6 +170,7 @@
     <Compile Include="PdfRenderer.cs" />
     <Compile Include="InputDialog.cs" />
     <Compile Include="PasswordPromptDialog.cs" />
+    <Compile Include="ExcelDecryptor.cs" />
     <Compile Include="ExcelPasswordResult.cs" />
     <Compile Include="FastTreeVisualHost.cs" />
     <Compile Include="MarkdownParser.cs" />
@@ -210,9 +211,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="Properties\PublishProfiles\win-x64.pubxml" />
-    <None Include="Scripts\RemoveExcelPassword.ps1">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm">
@@ -222,6 +220,7 @@
       <Version>2.0.2</Version>
     </PackageReference>
     <PackageReference Include="Material.Icons" Version="3.0.2" />
+    <PackageReference Include="OpenMcdf" Version="2.3.1" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.4</Version>
     </PackageReference>
