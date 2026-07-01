@@ -597,7 +597,7 @@ namespace Filey
             }
         }
 
-        private async Task BuildFastTreeAsync(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, double[] currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, bool[] wasLimited, CancellationToken token, SemaphoreSlim semaphore, List<SimpleDirectoryInfo> preEnumeratedChildren = null)
+        private async Task BuildFastTreeAsync(string dirPath, string dirName, int level, int activeRootLevel, double historyIndent, double indent, double[] currentY, double rowHeight, List<FastNode> list, System.Diagnostics.Stopwatch stopwatch, bool[] wasLimited, CancellationToken token, SemaphoreSlim semaphore, (List<SimpleDirectoryInfo> SubDirs, int FileCount)? preEnumeratedChildren = null)
         {
             if (token.IsCancellationRequested) return;
 
@@ -653,12 +653,26 @@ namespace Filey
                 await Task.Delay(100, token);
             }
 
-            // Depth limit check (explore exactly _previewDepth levels under the active folder)
-            if (level >= activeRootLevel + _previewDepth) return;
-
             try
             {
-                var allSubDirs = preEnumeratedChildren ?? NativeDirectoryEnumerator.GetSubDirectories(dirPath);
+                List<SimpleDirectoryInfo> allSubDirs;
+                if (preEnumeratedChildren.HasValue)
+                {
+                    allSubDirs = preEnumeratedChildren.Value.SubDirs;
+                    node.FileCount = preEnumeratedChildren.Value.FileCount;
+                }
+                else
+                {
+                    allSubDirs = NativeDirectoryEnumerator.GetSubDirectoriesAndFileCount(
+                        dirPath, DirectoryViewModel.ShowHidden, token, out int fc);
+                    node.FileCount = fc;
+                }
+
+                // Depth limit check (explore exactly _previewDepth levels under the active folder).
+                // The node's own file count above doesn't require descending further, so it's
+                // computed unconditionally before this check.
+                if (level >= activeRootLevel + _previewDepth) return;
+
                 var subDirsList = new List<SimpleDirectoryInfo>();
 
                 // Pre-filter hidden/system directories if ShowHidden is false
@@ -676,14 +690,13 @@ namespace Filey
 
                 if (subDirsList.Count == 0)
                 {
-                    node.FileCount = NativeDirectoryEnumerator.GetFileCount(dirPath, DirectoryViewModel.ShowHidden, token);
                     return;
                 }
 
                 // Kick off all siblings' directory enumerations concurrently (bounded by semaphore).
                 // Recursion below is sequential to preserve DFS display order; only the I/O is parallelised.
                 var prefetchTasks = subDirsList.ConvertAll(sd =>
-                    NativeDirectoryEnumerator.FetchSubDirectoriesAsync(sd.FullPath, semaphore, token));
+                    NativeDirectoryEnumerator.FetchSubDirectoriesAndFileCountAsync(sd.FullPath, DirectoryViewModel.ShowHidden, semaphore, token));
 
                 for (int i = 0; i < subDirsList.Count; i++)
                 {

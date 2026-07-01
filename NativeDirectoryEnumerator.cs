@@ -169,6 +169,80 @@ namespace Filey
         }
 
         /// <summary>
+        /// Single-pass fusion of <see cref="GetSubDirectories"/> and <see cref="GetFileCount"/>:
+        /// returns immediate subdirectories and counts sibling files in one native scan, so
+        /// tree-building callers don't need two <c>FindFirstFileEx</c> passes per folder.
+        /// </summary>
+        public static List<SimpleDirectoryInfo> GetSubDirectoriesAndFileCount(
+            string parentPath, bool showHidden, CancellationToken token, out int fileCount)
+        {
+            var list = new List<SimpleDirectoryInfo>();
+            int count = 0;
+            WIN32_FIND_DATA findData = new WIN32_FIND_DATA();
+            IntPtr hFind = FindFirstFileEx(
+                Path.Combine(parentPath, "*"),
+                FINDEX_INFO_LEVELS.FindExInfoBasic,
+                ref findData,
+                FINDEX_SEARCH_OPS.FindExSearchNameMatch,
+                IntPtr.Zero,
+                FIND_FIRST_EX_LARGE_FETCH);
+
+            if (hFind == INVALID_HANDLE_VALUE)
+            {
+                fileCount = 0;
+                return list;
+            }
+            try
+            {
+                do
+                {
+                    if (token.IsCancellationRequested) break;
+                    uint attr = findData.dwFileAttributes;
+                    if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0)
+                    {
+                        string name = findData.cFileName;
+                        if (name != "." && name != "..")
+                        {
+                            list.Add(new SimpleDirectoryInfo
+                            {
+                                Name = name,
+                                FullPath = Path.Combine(parentPath, name),
+                                Attributes = (FileAttributes)attr
+                            });
+                        }
+                    }
+                    else
+                    {
+                        if (!showHidden && ((attr & FILE_ATTRIBUTE_HIDDEN) != 0 || (attr & FILE_ATTRIBUTE_SYSTEM) != 0)) continue;
+                        count++;
+                    }
+                }
+                while (FindNextFile(hFind, ref findData));
+            }
+            finally { FindClose(hFind); }
+            fileCount = count;
+            return list;
+        }
+
+        /// <summary>Runs <see cref="GetSubDirectoriesAndFileCount"/> on a background thread, bounded by a semaphore.</summary>
+        public static async Task<(List<SimpleDirectoryInfo> SubDirs, int FileCount)> FetchSubDirectoriesAndFileCountAsync(
+            string path, bool showHidden, SemaphoreSlim semaphore, CancellationToken token)
+        {
+            await semaphore.WaitAsync(token);
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var subDirs = GetSubDirectoriesAndFileCount(path, showHidden, token, out int fileCount);
+                    return (subDirs, fileCount);
+                }, token);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { return (new List<SimpleDirectoryInfo>(), 0); }
+            finally { semaphore.Release(); }
+        }
+
+        /// <summary>
         /// Enumerates all entries (files and directories) directly under
         /// <paramref name="parentPath"/>, with size and last-write time populated for files.
         /// Used by the index crawler to capture metadata in a single pass.
