@@ -36,6 +36,20 @@
         <Setter Property="MinHeight" Value="22"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsChecked" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+            </MultiTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Small icon-only chevron toggle, e.g. Favourites' Drives section expand/collapse -->
@@ -73,6 +87,24 @@
         <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="FontSize" Value="{DynamicResource AppFontSize}" />
+    </Style>
+
+    <!-- Custom styled ListViewItem targeting accent background and high-contrast text on selection -->
+    <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource ListViewItemStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+            </MultiTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Modern Column Header Style -->
