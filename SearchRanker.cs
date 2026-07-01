@@ -22,11 +22,16 @@ namespace Filey
         private static readonly char[] PathSeparators = { '\\', '/' };
 
         /// <summary>Ranks <paramref name="entries"/> against <paramref name="query"/>, best first.</summary>
-        public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max, string activeDirectory = null)
+        public static List<IndexEntry> Rank(string query, IEnumerable<IndexEntry> entries, int max, string activeDirectory = null, DirectoryNode[] nodes = null)
         {
             var results = new List<IndexEntry>();
             if (string.IsNullOrWhiteSpace(query) || entries == null) return results;
             string q = query.Trim().ToLowerInvariant();
+
+            if (nodes == null)
+            {
+                nodes = DirectoryRegistry.Instance.GetNodesSnapshot();
+            }
 
             // Split the query into terms by spaces and common directory separators
             var terms = q.Split(new[] { ' ', '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
@@ -51,13 +56,13 @@ namespace Filey
             // (far more expensive) fuzzy match — and excluded from the results completely.
             var scored = entries
                 .AsParallel()
-                .Where(e => e != null && OnActiveDrive(e, activeDrive, activeDriveChar))
+                .Where(e => e != null && OnActiveDrive(e, activeDrive, activeDriveChar, nodes))
                 .Select(e =>
                 {
                     string nl = e.NameLower;
                     if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
 
-                    var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+                    var node = GetNodeFromSnapshot(e.ParentId, nodes);
                     string parentLower = node?.CleanPathLower ?? "";
 
                     int totalScore = 0;
@@ -122,7 +127,7 @@ namespace Filey
 
             return scored
                 .OrderByDescending(kv => !string.IsNullOrEmpty(activeDirectory) && 
-                                         StartsWithActiveDirectory(kv.Value, activeDirectory))
+                                         StartsWithActiveDirectory(kv.Value, activeDirectory, nodes))
                 .ThenByDescending(kv => kv.Key)
                 .ThenBy(kv => kv.Value.Name, StringComparer.OrdinalIgnoreCase)
                 .Take(max)
@@ -130,10 +135,10 @@ namespace Filey
                 .ToList();
         }
 
-        private static bool StartsWithActiveDirectory(IndexEntry e, string activeDirectory)
+        private static bool StartsWithActiveDirectory(IndexEntry e, string activeDirectory, DirectoryNode[] nodes)
         {
             if (string.IsNullOrEmpty(activeDirectory) || e == null) return false;
-            var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+            var node = GetNodeFromSnapshot(e.ParentId, nodes);
             if (node == null) return false;
 
             if (node.Path != null && node.Path.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
@@ -190,12 +195,12 @@ namespace Filey
             return count;
         }
 
-        private static bool OnActiveDrive(IndexEntry e, string activeDrive, char activeDriveChar)
+        private static bool OnActiveDrive(IndexEntry e, string activeDrive, char activeDriveChar, DirectoryNode[] nodes)
         {
             if (activeDrive == null) return true;
             if (e == null) return false;
 
-            var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+            var node = GetNodeFromSnapshot(e.ParentId, nodes);
             if (node == null) return false;
 
             if (activeDriveChar != '\0' && node.Drive != '\0')
@@ -204,6 +209,13 @@ namespace Filey
             }
 
             return string.Equals(GetRootDrive(node.Path), activeDrive, StringComparison.Ordinal);
+        }
+
+        private static DirectoryNode GetNodeFromSnapshot(int id, DirectoryNode[] nodes)
+        {
+            if (nodes != null && id >= 0 && id < nodes.Length)
+                return nodes[id];
+            return DirectoryRegistry.Instance.GetNode(id);
         }
 
         /// <summary>

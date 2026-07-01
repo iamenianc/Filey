@@ -84,12 +84,26 @@ namespace Filey
         {
             if (string.IsNullOrEmpty(path)) return "";
 
-            char[] buffer = System.Buffers.ArrayPool<char>.Shared.Rent(path.Length);
+            char[] buffer = System.Buffers.ArrayPool<char>.Shared.Rent(path.Length + 2);
             try
             {
                 int len = 0;
+                int startIdx = 0;
+                int leadingSeparators = 0;
+                while (leadingSeparators < path.Length && (path[leadingSeparators] == '/' || path[leadingSeparators] == '\\'))
+                {
+                    leadingSeparators++;
+                }
+
+                if (leadingSeparators >= 2)
+                {
+                    buffer[len++] = '\\';
+                    buffer[len++] = '\\';
+                    startIdx = leadingSeparators;
+                }
+
                 bool lastWasSeparator = false;
-                for (int i = 0; i < path.Length; i++)
+                for (int i = startIdx; i < path.Length; i++)
                 {
                     char c = path[i];
                     if (c == '/' || c == '\\')
@@ -155,6 +169,14 @@ namespace Filey
                     list.Add(node?.Path);
                 }
                 return list;
+            }
+        }
+
+        public DirectoryNode[] GetNodesSnapshot()
+        {
+            lock (_gate)
+            {
+                return _idToNode.ToArray();
             }
         }
 

@@ -96,7 +96,8 @@ namespace Filey
             return Task.Run<IReadOnlyList<FolderItem>>(() =>
             {
                 var snapshot = _index.GetSnapshot();
-                var ordered = SearchRanker.Rank(query, snapshot, max, activeDirectory);
+                var nodes = DirectoryRegistry.Instance.GetNodesSnapshot();
+                var ordered = SearchRanker.Rank(query, snapshot, max, activeDirectory, nodes);
 
                 return (IReadOnlyList<FolderItem>)ordered
                     .Select(e => e.ToFolderItem())
