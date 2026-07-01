@@ -40,8 +40,8 @@ namespace Filey
 
             InitializeComponent();
 
-            // Set up Windows 11 system accent/theme sync
-            SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.Mica, updateAccents: true);
+            // Set up Windows 11 system theme sync, but disable accent color sync to keep our custom accent
+            SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.Mica, updateAccents: false);
 
             this.Closing += MainWindow_Closing;
 

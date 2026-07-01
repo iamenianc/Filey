@@ -60,6 +60,8 @@ namespace Filey
                 AppTheme appTheme = theme == ApplicationTheme.Light ? AppTheme.Light : AppTheme.Dark;
                 Current = appTheme;
                 SwapPalette(appTheme);
+                Color customAccent = Color("AppAccentColor");
+                ApplicationAccentColorManager.Apply(customAccent, theme);
                 MapAccentBrushes();
                 foreach (Window w in Application.Current.Windows)
                 {
@@ -100,8 +102,12 @@ namespace Filey
         {
             Current = theme;
 
-            // Apply system accent (updates the resources)
-            ApplicationAccentColorManager.ApplySystemAccent();
+            SwapPalette(theme);
+
+            Color customAccent = Color("AppAccentColor");
+            ApplicationAccentColorManager.Apply(
+                customAccent,
+                theme == AppTheme.Light ? ApplicationTheme.Light : ApplicationTheme.Dark);
 
             // Recolor WPF-UI controls. Keep our own accent (updateAccent: false).
             ApplicationThemeManager.Apply(
@@ -109,8 +115,6 @@ namespace Filey
                 Wpf.Ui.Controls.WindowBackdropType.Mica,
                 updateAccent: false);
 
-            // Explicitly run the mappings in case the Theme didn't change (no Changed event)
-            SwapPalette(theme);
             MapAccentBrushes();
 
             foreach (Window w in Application.Current.Windows)
