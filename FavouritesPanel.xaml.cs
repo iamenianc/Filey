@@ -339,6 +339,7 @@ namespace Filey
 
         private void DrivesToggleButton_Changed(object sender, RoutedEventArgs e)
         {
+            if (DrivesList == null) return;
             DrivesList.Visibility = DrivesToggleButton.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         }
 
