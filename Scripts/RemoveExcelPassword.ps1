@@ -78,23 +78,66 @@ try {
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     $excel.AskToUpdateLinks = $false
+    # Never run workbook macros while automating untrusted files.
+    try { $excel.AutomationSecurity = 3 } catch {}  # msoAutomationSecurityForceDisable
+    try { $excel.EnableEvents = $false } catch {}
+
+    # Sentinel for omitted optional COM parameters. Passing $null/$false for these makes
+    # Excel mis-bind the remaining positional arguments, so the supplied open password is
+    # NOT applied - Excel then silently prompts for it and Open fails even when the password
+    # is correct. [Type]::Missing is the only value COM treats as "argument not supplied".
+    $missing = [System.Type]::Missing
 
     foreach ($file in $Path) {
         $wb = $null
         try {
+            if (-not (Test-Path -LiteralPath $file)) {
+                $results.Add((New-Result $file $null $false "File not found."))
+                continue
+            }
+
             $outputPath = Get-CollisionSafePath $file
-            $wb = $excel.Workbooks.Open($file, $false, $false, $null, $password)
-            $wb.Password = ""
-            $wb.WriteReservedPassword = ""
-            $wb.SaveAs($outputPath, $wb.FileFormat)
+
+            # Open(Filename, UpdateLinks=0, ReadOnly=$false, Format=(missing),
+            #      Password=$password, WriteResPassword=(missing), IgnoreReadOnlyRecommended=$true)
+            try {
+                $wb = $excel.Workbooks.Open($file, 0, $false, $missing, $password, $missing, $true)
+            }
+            catch {
+                # Files from the internet/email open in Protected View, which a normal Open
+                # cannot unlock. Retry through the Protected View window before giving up.
+                $openError = $_
+                try {
+                    [void]$excel.ProtectedViewWindows.Open($file, $password)
+                    $excel.ProtectedViewWindows.Item(1).Edit()
+                    $wb = $excel.ActiveWorkbook
+                } catch { $wb = $null }
+                if ($null -eq $wb) { throw $openError }
+            }
+
+            # Clear the open password on the in-memory workbook.
+            try { $wb.Password = "" } catch {}
+
+            # Save a password-free copy. There is no settable WriteReservedPassword property on
+            # Workbook; the write-reservation password is cleared via SaveAs's WriteResPassword
+            # argument (Filename, FileFormat, Password="", WriteResPassword="").
+            $wb.SaveAs($outputPath, $wb.FileFormat, "", "")
             $wb.Close($false)
 
             $results.Add((New-Result $file $outputPath $true $null))
         }
         catch {
             $message = $_.Exception.Message
-            if ($message -match 'password' -or $message -match 'is not valid') {
+            # Only relabel genuine wrong-password failures. HRESULT 0x800A03EC is the generic
+            # "Open method failed" Excel raises when the password it was given is rejected.
+            $hr = 0
+            try { $hr = $_.Exception.HResult } catch {}
+            if ($message -match 'The password you supplied is not correct' -or
+                $message -match 'is not a valid password') {
                 $message = "Incorrect password."
+            }
+            elseif ($hr -ne 0) {
+                $message = "{0} (0x{1:X8})" -f $message, $hr
             }
             $results.Add((New-Result $file $null $false $message))
         }

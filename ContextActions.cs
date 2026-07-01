@@ -58,7 +58,7 @@ namespace Filey
                 {
                     Path = p,
                     Success = false,
-                    Error = "The RemoveExcelPassword.ps1 script is missing from the install directory."
+                    Error = $"The password-removal script was not found at: {scriptPath}"
                 }).ToList();
             }
 
@@ -80,21 +80,47 @@ namespace Filey
                 CreateNoWindow = true
             };
 
-            string stdout, stderr;
-            using (var process = new Process { StartInfo = psi })
+            // Excel COM startup and the whole launch/IO sequence run on a background thread so the
+            // caller's UI thread is never blocked (process.Start() and the stdin write are otherwise
+            // synchronous). Excel can also hang on an unexpected dialog, so the wait is time-capped.
+            const int timeoutMs = 120000;
+            string stdout = string.Empty, stderr = string.Empty;
+            int exitCode = -1;
+            bool timedOut = false;
+
+            await Task.Run(() =>
             {
-                process.Start();
+                using (var process = new Process { StartInfo = psi })
+                {
+                    process.Start();
 
-                await process.StandardInput.WriteLineAsync(password);
-                process.StandardInput.Close();
+                    process.StandardInput.WriteLine(password);
+                    process.StandardInput.Close();
 
-                Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
-                Task<string> stderrTask = process.StandardError.ReadToEndAsync();
-                await Task.WhenAll(stdoutTask, stderrTask);
-                await Task.Run(() => process.WaitForExit());
+                    Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+                    Task<string> stderrTask = process.StandardError.ReadToEndAsync();
 
-                stdout = stdoutTask.Result;
-                stderr = stderrTask.Result;
+                    if (!process.WaitForExit(timeoutMs))
+                    {
+                        timedOut = true;
+                        try { process.Kill(); } catch { /* already exiting */ }
+                    }
+
+                    // Both reads complete once the streams close (on exit or kill).
+                    stdout = stdoutTask.Result ?? string.Empty;
+                    stderr = stderrTask.Result ?? string.Empty;
+                    exitCode = process.HasExited ? process.ExitCode : -1;
+                }
+            });
+
+            if (timedOut)
+            {
+                return paths.Select(p => new ExcelPasswordResult
+                {
+                    Path = p,
+                    Success = false,
+                    Error = "Timed out waiting for Excel to respond. It may be blocked on a dialog or not installed correctly."
+                }).ToList();
             }
 
             try
@@ -107,9 +133,16 @@ namespace Filey
                 // Fall through to the synthesized failure below.
             }
 
-            string message = !string.IsNullOrWhiteSpace(stderr)
-                ? stderr.Trim()
-                : "The password removal script did not return a result.";
+            // The script produced no usable JSON. Surface whatever diagnostics we captured so the
+            // real cause (stderr, unexpected stdout, or a non-zero exit) is visible instead of a
+            // generic message.
+            string message;
+            if (!string.IsNullOrWhiteSpace(stderr))
+                message = stderr.Trim();
+            else if (!string.IsNullOrWhiteSpace(stdout))
+                message = $"Unexpected script output: {stdout.Trim()}";
+            else
+                message = $"The password removal script returned no result (exit code {exitCode}).";
 
             return paths.Select(p => new ExcelPasswordResult
             {

@@ -838,6 +838,9 @@ namespace Filey
             if (dialog.ShowDialog() != true) return;
 
             List<ExcelPasswordResult> results;
+            // Excel COM startup takes a few seconds; show a wait cursor so the app does not appear
+            // frozen while the background operation runs.
+            Mouse.OverrideCursor = Cursors.Wait;
             try
             {
                 results = await ContextActions.RemoveExcelPasswordAsync(
@@ -848,6 +851,10 @@ namespace Filey
                 MessageBox.Show($"Could not run the password removal script: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
             }
 
             int successCount = results.Count(r => r.Success);
