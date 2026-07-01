@@ -101,13 +101,29 @@ namespace Filey
 
         // --- persistence ----------------------------------------------------------
 
+        private class IndexPayload
+        {
+            public List<string> Directories { get; set; }
+            public List<IndexEntry> Entries { get; set; }
+        }
+
         public void Save()
         {
             IndexEntry[] snapshot;
-            lock (_gate) snapshot = _byPath.Values.ToArray();
+            List<string> dirs;
+            lock (_gate)
+            {
+                snapshot = _byPath.Values.ToArray();
+                dirs = DirectoryRegistry.Instance.GetPathsSnapshot();
+            }
             try
             {
-                string json = JsonConvert.SerializeObject(snapshot, Formatting.None);
+                var payload = new IndexPayload
+                {
+                    Directories = dirs,
+                    Entries = snapshot.ToList()
+                };
+                string json = JsonConvert.SerializeObject(payload, Formatting.None);
                 AppStorage.WriteAllTextAtomic(AppStorage.PathFor(FileName), json);
             }
             catch (Exception ex)
@@ -122,13 +138,26 @@ namespace Filey
             if (string.IsNullOrEmpty(json)) return;
             try
             {
-                var entries = JsonConvert.DeserializeObject<List<IndexEntry>>(json);
-                if (entries == null) return;
+                var payload = JsonConvert.DeserializeObject<IndexPayload>(json);
+                if (payload == null) return;
                 lock (_gate)
                 {
+                    DirectoryRegistry.Instance.LoadPaths(payload.Directories);
                     _byPath.Clear();
-                    foreach (var e in entries)
-                        if (e != null && !string.IsNullOrEmpty(e.FullPath)) _byPath[e.FullPath] = e;
+                    if (payload.Entries != null)
+                    {
+                        foreach (var e in payload.Entries)
+                        {
+                            if (e != null)
+                            {
+                                string path = e.FullPath;
+                                if (!string.IsNullOrEmpty(path))
+                                {
+                                    _byPath[path] = e;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)

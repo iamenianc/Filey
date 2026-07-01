@@ -187,6 +187,7 @@
     <Compile Include="SearchRanker.cs" />
     <Compile Include="SearchAllRequest.cs" />
     <Compile Include="IndexEntry.cs" />
+    <Compile Include="DirectoryRegistry.cs" />
     <Compile Include="IndexPolicy.cs" />
     <Compile Include="FileIndex.cs" />
     <Compile Include="FileSystemCrawler.cs" />
@@ -236,6 +237,7 @@
     <PackageReference Include="WPF-UI">
       <Version>4.3.0</Version>
     </PackageReference>
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.28000.2270" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4022.49" />
   </ItemGroup>

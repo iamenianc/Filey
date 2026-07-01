@@ -43,46 +43,114 @@ namespace Filey
         public static Task RecrawlRootAsync(string rootPath, FileIndex index, CancellationToken token)
             => Task.Run(() => RecrawlRoot(rootPath, index, token), token);
 
+        private struct FileScanResult
+        {
+            public NativeFileEntry Entry { get; }
+            public string ParentPath { get; }
+
+            public FileScanResult(NativeFileEntry entry, string parentPath)
+            {
+                Entry = entry;
+                ParentPath = parentPath;
+            }
+        }
+
         /// <summary>Walks one root (iterative DFS, depth-capped) and replaces its indexed subtree.</summary>
         public static void RecrawlRoot(string rootPath, FileIndex index, CancellationToken token)
         {
             if (string.IsNullOrEmpty(rootPath)) return;
 
-            var collected = new List<IndexEntry>();
-            var stack = new Stack<KeyValuePair<string, int>>();
-            stack.Push(new KeyValuePair<string, int>(rootPath, 0));
-
-            while (stack.Count > 0)
+            using (var queue = new System.Collections.Concurrent.BlockingCollection<FileScanResult>(10000))
+            using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token))
             {
-                if (token.IsCancellationRequested) return;
-                if (collected.Count >= MaxEntriesPerRoot) break;
+                var collected = new System.Collections.Concurrent.ConcurrentBag<IndexEntry>();
+                int collectedCount = 0;
 
-                var current = stack.Pop();
-                string dir = current.Key;
-                int depth = current.Value;
-
-                List<NativeFileEntry> entries;
-                try { entries = NativeDirectoryEnumerator.EnumerateEntries(dir); }
-                catch { continue; }
-
-                foreach (var e in entries)
+                var readerTask = Task.Run(() =>
                 {
-                    if (e.IsDirectory)
+                    try
                     {
-                        if (IndexPolicy.ShouldSkipDirectory(e.FullPath, e.Attributes)) continue;
-                        collected.Add(ToEntry(e, dir));
-                        if (depth < IndexPolicy.MaxDepth)
-                            stack.Push(new KeyValuePair<string, int>(e.FullPath, depth + 1));
-                    }
-                    else
-                    {
-                        collected.Add(ToEntry(e, dir));
-                    }
-                }
-            }
+                        var stack = new Stack<KeyValuePair<string, int>>();
+                        stack.Push(new KeyValuePair<string, int>(rootPath, 0));
 
-            if (token.IsCancellationRequested) return;
-            index.ReplaceSubtree(rootPath, collected);
+                        while (stack.Count > 0)
+                        {
+                            if (linkedCts.Token.IsCancellationRequested) break;
+                            if (Volatile.Read(ref collectedCount) >= MaxEntriesPerRoot) break;
+
+                            var current = stack.Pop();
+                            string dir = current.Key;
+                            int depth = current.Value;
+
+                            List<NativeFileEntry> entries;
+                            try { entries = NativeDirectoryEnumerator.EnumerateEntries(dir); }
+                            catch { continue; }
+
+                            foreach (var e in entries)
+                            {
+                                if (linkedCts.Token.IsCancellationRequested) break;
+                                if (Volatile.Read(ref collectedCount) >= MaxEntriesPerRoot) break;
+
+                                if (e.IsDirectory)
+                                {
+                                    if (IndexPolicy.ShouldSkipDirectory(e.FullPath, e.Attributes)) continue;
+
+                                    queue.Add(new FileScanResult(e, dir), linkedCts.Token);
+
+                                    if (depth < IndexPolicy.MaxDepth)
+                                        stack.Push(new KeyValuePair<string, int>(e.FullPath, depth + 1));
+                                }
+                                else
+                                {
+                                    queue.Add(new FileScanResult(e, dir), linkedCts.Token);
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                    finally
+                    {
+                        queue.CompleteAdding();
+                    }
+                }, linkedCts.Token);
+
+                int numConsumers = Math.Max(1, Environment.ProcessorCount - 1);
+                var consumers = new Task[numConsumers];
+                for (int i = 0; i < numConsumers; i++)
+                {
+                    consumers[i] = Task.Run(() =>
+                    {
+                        try
+                        {
+                            foreach (var item in queue.GetConsumingEnumerable(linkedCts.Token))
+                            {
+                                if (Volatile.Read(ref collectedCount) >= MaxEntriesPerRoot)
+                                {
+                                    linkedCts.Cancel();
+                                    break;
+                                }
+
+                                var entry = ToEntry(item.Entry, item.ParentPath);
+                                collected.Add(entry);
+
+                                Interlocked.Increment(ref collectedCount);
+                            }
+                        }
+                        catch (OperationCanceledException) { }
+                    }, linkedCts.Token);
+                }
+
+                try
+                {
+                    Task.WaitAll(consumers);
+                    readerTask.Wait();
+                }
+                catch { }
+
+                if (token.IsCancellationRequested) return;
+
+                index.ReplaceSubtree(rootPath, collected);
+            }
         }
 
         /// <summary>
@@ -151,8 +219,7 @@ namespace Filey
             return new IndexEntry
             {
                 Name = e.Name,
-                FullPath = e.FullPath,
-                ParentPath = parentPath,
+                ParentId = DirectoryRegistry.Instance.GetOrAdd(parentPath),
                 IsDirectory = e.IsDirectory,
                 Size = e.Size,
                 DateModifiedUtc = e.LastWriteTimeUtc

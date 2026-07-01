@@ -42,19 +42,23 @@ namespace Filey
             // component. Both are no-ops when there's no active directory (e.g. global index search).
             string activeDrive = GetRootDrive(activeDirectory);
             string[] activeSegments = SplitPathSegments(activeDirectory);
+            char activeDriveChar = activeDrive != null && activeDrive.Length == 2 && activeDrive[1] == ':'
+                ? char.ToUpperInvariant(activeDrive[0])
+                : '\0';
 
             // Run ranking in parallel using PLINQ for performance. The drive-scope filter runs
             // first, before any scoring, so off-drive entries are dropped without paying for the
             // (far more expensive) fuzzy match — and excluded from the results completely.
             var scored = entries
                 .AsParallel()
-                .Where(e => e != null && OnActiveDrive(e.FullPath, activeDrive))
+                .Where(e => e != null && OnActiveDrive(e, activeDrive, activeDriveChar))
                 .Select(e =>
                 {
                     string nl = e.NameLower;
                     if (string.IsNullOrEmpty(nl)) return new KeyValuePair<int, IndexEntry>(-1, null);
 
-                    string parentLower = GetCleanParentPath(e.ParentPath, userProfile);
+                    var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+                    string parentLower = node?.CleanPathLower ?? "";
 
                     int totalScore = 0;
                     bool allTermsMatched = true;
@@ -64,7 +68,8 @@ namespace Filey
                     if (nl == q) queryBonus = 200;
                     else if (nl.StartsWith(q, StringComparison.Ordinal)) queryBonus = 120;
                     else if (nl.IndexOf(q, StringComparison.Ordinal) >= 0) queryBonus = 60;
-                    else if (e.FullPath != null && e.FullPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) queryBonus = 30; // whole path match bonus
+                    else if (node != null && (node.PathLower.IndexOf(q, StringComparison.Ordinal) >= 0 || nl.IndexOf(q, StringComparison.Ordinal) >= 0)) queryBonus = 30; // whole path match bonus
+                    else if (node != null && q.IndexOfAny(PathSeparators) >= 0 && e.FullPath.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) queryBonus = 30;
 
                     foreach (var term in terms)
                     {
@@ -105,7 +110,7 @@ namespace Filey
 
                     // Small bonus for each leading path component shared with the active directory,
                     // so results nearer the active directory in the tree rank slightly higher.
-                    int rootParentBonus = CountMatchingRootParents(e.FullPath, activeSegments) * RootParentBonus;
+                    int rootParentBonus = CountMatchingRootParents(node, activeSegments) * RootParentBonus;
 
                     // Final score is average term score plus the overall query and root-parent bonuses
                     int finalScore = (totalScore / terms.Length) + queryBonus + rootParentBonus;
@@ -117,13 +122,24 @@ namespace Filey
 
             return scored
                 .OrderByDescending(kv => !string.IsNullOrEmpty(activeDirectory) && 
-                                         kv.Value.FullPath != null && 
-                                         kv.Value.FullPath.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
+                                         StartsWithActiveDirectory(kv.Value, activeDirectory))
                 .ThenByDescending(kv => kv.Key)
                 .ThenBy(kv => kv.Value.Name, StringComparer.OrdinalIgnoreCase)
                 .Take(max)
                 .Select(kv => kv.Value)
                 .ToList();
+        }
+
+        private static bool StartsWithActiveDirectory(IndexEntry e, string activeDirectory)
+        {
+            if (string.IsNullOrEmpty(activeDirectory) || e == null) return false;
+            var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+            if (node == null) return false;
+
+            if (node.Path != null && node.Path.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return e.FullPath.StartsWith(activeDirectory, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetCleanParentPath(string parentPath, string userProfile)
@@ -157,28 +173,37 @@ namespace Filey
             return path.TrimStart('\\', '/');
         }
 
-        /// <summary>
-        /// Whether <paramref name="fullPath"/> lives on <paramref name="activeDrive"/> (the active
-        /// directory's root, already lowercased). Returns true when there is no active drive, so
-        /// the scope limit is a no-op for the global index search. Kept allocation-free on the hot
-        /// drive-letter path (the common case) since it runs once per indexed entry per search.
-        /// </summary>
-        private static bool OnActiveDrive(string fullPath, string activeDrive)
+        private static int CountMatchingRootParents(DirectoryNode node, string[] activeSegments)
+        {
+            if (node == null || activeSegments == null || activeSegments.Length == 0) return 0;
+
+            string[] segments = node.Segments;
+            if (segments == null) return 0;
+
+            int limit = Math.Min(segments.Length, activeSegments.Length);
+            int count = 0;
+            for (int i = 0; i < limit; i++)
+            {
+                if (!string.Equals(segments[i], activeSegments[i], StringComparison.OrdinalIgnoreCase)) break;
+                count++;
+            }
+            return count;
+        }
+
+        private static bool OnActiveDrive(IndexEntry e, string activeDrive, char activeDriveChar)
         {
             if (activeDrive == null) return true;
-            if (string.IsNullOrEmpty(fullPath)) return false;
+            if (e == null) return false;
 
-            // Fast path for drive-letter roots ("c:"): compare the leading "X:" directly instead
-            // of calling Path.GetPathRoot, which would allocate a substring for every entry.
-            if (activeDrive.Length == 2 && activeDrive[1] == ':')
+            var node = DirectoryRegistry.Instance.GetNode(e.ParentId);
+            if (node == null) return false;
+
+            if (activeDriveChar != '\0' && node.Drive != '\0')
             {
-                return fullPath.Length >= 2
-                    && fullPath[1] == ':'
-                    && char.ToLowerInvariant(fullPath[0]) == activeDrive[0];
+                return node.Drive == activeDriveChar;
             }
 
-            // UNC or other roots: fall back to the exact (already-lowercased) root comparison.
-            return string.Equals(GetRootDrive(fullPath), activeDrive, StringComparison.Ordinal);
+            return string.Equals(GetRootDrive(node.Path), activeDrive, StringComparison.Ordinal);
         }
 
         /// <summary>

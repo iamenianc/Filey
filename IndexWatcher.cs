@@ -112,8 +112,7 @@ namespace Filey
                 _index.AddOrUpdate(new IndexEntry
                 {
                     Name = fi.Name,
-                    FullPath = fi.FullName,
-                    ParentPath = fi.DirectoryName,
+                    ParentId = DirectoryRegistry.Instance.GetOrAdd(fi.DirectoryName),
                     IsDirectory = false,
                     Size = fi.Length,
                     DateModifiedUtc = fi.LastWriteTimeUtc

@@ -30,8 +30,14 @@ namespace Filey
         [JsonIgnore]
         public string NameLower { get; private set; }
 
-        public string FullPath { get; set; }
-        public string ParentPath { get; set; }
+        public int ParentId { get; set; }
+
+        [JsonIgnore]
+        public string ParentPath => DirectoryRegistry.Instance.GetPath(ParentId);
+
+        [JsonIgnore]
+        public string FullPath => System.IO.Path.Combine(ParentPath ?? "", Name);
+
         public bool IsDirectory { get; set; }
         public long Size { get; set; }
         public DateTime DateModifiedUtc { get; set; }
