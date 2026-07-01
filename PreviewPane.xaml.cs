@@ -617,10 +617,17 @@ namespace Filey
             if (list.Count % batchSize == 0)
             {
                 var currentSnapshot = new List<FastNode>(list);
+                // Capture the height accumulated so far so the ScrollViewer bounds grow with the
+                // partial tree. Without this the explicit Height is only set once the whole crawl
+                // completes, leaving the user unable to scroll to already-rendered rows for the
+                // several seconds a deep (depth >= 2) crawl takes.
+                double snapshotHeight = currentY[0] + 50;
                 _ = Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (token.IsCancellationRequested) return;
                         _currentRenderedNodes = currentSnapshot;
+                        FolderTreeVisualHost.Height = snapshotHeight;
+                        FolderTreeVisualHost.Width = 800;
                         FolderTreeVisualHost.RenderTree(currentSnapshot, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
                     }));
 
