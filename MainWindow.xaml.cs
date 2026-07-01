@@ -17,6 +17,10 @@ namespace Filey
         public DirectoryViewModel LeftViewModel { get; }
         public DirectoryViewModel RightViewModel { get; }
 
+        /// <summary>Exposed so <see cref="SettingsDialog"/> can read/mutate the same
+        /// settings instance and persist immediately, matching this window's own pattern.</summary>
+        internal AppSettings Settings => _settings;
+
         private AppSettings _settings;
 
         /// <summary>True once the right pane has been activated out of its inactive state.</summary>
@@ -74,6 +78,12 @@ namespace Filey
             {
                 GetActiveViewModel()?.LoadDirectory(path);
             };
+
+            // When one pane mutates a directory's contents (e.g. Excel password removal),
+            // refresh any other view (the other pane, or an active Preview) showing that
+            // same directory so it doesn't go stale.
+            LeftDirectoryPane.DirectoryContentsChanged += (s, path) => OnDirectoryContentsChanged(RightViewModel, path);
+            RightDirectoryPane.DirectoryContentsChanged += (s, path) => OnDirectoryContentsChanged(LeftViewModel, path);
 
             // Search-results overlays: opening a hit reveals it in the side's pane and dismisses
             // the overlay; closing just dismisses it.
@@ -214,6 +224,43 @@ namespace Filey
             SettingsService.Save(_settings);
         }
 
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            new SettingsDialog(this) { Owner = this }.ShowDialog();
+        }
+
+        /// <summary>Applies a theme change requested from <see cref="SettingsDialog"/>,
+        /// reusing the same logic as the top-bar toggle and keeping it in sync.</summary>
+        internal void ApplyThemeFromSettingsDialog(AppTheme theme)
+        {
+            ThemeService.Apply(theme);
+            ThemeToggle.Content = theme == AppTheme.Light ? "Theme: Light" : "Theme: Dark";
+
+            _settings.Theme = ThemeService.ToSettingValue(theme);
+            SettingsService.Save(_settings);
+
+            _restoringThemeToggle = true;
+            ThemeToggle.IsChecked = theme == AppTheme.Light;
+            _restoringThemeToggle = false;
+        }
+
+        /// <summary>Applies a Compact Mode change requested from <see cref="SettingsDialog"/>.</summary>
+        internal void ApplyCompactModeFromSettingsDialog(bool compact)
+        {
+            _settings.CompactMode = compact;
+            SettingsService.Save(_settings);
+            ApplyCompactMode(compact);
+            CompactModeToggle.IsChecked = compact;
+        }
+
+        /// <summary>Applies a Right Pane Mode change requested from <see cref="SettingsDialog"/>.</summary>
+        internal void ApplyRightPaneModeFromSettingsDialog(RightPaneMode mode)
+        {
+            SetRightPaneMode(mode);
+        }
+
+        internal RightPaneMode CurrentRightPaneMode => _currentRightPaneMode;
+
         private void SwapPanesButton_Click(object sender, RoutedEventArgs e)
         {
 
@@ -282,6 +329,22 @@ namespace Filey
         private RightPaneMode _currentRightPaneMode = RightPaneMode.PreviewPane;
         private GridLength _savedLeftPaneWidth = new GridLength(1000, GridUnitType.Star);
         private GridLength _savedRightPaneWidth = new GridLength(440, GridUnitType.Star);
+
+        private void OnDirectoryContentsChanged(DirectoryViewModel otherViewModel, string changedPath)
+        {
+            if (otherViewModel != null &&
+                string.Equals(otherViewModel.CurrentDirectory, changedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                otherViewModel.LoadDirectory(otherViewModel.CurrentPath, pushToHistory: false);
+            }
+
+            if (_currentRightPaneMode == RightPaneMode.PreviewPane &&
+                string.Equals(LeftViewModel.CurrentDirectory, changedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                var selected = LeftViewModel.SelectedItem;
+                RightPreviewControl.PreviewFile(selected != null ? selected.FullPath : LeftViewModel.CurrentDirectory);
+            }
+        }
 
         private void OnLeftSelectionChanged()
         {
@@ -717,16 +780,20 @@ namespace Filey
             RightDirectoryPane_SetHomeRequested(sender, e);
         }
 
+        private string PromptForHomePath(string prompt, string existingHome, string currentDirectory)
+            => PromptForHomePath(this, prompt, existingHome, currentDirectory);
+
         /// <summary>
         /// Shows a free-text input dialog for a Home path, pre-filled with the existing
         /// setting (falling back to the pane's current folder). Returns the trimmed path,
-        /// or null if cancelled or the entered folder doesn't exist.
+        /// or null if cancelled or the entered folder doesn't exist. Shared with
+        /// <see cref="SettingsDialog"/> so both call sites use identical validation.
         /// </summary>
-        private string PromptForHomePath(string prompt, string existingHome, string currentDirectory)
+        internal static string PromptForHomePath(Window owner, string prompt, string existingHome, string currentDirectory)
         {
             string initial = !string.IsNullOrEmpty(existingHome) ? existingHome : currentDirectory;
 
-            var dialog = new InputDialog("Set Home Folder", prompt, initial) { Owner = this };
+            var dialog = new InputDialog("Set Home Folder", prompt, initial) { Owner = owner };
             if (dialog.ShowDialog() != true) return null;
 
             string path = dialog.Value;

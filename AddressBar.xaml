@@ -10,7 +10,7 @@
         <!-- Breadcrumb specific Button Style -->
         <Style x:Key="BreadcrumbButtonStyle" TargetType="Button" BasedOn="{StaticResource FlatButtonStyle}">
             <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>
             <Setter Property="FontWeight" Value="Medium"/>
         </Style>
 
@@ -119,8 +119,11 @@
                 BorderBrush="{DynamicResource AppBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="4"
-                Height="32">
-            
+                Height="32"
+                AllowDrop="True"
+                DragOver="MainBarBorder_DragOver"
+                Drop="MainBarBorder_Drop">
+
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -152,7 +155,7 @@
                                  Style="{StaticResource PathTextBoxStyle}"
                                  Padding="8,0,8,0"
                                  FontFamily="{DynamicResource AppMonoFontFamily}"
-                                 FontSize="12"
+                                 FontSize="{DynamicResource AppFontSize}"
                                  KeyDown="TextBox_KeyDown"
                                  LostFocus="TextBox_LostFocus"
                                  TextChanged="TextBox_TextChanged"/>
@@ -163,7 +166,7 @@
                                    Foreground="{DynamicResource AppErrorBrush}"
                                    VerticalAlignment="Center"
                                    Margin="0,0,10,0"
-                                   FontSize="11"
+                                   FontSize="{DynamicResource SmallFontSize}"
                                    FontWeight="SemiBold"
                                    Visibility="Collapsed"/>
                     </Grid>
@@ -173,7 +176,7 @@
                         <TextBox x:Name="SearchTextBox"
                                  Style="{StaticResource PathTextBoxStyle}"
                                  Padding="8,0,8,0"
-                                 FontSize="12"
+                                 FontSize="{DynamicResource AppFontSize}"
                                  KeyDown="SearchTextBox_KeyDown"
                                  TextChanged="SearchTextBox_TextChanged"
                                  LostKeyboardFocus="Search_LostKeyboardFocus"/>
@@ -183,7 +186,7 @@
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
                                    Opacity="0.5"
-                                   FontSize="12"
+                                   FontSize="{DynamicResource AppFontSize}"
                                    Foreground="{DynamicResource AppTextPrimaryBrush}"/>
                     </Grid>
                 </Grid>
@@ -234,8 +237,8 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="4,2">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding FullPath}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Name}" FontSize="{DynamicResource AppFontSize}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding FullPath}" FontSize="{DynamicResource SmallFontSize}" Opacity="0.6" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>

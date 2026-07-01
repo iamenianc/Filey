@@ -55,7 +55,7 @@
                 Background="{DynamicResource AppTopBarBrush}"
                 BorderBrush="{DynamicResource AppBorderBrush}"
                 BorderThickness="0,0,0,1"
-                Height="28">
+                MinHeight="28">
             <StackPanel x:Name="TopMenuBarItems"
                         Orientation="Horizontal"
                         VerticalAlignment="Center"
@@ -105,6 +105,12 @@
                     ToolTip="Switch between Light and Dark theme"
                     Checked="ThemeToggle_Changed"
                     Unchecked="ThemeToggle_Changed" />
+                <Button
+                    x:Name="SettingsButton"
+                    Style="{StaticResource TopBarButtonStyle}"
+                    Content="Settings"
+                    ToolTip="Open application settings"
+                    Click="SettingsButton_Click" />
             </StackPanel>
         </Border>
 

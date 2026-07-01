@@ -337,6 +337,11 @@ namespace Filey
             DrivesList.ItemsSource = drives;
         }
 
+        private void DrivesToggleButton_Changed(object sender, RoutedEventArgs e)
+        {
+            DrivesList.Visibility = DrivesToggleButton.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         private void Drive_Click(object sender, MouseButtonEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is DriveEntry drive)

@@ -121,6 +121,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="SettingsDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -154,6 +158,10 @@
       <DependentUpon>PreviewPane.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="SettingsDialog.xaml.cs">
+      <DependentUpon>SettingsDialog.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="AppSettings.cs" />
     <Compile Include="AppStorage.cs" />
     <Compile Include="Bookmark.cs" />
@@ -184,6 +192,7 @@
     <Compile Include="FileSystemCrawler.cs" />
     <Compile Include="IndexWatcher.cs" />
     <Compile Include="IndexService.cs" />
+    <Compile Include="SmoothScrollHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

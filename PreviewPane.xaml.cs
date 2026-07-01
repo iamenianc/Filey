@@ -355,7 +355,7 @@ namespace Filey
                 e.Handled = true;
                 if (e.Delta > 0)
                 {
-                    ChangeDepth(Math.Min(10, _previewDepth + 1));
+                    ChangeDepth(Math.Min(6, _previewDepth + 1));
                 }
                 else if (e.Delta < 0)
                 {
@@ -434,10 +434,6 @@ namespace Filey
             if (DepthButton4 != null) DepthButton4.Foreground = (_previewDepth == 4) ? activeBrush : inactiveBrush;
             if (DepthButton5 != null) DepthButton5.Foreground = (_previewDepth == 5) ? activeBrush : inactiveBrush;
             if (DepthButton6 != null) DepthButton6.Foreground = (_previewDepth == 6) ? activeBrush : inactiveBrush;
-            if (DepthButton7 != null) DepthButton7.Foreground = (_previewDepth == 7) ? activeBrush : inactiveBrush;
-            if (DepthButton8 != null) DepthButton8.Foreground = (_previewDepth == 8) ? activeBrush : inactiveBrush;
-            if (DepthButton9 != null) DepthButton9.Foreground = (_previewDepth == 9) ? activeBrush : inactiveBrush;
-            if (DepthButton10 != null) DepthButton10.Foreground = (_previewDepth == 10) ? activeBrush : inactiveBrush;
         }
 
         private async void LoadDirectoryPreviewAsync(string folderPath, CancellationToken token)
@@ -449,8 +445,8 @@ namespace Filey
                 var nodes = new List<FastNode>();
                 double[] currentY = new double[] { 10.0 };
                 double rowHeight        = 18.50; // Explicit spacing
-                double indentWidth      = 40;
-                double historyIndent    = 20;
+                double indentWidth      = 30;
+                double historyIndent    = 15;
 
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
                 bool[] wasLimited = new bool[] { false };
@@ -540,6 +536,28 @@ namespace Filey
                     // Ignore access permissions
                 }
 
+                int immediateChildFolderCount = 0;
+                int childFileCount = 0;
+                try
+                {
+                    var immediateSubDirs = NativeDirectoryEnumerator.GetSubDirectories(folderPath);
+                    foreach (var sd in immediateSubDirs)
+                    {
+                        if (token.IsCancellationRequested) return;
+                        if (!DirectoryViewModel.ShowHidden &&
+                            (sd.Attributes & (System.IO.FileAttributes.Hidden | System.IO.FileAttributes.System)) != 0)
+                        {
+                            continue;
+                        }
+                        immediateChildFolderCount++;
+                        childFileCount += NativeDirectoryEnumerator.GetFileCount(sd.FullPath, DirectoryViewModel.ShowHidden, token);
+                    }
+                }
+                catch
+                {
+                    // Ignore access permissions
+                }
+
                 if (token.IsCancellationRequested) return;
 
                 _ = Dispatcher.BeginInvoke(new Action(() =>
@@ -558,13 +576,13 @@ namespace Filey
                     _currentRenderedNodes = nodes;
                     FolderTreeVisualHost.RenderTree(nodes, FolderScrollViewer.VerticalOffset, FolderScrollViewer.ViewportHeight);
                     FolderTreeVisualHost.Height = currentY[0] + 50; // Set explicit size for ScrollViewer bounds
-                    FolderTreeVisualHost.Width = 800; 
+                    FolderTreeVisualHost.Width = 800;
 
                     PathTextBlock.Text = folderPath;
                     EncodingTextBlock.Text = $"Directory Tree ({_previewDepth} Level{(_previewDepth == 1 ? "" : "s")})";
-                    
-                    int folderCount = nodes.Count - activeRootLevel;
-                    SizeTextBlock.Text = $"{folderCount} folder{(folderCount == 1 ? "" : "s")} • {activeFileCount} file{(activeFileCount == 1 ? "" : "s")}";
+
+                    int totalFileCount = activeFileCount + childFileCount;
+                    SizeTextBlock.Text = $"{immediateChildFolderCount} folder{(immediateChildFolderCount == 1 ? "" : "s")} • {totalFileCount} file{(totalFileCount == 1 ? "" : "s")}";
                 }));
             }
             catch (Exception ex)

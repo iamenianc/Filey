@@ -20,7 +20,7 @@
         <Setter Property="Padding" Value="8,3"/>
         <Setter Property="Margin" Value="0,0,4,0"/>
         <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>
-        <Setter Property="Height" Value="22"/>
+        <Setter Property="MinHeight" Value="22"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
     </Style>
@@ -33,9 +33,18 @@
         <Setter Property="Padding" Value="8,3"/>
         <Setter Property="Margin" Value="0,0,4,0"/>
         <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>
-        <Setter Property="Height" Value="22"/>
+        <Setter Property="MinHeight" Value="22"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    </Style>
+
+    <!-- Small icon-only chevron toggle, e.g. Favourites' Drives section expand/collapse -->
+    <Style x:Key="DrivesToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource TopBarToggleStyle}">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
     </Style>
 
     <!-- Modern Grid Splitter Style -->

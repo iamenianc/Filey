@@ -83,7 +83,6 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -92,7 +91,7 @@
                             Background="{DynamicResource AppSurfaceAltBrush}"
                             BorderBrush="{DynamicResource AppBorderBrush}"
                             BorderThickness="0,0,0,1"
-                            Height="32"
+                            MinHeight="32"
                             Padding="4,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -129,24 +128,15 @@
                         </Grid>
                     </Border>
 
-                    <!-- Search bar -->
-                    <Grid Grid.Row="1" Margin="4,4,4,2">
-                        <TextBox x:Name="ParentFoldersSearch"
-                                 Background="{DynamicResource AppPanelDeepBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" CaretBrush="{DynamicResource AppTextPrimaryBrush}"
-                                 BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1"
-                                 Padding="6,3,4,3" VerticalContentAlignment="Center"
-                                 TextChanged="ParentFoldersSearch_TextChanged"/>
-                        <TextBlock x:Name="ParentFoldersSearchPlaceholder" Text="search…"
-                                   Foreground="{DynamicResource AppTextDimBrush}" Margin="8,0,0,0"
-                                   VerticalAlignment="Center" IsHitTestVisible="False"/>
-                    </Grid>
-
                     <!-- ListBox -->
-                    <ListBox x:Name="ParentFoldersList" Grid.Row="2"
+                    <ListBox x:Name="ParentFoldersList" Grid.Row="1"
                              Style="{StaticResource ModernListBox}"
                              BorderThickness="0"
                              Background="Transparent"
+                             ItemsSource="{Binding ParentFolders}"
                              SelectedItem="{Binding SelectedParentFolder}"
+                             IsTextSearchEnabled="False"
+                             PreviewTextInput="ParentFoldersList_PreviewTextInput"
                              KeyDown="List_KeyDown">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -181,7 +171,10 @@
             <GridSplitter Grid.Column="1" Style="{StaticResource ModernGridSplitter}" />
 
             <!-- Contents (Split: Top = Folders, Bottom = Files) -->
-            <Grid x:Name="ContentsPanel" Grid.Column="2">
+            <Grid x:Name="ContentsPanel" Grid.Column="2"
+                  AllowDrop="True"
+                  DragOver="ContentsPanel_DragOver"
+                  Drop="ContentsPanel_Drop">
                 <Grid.RowDefinitions>
                     <RowDefinition x:Name="FoldersRow" Height="*" MinHeight="100"/>
                     <RowDefinition x:Name="SplitterRow" Height="6"/>

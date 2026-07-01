@@ -355,6 +355,25 @@ namespace Filey
             UpdateBreadcrumbs();
         }
 
+        private void MainBarBorder_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void MainBarBorder_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
+            var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (paths == null || paths.Length == 0) return;
+
+            if (ContextActions.TryResolveDropNavigationTarget(paths[0], out string targetDir, out _))
+            {
+                NavigationRequested?.Invoke(this, targetDir);
+            }
+        }
+
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)

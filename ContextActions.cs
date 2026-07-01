@@ -94,5 +94,60 @@ namespace Filey
             }
             return candidate;
         }
+
+        /// <summary>
+        /// Resolves where a path dropped from Explorer (onto the address bar or a directory
+        /// list) should navigate to. Directories navigate to themselves; files navigate to
+        /// their parent with the file selected/revealed. Returns false (silently, no-op for
+        /// the caller) for hidden items or folders the process cannot access.
+        /// </summary>
+        public static bool TryResolveDropNavigationTarget(string droppedPath, out string targetDir, out string selectPath)
+        {
+            targetDir = null;
+            selectPath = null;
+
+            if (string.IsNullOrEmpty(droppedPath)) return false;
+
+            try
+            {
+                if (Directory.Exists(droppedPath))
+                {
+                    var dirInfo = new DirectoryInfo(droppedPath);
+                    if (DirectoryViewModel.IsHidden(dirInfo)) return false;
+
+                    // Probe permissions; throws UnauthorizedAccessException if denied.
+                    dirInfo.GetDirectories();
+
+                    targetDir = droppedPath;
+                    selectPath = null;
+                    return true;
+                }
+
+                if (File.Exists(droppedPath))
+                {
+                    var fileInfo = new FileInfo(droppedPath);
+                    if (DirectoryViewModel.IsHidden(fileInfo)) return false;
+
+                    var parentDir = fileInfo.Directory;
+                    if (parentDir == null || DirectoryViewModel.IsHidden(parentDir)) return false;
+
+                    parentDir.GetDirectories();
+
+                    targetDir = parentDir.FullName;
+                    selectPath = droppedPath;
+                    return true;
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+
+            return false;
+        }
     }
 }

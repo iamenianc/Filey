@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Filey
 {
@@ -92,6 +93,7 @@ namespace Filey
 
         public event EventHandler HomeRequested;
         public event EventHandler SetHomeRequested;
+        public event EventHandler<string> DirectoryContentsChanged;
 
         private GridViewColumn _colFolderName;
         private GridViewColumn _colFolderDateModified;
@@ -111,7 +113,6 @@ namespace Filey
                 {
                     newVm.PropertyChanged += pane.ViewModel_PropertyChanged;
                 }
-                pane.SetupParentFoldersFilter();
                 pane.UpdatePaneLayout();
                 pane.UpdateDirectoryColumns();
             }
@@ -139,7 +140,6 @@ namespace Filey
             InitializeComponent();
             this.SizeChanged += (s, e) => UpdatePaneLayout();
             this.Loaded += (s, e) => {
-                SetupParentFoldersFilter();
                 ApplySideLayout();
                 UpdatePaneLayout();
                 UpdateDirectoryColumns();
@@ -314,32 +314,63 @@ namespace Filey
             }
         }
 
-        private void SetupParentFoldersFilter()
-        {
-            if (ViewModel == null) return;
+        private string _parentFoldersTypeAheadBuffer = string.Empty;
+        private DispatcherTimer _parentFoldersTypeAheadResetTimer;
 
-            var view = CollectionViewSource.GetDefaultView(ViewModel.ParentFolders);
-            if (view != null)
+        private void ParentFoldersList_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.Text) || ViewModel == null) return;
+
+            if (_parentFoldersTypeAheadResetTimer == null)
             {
-                view.Filter = obj => FilterParentFolder(obj, ParentFoldersSearch.Text);
-                ParentFoldersList.ItemsSource = view;
+                _parentFoldersTypeAheadResetTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+                _parentFoldersTypeAheadResetTimer.Tick += (s, args) =>
+                {
+                    _parentFoldersTypeAheadBuffer = string.Empty;
+                    _parentFoldersTypeAheadResetTimer.Stop();
+                };
             }
-        }
+            _parentFoldersTypeAheadResetTimer.Stop();
+            _parentFoldersTypeAheadResetTimer.Start();
 
-        private static bool FilterParentFolder(object obj, string search)
-        {
-            if (!(obj is FolderItem f)) return false;
-            if (string.IsNullOrEmpty(search)) return true;
-            return f.Name.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
+            _parentFoldersTypeAheadBuffer += e.Text;
 
-        private void ParentFoldersSearch_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            ParentFoldersSearchPlaceholder.Visibility = string.IsNullOrEmpty(ParentFoldersSearch.Text)
-                ? Visibility.Visible : Visibility.Collapsed;
-            if (ViewModel != null)
+            var match = ViewModel.ParentFolders.FirstOrDefault(f =>
+                f.Name.StartsWith(_parentFoldersTypeAheadBuffer, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
             {
-                CollectionViewSource.GetDefaultView(ViewModel.ParentFolders)?.Refresh();
+                SmoothScrollHelper.ScrollItemToTop(ParentFoldersList, match);
+            }
+
+            e.Handled = true;
+        }
+
+        private void ContentsPanel_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void ContentsPanel_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop) || ViewModel == null) return;
+
+            var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (paths == null || paths.Length == 0) return;
+
+            if (ContextActions.TryResolveDropNavigationTarget(paths[0], out string targetDir, out string selectPath))
+            {
+                ViewModel.LoadDirectory(targetDir);
+                if (!string.IsNullOrEmpty(selectPath))
+                {
+                    var match = ViewModel.Contents.FirstOrDefault(f =>
+                        string.Equals(f.FullPath, selectPath, StringComparison.OrdinalIgnoreCase));
+                    if (match != null)
+                    {
+                        ViewModel.SelectedItem = match;
+                    }
+                }
             }
         }
 
@@ -880,6 +911,7 @@ namespace Filey
             if (successCount > 0 && ViewModel != null)
             {
                 ViewModel.LoadDirectory(ViewModel.CurrentPath);
+                DirectoryContentsChanged?.Invoke(this, ViewModel.CurrentDirectory);
             }
         }
 

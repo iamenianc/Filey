@@ -21,7 +21,7 @@ namespace Filey
         /// </summary>
         public static bool ShowHidden { get; set; } = false;
 
-        private static bool IsHidden(FileSystemInfo info)
+        internal static bool IsHidden(FileSystemInfo info)
         {
             var attr = info.Attributes;
             return (attr & (FileAttributes.Hidden | FileAttributes.System)) != 0;

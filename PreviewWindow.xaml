@@ -44,7 +44,7 @@
             Background="{DynamicResource AppTopBarBrush}"
             BorderBrush="{DynamicResource AppBorderBrush}"
             BorderThickness="0,0,0,1"
-            Height="38"
+            MinHeight="38"
             Visibility="Collapsed">
             <Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
@@ -264,8 +264,8 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="PdfPageJumpInput" Background="{DynamicResource AppPanelBackgroundBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" BorderBrush="{DynamicResource AppBorderBrush}" FontSize="{DynamicResource HeaderFontSize}" Padding="4" Height="24" KeyDown="PdfPageJumpInput_KeyDown"/>
-                            <Button Grid.Column="1" Content="Go" Width="40" Margin="4,0,0,0" Height="24" Click="PdfPageJumpButton_Click" Background="{DynamicResource AppBorderBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="{DynamicResource HeaderFontSize}" BorderThickness="0" Cursor="Hand"/>
+                            <TextBox x:Name="PdfPageJumpInput" Background="{DynamicResource AppPanelBackgroundBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" BorderBrush="{DynamicResource AppBorderBrush}" FontSize="{DynamicResource HeaderFontSize}" Padding="4" MinHeight="24" KeyDown="PdfPageJumpInput_KeyDown"/>
+                            <Button Grid.Column="1" Content="Go" Width="40" Margin="4,0,0,0" MinHeight="24" Click="PdfPageJumpButton_Click" Background="{DynamicResource AppBorderBrush}" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="{DynamicResource HeaderFontSize}" BorderThickness="0" Cursor="Hand"/>
                         </Grid>
                     </StackPanel>
 
@@ -457,7 +457,7 @@
             Background="{DynamicResource AppTopBarBrush}"
             BorderBrush="{DynamicResource AppBorderBrush}"
             BorderThickness="0,1,0,0"
-            Height="28"
+            MinHeight="28"
             Padding="12,0">
             <Grid>
                 <Grid.ColumnDefinitions>
