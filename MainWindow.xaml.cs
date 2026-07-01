@@ -69,20 +69,29 @@ namespace Filey
                 IndexService.Instance.PrioritizeActiveDirectory(RightViewModel.CurrentDirectory);
         }
 
-        private void RootNavigationView_SelectionChanged(object sender, RoutedEventArgs e)
+        private void NavigationItem_Click(object sender, RoutedEventArgs e)
         {
             if (RootFrame == null) return;
 
-            if (RootNavigationView.SelectedItem == ExplorerItem)
+            if (sender == ExplorerItem)
             {
+                ExplorerItem.IsActive = true;
+                IndexerItem.IsActive = false;
+                SettingsItem.IsActive = false;
                 RootFrame.Navigate(ExplorerPageInstance);
             }
-            else if (RootNavigationView.SelectedItem == IndexerItem)
+            else if (sender == IndexerItem)
             {
+                ExplorerItem.IsActive = false;
+                IndexerItem.IsActive = true;
+                SettingsItem.IsActive = false;
                 RootFrame.Navigate(_crawlerStatusPageInstance);
             }
-            else if (RootNavigationView.SelectedItem == SettingsItem)
+            else if (sender == SettingsItem)
             {
+                ExplorerItem.IsActive = false;
+                IndexerItem.IsActive = false;
+                SettingsItem.IsActive = true;
                 RootFrame.Navigate(_settingsPageInstance);
             }
         }

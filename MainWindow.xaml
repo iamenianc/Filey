@@ -44,25 +44,27 @@
                 x:Name="RootNavigationView"
                 Grid.Column="0"
                 PaneDisplayMode="Left"
-                IsPaneOpen="False"
-                SelectionChanged="RootNavigationView_SelectionChanged">
+                IsPaneOpen="False">
                 
                 <ui:NavigationView.MenuItems>
                     <ui:NavigationViewItem
                         x:Name="ExplorerItem"
                         Content="Explorer"
-                        Icon="{ui:SymbolIcon Folder24}" />
+                        Icon="{ui:SymbolIcon Folder24}"
+                        Click="NavigationItem_Click" />
                     <ui:NavigationViewItem
                         x:Name="IndexerItem"
                         Content="Crawler Status"
-                        Icon="{ui:SymbolIcon Database24}" />
+                        Icon="{ui:SymbolIcon Database24}"
+                        Click="NavigationItem_Click" />
                 </ui:NavigationView.MenuItems>
 
                 <ui:NavigationView.FooterMenuItems>
                     <ui:NavigationViewItem
                         x:Name="SettingsItem"
                         Content="Settings"
-                        Icon="{ui:SymbolIcon Settings24}" />
+                        Icon="{ui:SymbolIcon Settings24}"
+                        Click="NavigationItem_Click" />
                 </ui:NavigationView.FooterMenuItems>
             </ui:NavigationView>
 
