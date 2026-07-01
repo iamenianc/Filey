@@ -7,8 +7,6 @@ namespace Filey
     /// </summary>
     public class AppSettings
     {
-        public string Theme { get; set; } = "dark";
-
         /// <summary>Per-pane Home directories. Each pane opens here on startup and when
         /// the Home button is clicked. Null/missing falls back to the user profile.</summary>
         public string LeftHomePath { get; set; }

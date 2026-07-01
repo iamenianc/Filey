@@ -31,7 +31,7 @@ namespace Filey
             RightViewModel = new DirectoryViewModel();
 
             _settings = SettingsService.Load();
-            ThemeService.Apply(ThemeService.Parse(_settings.Theme));
+            ThemeService.Apply();
             BookmarkStore.Instance.LoadFromDisk();
 
             var history = NavigationHistoryStore.Load();
@@ -39,9 +39,6 @@ namespace Filey
             RightViewModel.RestoreBackStack(history.Right);
 
             InitializeComponent();
-
-            // Set up Windows 11 system theme sync, but disable accent color sync to keep our custom accent
-            SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.Mica, updateAccents: false);
 
             this.Closing += MainWindow_Closing;
 
@@ -104,7 +101,6 @@ namespace Filey
                 _settings.CompactMode = ExplorerPageInstance.CompactModeToggle.IsChecked == true;
             }
 
-            _settings.Theme = ThemeService.ToSettingValue(ThemeService.Current);
             SettingsService.Save(_settings);
 
             BookmarkStore.Instance.SaveToDisk();

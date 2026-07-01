@@ -3,15 +3,12 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!--
-        Dark theme palette. This is the single source of truth for dark-mode colors.
-        Colors.Light.xaml defines the SAME keys with light values. ThemeService swaps
-        between the two at runtime by locating the dictionary that carries "ThemeName".
+        Dark theme palette. This is the single source of truth for application colors.
 
-        Every consumer (XAML or C#) must reference these via DynamicResource / FindResource
-        so a runtime swap re-resolves them. Both a *Color and a matching *Brush are defined:
+        Every consumer (XAML or C#) must reference these via DynamicResource / FindResource.
+        Both a *Color and a matching *Brush are defined:
         XAML uses the Brush keys; imperative drawing code may use the Color keys.
     -->
-    <sys:String x:Key="ThemeName">Dark</sys:String>
 
     <!-- Backgrounds / surfaces -->
     <Color x:Key="AppBackgroundColor">#FF121212</Color>

@@ -28,30 +28,6 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel MaxWidth="600" HorizontalAlignment="Left">
 
-                <!-- Theme Section -->
-                <TextBlock Text="Appearance" Foreground="{DynamicResource AppTextSecondaryBrush}"
-                           FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                
-                <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Background="{DynamicResource AppPanelBackgroundBrush}" Margin="0,0,0,24">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="App Theme" FontWeight="SemiBold" Foreground="{DynamicResource AppTextPrimaryBrush}" FontSize="14"/>
-                            <TextBlock Text="Select between Light and Dark application themes" Foreground="{DynamicResource AppTextMutedBrush}" FontSize="12" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ToggleButton x:Name="ThemeToggleControl"
-                                      Grid.Column="1"
-                                      Style="{StaticResource TopBarToggleStyle}"
-                                      Content="Theme: Dark"
-                                      VerticalAlignment="Center"
-                                      Checked="ThemeToggleControl_Changed"
-                                      Unchecked="ThemeToggleControl_Changed"/>
-                    </Grid>
-                </Border>
-
                 <!-- Layout Section -->
                 <TextBlock Text="Explorer Options" Foreground="{DynamicResource AppTextSecondaryBrush}"
                            FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>

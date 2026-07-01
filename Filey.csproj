@@ -93,10 +93,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Themes\Colors.Light.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="DirectoryPane.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

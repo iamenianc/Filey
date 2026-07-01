@@ -27,10 +27,6 @@ namespace Filey
         {
             _restoringState = true;
 
-            bool isLight = ThemeService.Current == AppTheme.Light;
-            ThemeToggleControl.IsChecked = isLight;
-            ThemeToggleControl.Content = isLight ? "Theme: Light" : "Theme: Dark";
-
             CompactModeToggleControl.IsChecked = _settings.CompactMode;
 
             LeftHomePathBox.Text = _settings.LeftHomePath ?? string.Empty;
@@ -51,19 +47,6 @@ namespace Filey
                 ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
             RightPaneDualButton.Appearance = mode == 2
                 ? Wpf.Ui.Controls.ControlAppearance.Primary : Wpf.Ui.Controls.ControlAppearance.Secondary;
-        }
-
-        private void ThemeToggleControl_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_restoringState) return;
-
-            var theme = ThemeToggleControl.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
-            ThemeToggleControl.Content = theme == AppTheme.Light ? "Theme: Light" : "Theme: Dark";
-            
-            ThemeService.Apply(theme);
-
-            _settings.Theme = ThemeService.ToSettingValue(theme);
-            SettingsService.Save(_settings);
         }
 
         private void CompactModeToggleControl_Changed(object sender, RoutedEventArgs e)
