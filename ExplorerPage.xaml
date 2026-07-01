@@ -41,7 +41,7 @@
                     ToolTip="Switch right pane to File Preview"
                     Click="PreviewModeButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="BookTemplate24" Margin="0,0,4,0"/>
+                        <ui:SymbolIcon Symbol="BookTemplate20" Margin="0,0,4,0"/>
                         <TextBlock Text="Preview View"/>
                     </StackPanel>
                 </ToggleButton>
@@ -93,7 +93,7 @@
                     ToolTip="Toggle large font size"
                     Click="FontSizeButton_Click">
                     <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="TextSize24" Margin="0,0,4,0"/>
+                        <ui:SymbolIcon Symbol="TextFontSize24" Margin="0,0,4,0"/>
                         <TextBlock x:Name="FontSizeButtonText" Text="Font: Default"/>
                     </StackPanel>
                 </Button>
