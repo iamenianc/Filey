@@ -9,43 +9,43 @@
     <sys:String x:Key="ThemeName">Light</sys:String>
 
     <!-- Backgrounds / surfaces -->
-    <Color x:Key="AppBackgroundColor">#FFF3F3F3</Color>
+    <Color x:Key="AppBackgroundColor">#FFF8F9FA</Color>
     <Color x:Key="AppPanelBackgroundColor">#FFFFFFFF</Color>
     <Color x:Key="AppPanelDeepColor">#FFFFFFFF</Color>
-    <Color x:Key="AppSurfaceAltColor">#FFECECEC</Color>
-    <Color x:Key="AppSurfaceDarkColor">#FFE8E8E8</Color>
-    <Color x:Key="AppTopBarColor">#FFEAEAEA</Color>
-    <Color x:Key="AppHoverColor">#FFE0E0E0</Color>
+    <Color x:Key="AppSurfaceAltColor">#FFF1F3F5</Color>
+    <Color x:Key="AppSurfaceDarkColor">#FFE9ECEF</Color>
+    <Color x:Key="AppTopBarColor">#FFF1F3F5</Color>
+    <Color x:Key="AppHoverColor">#FFEBF1F5</Color>
 
     <!-- Borders -->
-    <Color x:Key="AppBorderColor">#FFD0D0D0</Color>
-    <Color x:Key="AppBorderSubtleColor">#FFDDDDDD</Color>
+    <Color x:Key="AppBorderColor">#FFE2E6EA</Color>
+    <Color x:Key="AppBorderSubtleColor">#FFE9ECEF</Color>
 
     <!-- Text -->
-    <Color x:Key="AppTextPrimaryColor">#FF1A1A1A</Color>
-    <Color x:Key="AppTextHeaderColor">#FF222222</Color>
-    <Color x:Key="AppTextSecondaryColor">#FF444444</Color>
-    <Color x:Key="AppTextMutedColor">#FF6A6A6A</Color>
-    <Color x:Key="AppTextDimColor">#FF999999</Color>
+    <Color x:Key="AppTextPrimaryColor">#FF2D3748</Color>
+    <Color x:Key="AppTextHeaderColor">#FF1E293B</Color>
+    <Color x:Key="AppTextSecondaryColor">#FF4A5568</Color>
+    <Color x:Key="AppTextMutedColor">#FF718096</Color>
+    <Color x:Key="AppTextDimColor">#FFA0AEC0</Color>
     <Color x:Key="AppTextOnAccentColor">#FFFFFFFF</Color>
 
     <!-- Accents / state -->
-    <Color x:Key="AppAccentColor">#FF0067C0</Color>
-    <Color x:Key="AppAccentHoverColor">#FF1A86D9</Color>
-    <Color x:Key="AppSelectionColor">#FFCCE4F7</Color>
-    <Color x:Key="AppGoldAccentColor">#FFB8860B</Color>
-    <Color x:Key="AppLinkColor">#FF0067C0</Color>
-    <Color x:Key="AppErrorColor">#FFC42B1C</Color>
-    <Color x:Key="AppErrorBgColor">#FFFDE7E9</Color>
-    <Color x:Key="AppSuccessColor">#FF0E7B5F</Color>
+    <Color x:Key="AppAccentColor">#FF4F83CC</Color>
+    <Color x:Key="AppAccentHoverColor">#FF6F9CE0</Color>
+    <Color x:Key="AppSelectionColor">#FFE8F0FE</Color>
+    <Color x:Key="AppGoldAccentColor">#FFD2A136</Color>
+    <Color x:Key="AppLinkColor">#FF4F83CC</Color>
+    <Color x:Key="AppErrorColor">#FFD06060</Color>
+    <Color x:Key="AppErrorBgColor">#FFFDF2F2</Color>
+    <Color x:Key="AppSuccessColor">#FF5EAD8D</Color>
 
     <!-- Folder-tree (FastTreeVisualHost) palette -->
-    <Color x:Key="TreeLineColor">#FFB0B8C4</Color>
-    <Color x:Key="TreeFolderColor">#FFB8860B</Color>
-    <Color x:Key="TreeRootTextColor">#FF1A1A1A</Color>
-    <Color x:Key="TreeFolderTextColor">#FF333333</Color>
-    <Color x:Key="TreeDimTextColor">#FF888888</Color>
-    <Color x:Key="TreeMutedTextColor">#FF9AA3AD</Color>
+    <Color x:Key="TreeLineColor">#FFCBD5E1</Color>
+    <Color x:Key="TreeFolderColor">#FFE2B354</Color>
+    <Color x:Key="TreeRootTextColor">#FF2D3748</Color>
+    <Color x:Key="TreeFolderTextColor">#FF4A5568</Color>
+    <Color x:Key="TreeDimTextColor">#FFA0AEC0</Color>
+    <Color x:Key="TreeMutedTextColor">#FFCBD5E1</Color>
 
     <!-- Brushes (XAML consumers use these) -->
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource AppBackgroundColor}"/>
