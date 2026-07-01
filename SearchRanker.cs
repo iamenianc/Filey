@@ -65,6 +65,13 @@ namespace Filey
                     var node = GetNodeFromSnapshot(e.ParentId, nodes);
                     string parentLower = node?.CleanPathLower ?? "";
 
+                    string matchTarget = nl;
+                    if (!q.Contains(".") && !e.IsDirectory)
+                    {
+                        try { matchTarget = System.IO.Path.GetFileNameWithoutExtension(nl) ?? nl; }
+                        catch { }
+                    }
+
                     int totalScore = 0;
                     bool allTermsMatched = true;
 
@@ -82,29 +89,39 @@ namespace Filey
                         int termNameScore = 0;
                         int termPathScore = 0;
 
-                        bool nameMatch = PassPreFilter(nl, term);
+                        bool nameMatch = PassPreFilter(matchTarget, term);
                         bool pathMatch = !string.IsNullOrEmpty(parentLower) && PassPreFilter(parentLower, term);
-
-                        if (!nameMatch && !pathMatch)
-                        {
-                            allTermsMatched = false;
-                            break;
-                        }
 
                         if (nameMatch)
                         {
-                            // WeightedRatio is the best FuzzySharp implementation for composite matching
-                            termNameScore = Fuzz.WeightedRatio(term, nl);
-                            
-                            // Extra bonus if it's an exact/prefix match of the term
-                            if (nl == term) termNameScore += 50;
-                            else if (nl.StartsWith(term, StringComparison.Ordinal)) termNameScore += 30;
-                            else if (nl.IndexOf(term, StringComparison.Ordinal) >= 0) termNameScore += 15;
+                            termNameScore = Fuzz.WeightedRatio(term, matchTarget);
+                            bool hasSub = matchTarget.IndexOf(term, StringComparison.Ordinal) >= 0;
+                            if (!hasSub && termNameScore < 80)
+                            {
+                                nameMatch = false;
+                            }
+                            else
+                            {
+                                if (matchTarget == term) termNameScore += 50;
+                                else if (matchTarget.StartsWith(term, StringComparison.Ordinal)) termNameScore += 30;
+                                else if (matchTarget.IndexOf(term, StringComparison.Ordinal) >= 0) termNameScore += 15;
+                            }
                         }
 
                         if (pathMatch)
                         {
                             termPathScore = Fuzz.WeightedRatio(term, parentLower);
+                            bool hasSub = parentLower.IndexOf(term, StringComparison.Ordinal) >= 0;
+                            if (!hasSub && termPathScore < 80)
+                            {
+                                pathMatch = false;
+                            }
+                        }
+
+                        if (!nameMatch && !pathMatch)
+                        {
+                            allTermsMatched = false;
+                            break;
                         }
 
                         // Combine term scores: filename match is prioritized
