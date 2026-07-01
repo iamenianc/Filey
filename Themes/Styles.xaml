@@ -38,16 +38,14 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}"/>
             </Trigger>
             <MultiTrigger>
                 <MultiTrigger.Conditions>
                     <Condition Property="IsChecked" Value="True"/>
                     <Condition Property="IsMouseOver" Value="True"/>
                 </MultiTrigger.Conditions>
-                <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource AppSelectionHoverBrush}"/>
             </MultiTrigger>
         </Style.Triggers>
     </Style>
@@ -93,16 +91,14 @@
     <Style TargetType="ui:ListViewItem" BasedOn="{StaticResource ListViewItemStyle}">
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{DynamicResource AppAccentBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}"/>
             </Trigger>
             <MultiTrigger>
                 <MultiTrigger.Conditions>
                     <Condition Property="IsSelected" Value="True"/>
                     <Condition Property="IsMouseOver" Value="True"/>
                 </MultiTrigger.Conditions>
-                <Setter Property="Background" Value="{DynamicResource AppAccentHoverBrush}"/>
-                <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource AppSelectionHoverBrush}"/>
             </MultiTrigger>
         </Style.Triggers>
     </Style>
@@ -149,7 +145,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{DynamicResource AppBorderBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource AppSelectionBrush}"/>
                             <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AppSelectionBrush}"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -159,6 +155,22 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Custom styled ListBoxItem targeting selection background -->
+    <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}"/>
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource AppSelectionHoverBrush}"/>
+            </MultiTrigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

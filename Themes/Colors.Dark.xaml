@@ -37,7 +37,8 @@
     <!-- Accents / state -->
     <Color x:Key="AppAccentColor">#FF4A5568</Color>
     <Color x:Key="AppAccentHoverColor">#FF5A6778</Color>
-    <Color x:Key="AppSelectionColor">#FF2D3748</Color>
+    <Color x:Key="AppSelectionColor">#1EFFFFFF</Color>
+    <Color x:Key="AppSelectionHoverColor">#2DFFFFFF</Color>
     <Color x:Key="AppGoldAccentColor">#FFEAB308</Color>
     <Color x:Key="AppLinkColor">#FF94A3B8</Color>
     <Color x:Key="AppErrorColor">#FFFF4D4D</Color>
@@ -71,6 +72,7 @@
     <SolidColorBrush x:Key="AppAccentBrush" Color="{StaticResource AppAccentColor}"/>
     <SolidColorBrush x:Key="AppAccentHoverBrush" Color="{StaticResource AppAccentHoverColor}"/>
     <SolidColorBrush x:Key="AppSelectionBrush" Color="{StaticResource AppSelectionColor}"/>
+    <SolidColorBrush x:Key="AppSelectionHoverBrush" Color="{StaticResource AppSelectionHoverColor}"/>
     <SolidColorBrush x:Key="AppGoldAccentBrush" Color="{StaticResource AppGoldAccentColor}"/>
     <SolidColorBrush x:Key="AppLinkBrush" Color="{StaticResource AppLinkColor}"/>
     <SolidColorBrush x:Key="AppErrorBrush" Color="{StaticResource AppErrorColor}"/>

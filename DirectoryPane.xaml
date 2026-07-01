@@ -31,7 +31,7 @@
         </ContextMenu>
 
         <!-- ListBoxItem Style for Folders list -->
-        <Style TargetType="ListBoxItem" BasedOn="{StaticResource DefaultListBoxItemStyle}">
+        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
             <EventSetter Event="MouseDoubleClick" Handler="FoldersItem_MouseDoubleClick" />
             <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
             <Setter Property="Padding" Value="{DynamicResource RowItemPadding}" />

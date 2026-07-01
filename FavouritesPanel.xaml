@@ -69,7 +69,8 @@
         <Grid Margin="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="97*"/>
+                <RowDefinition Height="96*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -93,7 +94,7 @@
                      KeyDown="BookmarksList_KeyDown"
                      PreviewMouseLeftButtonDown="BookmarksList_PreviewMouseLeftButtonDown"
                      PreviewMouseMove="BookmarksList_PreviewMouseMove"
-                     PreviewMouseLeftButtonUp="BookmarksList_PreviewMouseLeftButtonUp">
+                     PreviewMouseLeftButtonUp="BookmarksList_PreviewMouseLeftButtonUp" Grid.RowSpan="2">
                 <ListBox.GroupStyle>
                     <GroupStyle ContainerStyle="{StaticResource GroupHeaderStyle}"/>
                 </ListBox.GroupStyle>
@@ -127,7 +128,7 @@
             </ListBox>
 
             <!-- Drives group -->
-            <StackPanel Grid.Row="2" x:Name="DrivesSection" Margin="0,6,0,0">
+            <StackPanel Grid.Row="3" x:Name="DrivesSection" Margin="0,6,0,0">
                 <Border BorderBrush="{DynamicResource AppBorderSubtleBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,4"/>
                 <Grid Margin="2,0,0,4">
                     <Grid.ColumnDefinitions>
@@ -174,13 +175,13 @@
             </StackPanel>
 
             <!-- Add button -->
-            <Button x:Name="AddButton" Grid.Row="3" Style="{StaticResource FavFlatButton}" Margin="0,6,0,0"
-                    HorizontalAlignment="Stretch" Content="+ Add" Click="AddButton_Click"/>
+            <Button x:Name="AddButton" Grid.Row="4" Style="{StaticResource FavFlatButton}" Margin="0,6,0,0"
+                    HorizontalAlignment="Stretch" Content="+ Add" Click="AddButton_Click" VerticalAlignment="Top"/>
 
             <!-- Set-group popup -->
             <Popup x:Name="GroupPopup" Grid.Row="3" Placement="Top"
                    PlacementTarget="{Binding ElementName=AddButton}" StaysOpen="False"
-                   AllowsTransparency="True" PopupAnimation="Fade">
+                   AllowsTransparency="True" PopupAnimation="Fade" Margin="0,37,0,0" Grid.RowSpan="2">
                 <Border Background="{DynamicResource AppSurfaceAltBrush}" BorderBrush="{DynamicResource AppBorderSubtleBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="10" Width="200">
                     <StackPanel>

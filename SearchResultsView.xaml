@@ -89,7 +89,7 @@
                                                 <Setter Property="Foreground" Value="{DynamicResource AppTextDimBrush}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}}" Value="True">
-                                                        <Setter Property="Foreground" Value="{DynamicResource AppTextOnAccentBrush}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
