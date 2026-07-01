@@ -169,6 +169,8 @@
     <Compile Include="PdfLayout.cs" />
     <Compile Include="PdfRenderer.cs" />
     <Compile Include="InputDialog.cs" />
+    <Compile Include="PasswordPromptDialog.cs" />
+    <Compile Include="ExcelPasswordResult.cs" />
     <Compile Include="FastTreeVisualHost.cs" />
     <Compile Include="MarkdownParser.cs" />
     <Compile Include="MarkdownRenderer.cs" />
@@ -208,6 +210,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="Properties\PublishProfiles\win-x64.pubxml" />
+    <None Include="Scripts\RemoveExcelPassword.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm">

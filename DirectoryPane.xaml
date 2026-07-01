@@ -23,6 +23,11 @@
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
             <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
+            <Separator/>
+            <MenuItem
+                x:Name="CtxRemoveExcelPasswordItem"
+                Header="Remove Password..."
+                Click="CtxRemoveExcelPassword_Click" />
         </ContextMenu>
 
         <!-- ListBoxItem Style for Folders list -->
@@ -264,6 +269,7 @@
                           Style="{StaticResource ModernListView}"
                           ItemsSource="{Binding Contents}"
                           SelectedItem="{Binding SelectedItem}"
+                          SelectionMode="Extended"
                           GridViewColumnHeader.Click="Header_Click"
                           PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
                           PreviewMouseMove="ItemList_PreviewMouseMove"
