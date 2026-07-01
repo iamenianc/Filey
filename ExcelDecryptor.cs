@@ -61,8 +61,7 @@ namespace Filey
             byte[] encryptedPackage;
             try
             {
-                using (var fs = new FileStream(inputPath, FileMode.Open, FileAccess.Read))
-                using (var cf = new CompoundFile(fs))
+                using (var cf = RootStorage.OpenRead(inputPath))
                 {
                     encryptionInfo = TryGetStream(cf, "EncryptionInfo");
                     encryptedPackage = TryGetStream(cf, "EncryptedPackage");
@@ -348,10 +347,15 @@ namespace Filey
             }
         }
 
-        private static byte[] TryGetStream(CompoundFile cf, string name)
+        private static byte[] TryGetStream(RootStorage cf, string name)
         {
-            try { return cf.RootStorage.GetStream(name).GetData(); }
-            catch (CFItemNotFound) { return null; }
+            if (!cf.TryOpenStream(name, out CfbStream stream)) return null;
+            using (stream)
+            using (var mem = new MemoryStream())
+            {
+                stream.CopyTo(mem);
+                return mem.ToArray();
+            }
         }
     }
 }
