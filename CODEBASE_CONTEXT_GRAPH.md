@@ -3,110 +3,76 @@
 ## Purpose
 Filey is a WPF-based dual-pane file manager for browsing folders, previewing files, indexing content for fast search, and persisting user preferences and navigation state.
 
+## Graph Composition
+This context graph is organized around three core components:
+
+- **Nodes**: discrete units of information such as implementation artifacts, domain entities, services, UI components, and persisted state objects.
+- **Edges**: relationships between nodes, such as "depends on", "creates", "persists", "navigates to", or "owns".
+- **Attributes**: metadata attached to nodes or edges, such as role, persistence, source file, runtime ownership, or relevance.
+
+In this document, the architecture graph uses nodes to represent Filey components, edges to show how they relate, and attributes to capture useful context about each entity and connection.
+
+### Node-Edge-Attribute Mapping
+To make the document fully self-consistent with that model:
+
+- **Nodes** are the architectural components listed in the Mermaid graph and summaries, including services, UI surfaces, view models, persistence models, and indexing structures.
+- **Edges** are the directed relationships shown by the arrows in the graph, such as startup flow, UI composition, navigation flow, persistence flow, and indexing dependencies.
+- **Attributes** are captured in the surrounding narrative through role, ownership, persistence, and runtime characteristics, for example: singleton, persisted state, UI shell, search subsystem, or preview renderer.
+
+This means the document is not only describing a topology of components, but also a structured graph of typed relationships with contextual metadata.
+
 ## Context Graph
 
-The graph below is a simplified, implementation-focused view of the app’s main architecture.
+The graph below is a simplified, implementation-focused view of the app’s main architecture expressed as a node-edge-attribute graph.
 
 ```mermaid
 graph TD
-    subgraph Startup["Startup & Shell"]
-        A[App.xaml.cs]
-        B[MainWindow]
-        C[SettingsService]
-        D[ThemeService]
-        E[BookmarkStore]
-        F[NavigationHistoryStore]
+    subgraph Nodes["Graph Nodes"]
+        N1[App.xaml.cs]
+        N2[MainWindow]
+        N3[SettingsService]
+        N4[IndexService]
+        N5[DirectoryViewModel]
+        N6[ExplorerPage]
+        N7[FileIndex]
+        N8[BookmarkStore]
+        N9[AppSettings]
+        N10[NavigationHistoryStore]
     end
 
-    subgraph Explorer["Explorer UI"]
-        G[ExplorerPage]
-        H[DirectoryPane Left]
-        I[DirectoryPane Right]
-        J[AddressBar Left]
-        K[AddressBar Right]
-        L[FavouritesPanel]
-        M[PreviewPane / PreviewWindow]
-        N[SearchResultsView]
-        O[ContextActions]
-    end
+    N1 -->|launches| N2
+    N2 -->|configures| N3
+    N2 -->|initializes| N4
+    N2 -->|creates| N5
+    N2 -->|hosts| N6
+    N2 -->|loads| N8
+    N2 -->|loads| N9
+    N2 -->|loads| N10
 
-    subgraph ViewModels["Pane State"]
-        P[DirectoryViewModel Left]
-        Q[DirectoryViewModel Right]
-        R[FolderItem]
-        S[NavigationHistory]
-    end
+    N4 -->|populates| N7
+    N4 -->|uses| N8
+    N4 -->|uses| N9
+    N4 -->|uses| N10
 
-    subgraph Indexing["Indexing & Search"]
-        T[IndexService]
-        U[FileSystemCrawler]
-        V[IndexWatcher]
-        W[IndexPolicy]
-        X[FileIndex]
-        Y[SearchRanker]
-        Z[DirectoryRegistry]
-        AA[IndexEntry]
-    end
+    N6 -->|manages| N5
+    N5 -->|uses| N7
+    N5 -->|tracks| N10
 
-    subgraph Persistence["Persistence"]
-        AB[AppSettings]
-        AC[AppStorage]
-        AD[Bookmark]
-        AE[NavigationHistoryRecord]
-    end
-
-    A --> B
-    B --> C
-    B --> D
-    B --> E
-    B --> F
-    B --> G
-    B --> P
-    B --> Q
-    B --> T
-
-    G --> H
-    G --> I
-    G --> J
-    G --> K
-    G --> L
-    G --> M
-    G --> N
-    G --> O
-
-    H --> P
-    I --> Q
-    J --> P
-    K --> Q
-    L --> E
-    O --> E
-
-    P --> R
-    Q --> R
-    P --> S
-    Q --> S
-
-    T --> U
-    T --> V
-    T --> W
-    T --> X
-    T --> Y
-    T --> Z
-
-    U --> AA
-    V --> AA
-    X --> AA
-    Y --> AA
-    Z --> AA
-
-    C --> AB
-    E --> AD
-    F --> AE
-    AC --> AB
-    AC --> AD
-    AC --> AE
-    AC --> X
+    N3 -->|persists| N9
+    N8 -->|persists| N9
+    N10 -->|persists| N9
 ```
+
+### Graph Interpretation
+- **Nodes**: the entities above, such as App.xaml.cs, MainWindow, SettingsService, IndexService, DirectoryViewModel, ExplorerPage, FileIndex, BookmarkStore, AppSettings, and NavigationHistoryStore.
+- **Edges**: the directed relationships labeled with verbs such as launches, configures, initializes, creates, hosts, loads, populates, uses, manages, tracks, and persists.
+- **Attributes**: the surrounding narrative supplies metadata for each node and edge, including startup role, persistence responsibility, UI ownership, indexing behavior, and singleton/runtime characteristics.
+
+### Example Attribute Notes
+- Node: MainWindow — attributes: shell owner, UI coordinator, state loader.
+- Node: IndexService — attributes: singleton, background orchestrator, search subsystem.
+- Edge: MainWindow → IndexService — attribute: initializes on startup.
+- Edge: SettingsService → AppSettings — attribute: persistence relationship.
 
 ## Technology Stack and Dependencies
 
