@@ -109,14 +109,22 @@ namespace Filey
                 var fi = new FileInfo(path);
                 if (!fi.Exists) return;
                 if ((fi.Attributes & (FileAttributes.Hidden | FileAttributes.System)) != 0) return;
-                _index.AddOrUpdate(new IndexEntry
+                var entry = new IndexEntry
                 {
                     Name = fi.Name,
                     ParentId = DirectoryRegistry.Instance.GetOrAdd(fi.DirectoryName),
                     IsDirectory = false,
                     Size = fi.Length,
                     DateModifiedUtc = fi.LastWriteTimeUtc
-                });
+                };
+
+                // Enqueue for UI-batched application to avoid flooding the UI with per-file updates.
+                try { IndexService.Instance.EnqueueUiIndexUpdate(entry); }
+                catch
+                {
+                    // Fallback: if enqueueing fails for any reason, apply directly.
+                    try { _index.AddOrUpdate(entry); } catch { }
+                }
             }
             catch { /* file vanished or locked; ignore */ }
         }

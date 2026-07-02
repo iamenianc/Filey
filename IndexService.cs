@@ -23,6 +23,8 @@ namespace Filey
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private IndexWatcher _watcher;
         private Timer _warmTimer;
+        private int _warmRefreshRunning;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<IndexEntry> _uiUpdateQueue = new System.Collections.Concurrent.ConcurrentQueue<IndexEntry>();
         private List<IndexRoot> _roots = new List<IndexRoot>();
         private string _lastPrioritized;
         private bool _started;
@@ -85,8 +87,55 @@ namespace Filey
         public void RefreshWarmRoots()
         {
             if (_cts.IsCancellationRequested) return;
-            foreach (var root in _roots.Where(r => r.Tier == IndexTier.Warm))
-                _ = FileSystemCrawler.RecrawlRootAsync(root.Path, _index, _cts.Token);
+            // Ensure a single refresh runs at a time to avoid overlapping recrawls.
+            if (System.Threading.Interlocked.CompareExchange(ref _warmRefreshRunning, 1, 0) == 1) return;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var tasks = _roots.Where(r => r.Tier == IndexTier.Warm)
+                        .Select(r => FileSystemCrawler.RecrawlRootAsync(r.Path, _index, _cts.Token));
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch { }
+                finally
+                {
+                    System.Threading.Interlocked.Exchange(ref _warmRefreshRunning, 0);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Enqueue an incremental index update for UI-batched application.
+        /// </summary>
+        public void EnqueueUiIndexUpdate(IndexEntry entry)
+        {
+            if (entry == null) return;
+            _uiUpdateQueue.Enqueue(entry);
+        }
+
+        /// <summary>
+        /// Dequeues all pending UI updates as a batch.
+        /// </summary>
+        public List<IndexEntry> DequeueAllUiUpdates()
+        {
+            var list = new List<IndexEntry>();
+            while (_uiUpdateQueue.TryDequeue(out var e)) list.Add(e);
+            return list;
+        }
+
+        /// <summary>
+        /// Apply a batch of index updates directly into the backing index.
+        /// </summary>
+        public void ApplyBatchedIndexUpdates(IEnumerable<IndexEntry> entries)
+        {
+            if (entries == null) return;
+            foreach (var e in entries)
+            {
+                try { _index.AddOrUpdate(e); }
+                catch { }
+            }
         }
 
         /// <summary>

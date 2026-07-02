@@ -114,6 +114,10 @@ namespace Filey
                 {
                     if ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
                     {
+                        var attrs = (FileAttributes)findData.dwFileAttributes;
+                        // Skip reparse points (junctions/symlinks) to avoid loops and cloud placeholders.
+                        if ((attrs & FileAttributes.ReparsePoint) != 0) continue;
+
                         string name = findData.cFileName;
                         if (name != "." && name != "..")
                         {
@@ -121,7 +125,7 @@ namespace Filey
                             {
                                 Name = name,
                                 FullPath = Path.Combine(parentPath, name),
-                                Attributes = (FileAttributes)findData.dwFileAttributes
+                                Attributes = attrs
                             });
                         }
                     }
@@ -200,6 +204,9 @@ namespace Filey
                     uint attr = findData.dwFileAttributes;
                     if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0)
                     {
+                        var attrs = (FileAttributes)attr;
+                        if ((attrs & FileAttributes.ReparsePoint) != 0) continue;
+
                         string name = findData.cFileName;
                         if (name != "." && name != "..")
                         {
@@ -207,7 +214,7 @@ namespace Filey
                             {
                                 Name = name,
                                 FullPath = Path.Combine(parentPath, name),
-                                Attributes = (FileAttributes)attr
+                                Attributes = attrs
                             });
                         }
                     }
@@ -267,12 +274,16 @@ namespace Filey
                     string name = findData.cFileName;
                     if (name == "." || name == "..") continue;
 
-                    bool isDir = (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    var attrs = (FileAttributes)findData.dwFileAttributes;
+                    // Skip directory reparse points to avoid loops when caller doesn't filter.
+                    if ((attrs & FileAttributes.ReparsePoint) != 0 && (attrs & FileAttributes.Directory) != 0) continue;
+
+                    bool isDir = (attrs & FileAttributes.Directory) != 0;
                     list.Add(new NativeFileEntry
                     {
                         Name = name,
                         FullPath = Path.Combine(parentPath, name),
-                        Attributes = (FileAttributes)findData.dwFileAttributes,
+                        Attributes = attrs,
                         IsDirectory = isDir,
                         Size = isDir ? 0 : (((long)findData.nFileSizeHigh) << 32) | findData.nFileSizeLow,
                         LastWriteTimeUtc = FileTimeToUtc(findData.ftLastWriteTime)
