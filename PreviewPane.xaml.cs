@@ -1688,6 +1688,57 @@ namespace Filey
 
         private DataGrid CreateSpreadsheetDataGrid(DataTable dataTable, bool isFullWindow)
         {
+            int headerRowIndex = 0;
+            int maxNonNullCount = -1;
+            int maxRowsToScan = Math.Min(20, dataTable.Rows.Count);
+
+            for (int r = 0; r < maxRowsToScan; r++)
+            {
+                DataRow row = dataTable.Rows[r];
+                int nonNullCount = 0;
+                for (int c = 0; c < dataTable.Columns.Count; c++)
+                {
+                    object val = row[c];
+                    if (val != null && val != DBNull.Value && !string.IsNullOrWhiteSpace(val.ToString()))
+                    {
+                        nonNullCount++;
+                    }
+                }
+                if (nonNullCount > maxNonNullCount)
+                {
+                    maxNonNullCount = nonNullCount;
+                    headerRowIndex = r;
+                }
+            }
+
+            var headerNames = new List<string>();
+            if (dataTable.Rows.Count > headerRowIndex)
+            {
+                DataRow headerRow = dataTable.Rows[headerRowIndex];
+                for (int c = 0; c < dataTable.Columns.Count; c++)
+                {
+                    object val = headerRow[c];
+                    headerNames.Add(val != null && val != DBNull.Value ? val.ToString().Trim() : string.Empty);
+                }
+            }
+
+            var cleanedTable = new DataTable(dataTable.TableName);
+            for (int c = 0; c < dataTable.Columns.Count; c++)
+            {
+                cleanedTable.Columns.Add("Col" + c, dataTable.Columns[c].DataType);
+            }
+
+            int startRow = dataTable.Rows.Count > headerRowIndex ? headerRowIndex + 1 : dataTable.Rows.Count;
+            for (int r = startRow; r < dataTable.Rows.Count; r++)
+            {
+                DataRow newRow = cleanedTable.NewRow();
+                for (int c = 0; c < dataTable.Columns.Count; c++)
+                {
+                    newRow[c] = dataTable.Rows[r][c];
+                }
+                cleanedTable.Rows.Add(newRow);
+            }
+
             double initialScale = isFullWindow ? 1.0 : 0.8;
             var grid = new DataGrid
             {
@@ -1702,7 +1753,12 @@ namespace Filey
                 if (s is DataGrid dg)
                 {
                     int index = dg.Columns.Count;
-                    e.Column.Header = GetExcelColumnName(index + 1);
+                    string headerText = index < headerNames.Count ? headerNames[index] : string.Empty;
+                    if (string.IsNullOrWhiteSpace(headerText))
+                    {
+                        headerText = GetExcelColumnName(index + 1);
+                    }
+                    e.Column.Header = headerText;
 
                     if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
                     {
@@ -1718,7 +1774,7 @@ namespace Filey
 
             grid.PreviewMouseWheel += DataGrid_PreviewMouseWheel;
             grid.CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy, DataGrid_CopyCommandExecuted));
-            grid.ItemsSource = dataTable.DefaultView;
+            grid.ItemsSource = cleanedTable.DefaultView;
             return grid;
         }
 
