@@ -137,6 +137,9 @@ graph TD
 - **ExcelDecryptor**
   - Managed-code Excel workbook decryption (using OpenMcdf). Supports Agile-encrypted .xlsx/.xlsm files. Removes the open (encryption) password entirely, saving a password-free copy alongside each original. Byte-preserving, so macros and formatting survive intact.
 
+- **MemoryManager**
+  - Static utility class that triggers Large Object Heap (LOH) compaction and forced Generation 2 garbage collection on demand to control the memory footprint when heavy file previews are closed or recycled.
+
 - **IndexService (singleton)**
   - Central orchestrator for the search index. Starts SQLiteIndexService, kicks off background crawls for seed roots via FileSystemCrawler, manages live file watchers (IndexWatcher) for hot roots, periodically refreshes warm roots (history-derived paths), and provides the search API for the UI.
 
@@ -199,7 +202,7 @@ graph TD
 
 - **Navigation flow**: User interacts with AddressBar (breadcrumb, search box, navigation buttons) or DirectoryPane (folder selection). Both trigger DirectoryViewModel.LoadDirectory(), which updates CurrentDirectory, loads contents asynchronously, and triggers IndexService to prioritize that directory for search. NavigationHistory is updated on navigation away.
 
-- **Preview rendering**: PreviewPane and PreviewWindow use specialized renderers—PdfRenderer for PDFs, MarkdownRenderer for markdown, ImageView for images, WebView2 for HTML—selected by file extension.
+- **Preview rendering**: PreviewPane and PreviewWindow use specialized renderers—PdfRenderer for PDFs, MarkdownRenderer for markdown, ImageView for images, WebView2 for HTML—selected by file extension. Images are loaded asynchronously and downsampled via `ImageView.LoadOptimizedImage` using `FileStream` to avoid locking, and `MemoryManager` is triggered to release unused memory and compact the Large Object Heap (LOH) when panels are closed or recycled.
 
 - **Indexing pipeline**: IndexService coordinates three subsystems:
   1. FileSystemCrawler scans seed roots asynchronously and populates SQLiteIndexService in low-memory batches.
