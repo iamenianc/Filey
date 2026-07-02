@@ -338,7 +338,7 @@ namespace Filey
                 item.Size = null;
                 item.Extension = string.Empty;
                 item.Type = "File folder";
-                item.Icon = IconHelper.GetFolderIcon();
+                item.Icon = IconHelper.GetFolderIcon(info.FullName);
             }
             else if (info is FileInfo fileInfo)
             {
