@@ -11,6 +11,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Wpf;
+using System.Data;
+using ExcelDataReader;
 
 namespace Filey
 {
@@ -177,8 +179,9 @@ namespace Filey
             bool isText = Array.Exists(TextExtensions, x => x == ext);
             bool isImage = Array.Exists(ImageExtensions, x => x == ext);
             bool isPdf = ext == ".pdf";
+            bool isExcel = ext == ".xlsx" || ext == ".xls";
 
-            if (!isText && !isImage && !isPdf)
+            if (!isText && !isImage && !isPdf && !isExcel)
             {
                 ShowEmptyState("Preview not available for this file type.", Path.GetFileName(filePath));
                 PathTextBlock.Text = filePath;
@@ -202,6 +205,10 @@ namespace Filey
             else if (isPdf)
             {
                 LoadPdfFile(filePath);
+            }
+            else if (isExcel)
+            {
+                Task.Run(() => LoadExcelFileAsync(filePath, token), token);
             }
         }
 
@@ -303,6 +310,13 @@ namespace Filey
         {
             DisposePdf();
             DisposeWebView();
+
+            if (SpreadsheetViewerGrid != null)
+            {
+                SpreadsheetViewerGrid.Visibility = Visibility.Collapsed;
+                SpreadsheetTabControl.Items.Clear();
+                SpreadsheetPaneHost.Content = null;
+            }
 
             if (PdfViewerGrid != null)
             {
@@ -1418,6 +1432,416 @@ namespace Filey
             if (!found)
             {
                 FolderTreeVisualHost.Cursor = null;
+            }
+        }
+
+        private async Task LoadExcelFileAsync(string filePath, CancellationToken token)
+        {
+            try
+            {
+                byte[] decryptedBytes = null;
+                if (IsEncryptedExcel(filePath))
+                {
+                    bool passwordCancelled = false;
+                    string errorMessage = null;
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            Window owner = Window.GetWindow(this);
+                            decryptedBytes = TryDecryptExcelWithPrompt(filePath, owner);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            passwordCancelled = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorMessage = ex.Message;
+                        }
+                    });
+
+                    if (passwordCancelled)
+                    {
+                        await Dispatcher.InvokeAsync(() => ShowEmptyState("Decryption Cancelled", "Password is required to view this file."));
+                        return;
+                    }
+
+                    if (errorMessage != null)
+                    {
+                        await Dispatcher.InvokeAsync(() => ShowEmptyState("Error Decrypting Spreadsheet", errorMessage));
+                        return;
+                    }
+                }
+
+                if (token.IsCancellationRequested) return;
+
+                DataSet dataSet = await Task.Run(() => LoadExcelDataSet(filePath, decryptedBytes), token);
+
+                if (token.IsCancellationRequested) return;
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (token.IsCancellationRequested || _currentFilePath != filePath) return;
+
+                    bool isFullWindow = false;
+                    Window parentWindow = Window.GetWindow(this);
+                    if (parentWindow is PreviewWindow)
+                    {
+                        isFullWindow = true;
+                    }
+                    else
+                    {
+                        DependencyObject parent = VisualTreeHelper.GetParent(this);
+                        while (parent != null)
+                        {
+                            if (parent is PreviewWindow)
+                            {
+                                isFullWindow = true;
+                                break;
+                            }
+                            parent = VisualTreeHelper.GetParent(parent);
+                        }
+                    }
+
+                    SpreadsheetMetadataLabel.Text = $"{Path.GetFileName(filePath)} (Safe, Non-Executable)";
+                    SpreadsheetViewerGrid.Visibility = Visibility.Visible;
+
+                    if (!isFullWindow)
+                    {
+                        SpreadsheetTabControl.Visibility = Visibility.Collapsed;
+                        SpreadsheetPaneModeGrid.Visibility = Visibility.Visible;
+
+                        if (dataSet.Tables.Count > 0)
+                        {
+                            DataTable firstTable = dataSet.Tables[0];
+                            DataTable truncated = TruncateDataTable(firstTable, 60, 26);
+                            DataGrid grid = CreateSpreadsheetDataGrid(truncated, false);
+                            SpreadsheetPaneHost.Content = grid;
+                        }
+                    }
+                    else
+                    {
+                        SpreadsheetPaneModeGrid.Visibility = Visibility.Collapsed;
+                        SpreadsheetTabControl.Visibility = Visibility.Visible;
+                        SpreadsheetTabControl.Items.Clear();
+
+                        foreach (DataTable table in dataSet.Tables)
+                        {
+                            TabItem tabItem = new TabItem
+                            {
+                                Header = table.TableName
+                            };
+                            DataGrid grid = CreateSpreadsheetDataGrid(table, true);
+                            tabItem.Content = grid;
+                            SpreadsheetTabControl.Items.Add(tabItem);
+                        }
+
+                        if (SpreadsheetTabControl.Items.Count > 0)
+                        {
+                            SpreadsheetTabControl.SelectedIndex = 0;
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                if (token.IsCancellationRequested) return;
+                await Dispatcher.InvokeAsync(() => ShowEmptyState("Error Loading Spreadsheet", ex.Message));
+            }
+        }
+
+        private static bool IsEncryptedExcel(string filePath)
+        {
+            try
+            {
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    byte[] head = new byte[8];
+                    int read = fs.Read(head, 0, 8);
+                    if (read < 8) return false;
+                    byte[] ole2Magic = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+                    for (int i = 0; i < 8; i++)
+                    {
+                        if (head[i] != ole2Magic[i]) return false;
+                    }
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static byte[] TryDecryptExcelWithPrompt(string filePath, Window ownerWindow)
+        {
+            while (true)
+            {
+                string enteredPassword = null;
+                bool cancelled = false;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var dialog = new PasswordPromptDialog("Decrypt Spreadsheet", $"Enter password for \"{Path.GetFileName(filePath)}\":")
+                    {
+                        Owner = ownerWindow
+                    };
+                    if (dialog.ShowDialog() == true)
+                    {
+                        enteredPassword = dialog.Password;
+                    }
+                    else
+                    {
+                        cancelled = true;
+                    }
+                });
+
+                if (cancelled)
+                {
+                    throw new OperationCanceledException("Password entry cancelled by user.");
+                }
+
+                try
+                {
+                    return ExcelDecryptor.Decrypt(filePath, enteredPassword);
+                }
+                catch (ExcelDecryptException ex) when (ex.WrongPassword)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show("Incorrect password. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Decryption failed: {ex.Message}", ex);
+                }
+            }
+        }
+
+        private static DataSet LoadExcelDataSet(string filePath, byte[] decryptedBytes)
+        {
+            Stream stream = decryptedBytes != null
+                ? (Stream)new MemoryStream(decryptedBytes)
+                : new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+            using (stream)
+            using (var reader = ExcelReaderFactory.CreateReader(stream))
+            {
+                return reader.AsDataSet(new ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
+                    {
+                        UseHeaderRow = false
+                    }
+                });
+            }
+        }
+
+        private static DataTable TruncateDataTable(DataTable originalTable, int maxRows, int maxCols)
+        {
+            var truncated = new DataTable(originalTable.TableName);
+            int colsToKeep = Math.Min(originalTable.Columns.Count, maxCols);
+            for (int i = 0; i < colsToKeep; i++)
+            {
+                truncated.Columns.Add(originalTable.Columns[i].ColumnName, originalTable.Columns[i].DataType);
+            }
+
+            int rowsToKeep = Math.Min(originalTable.Rows.Count, maxRows);
+            for (int i = 0; i < rowsToKeep; i++)
+            {
+                DataRow newRow = truncated.NewRow();
+                for (int j = 0; j < colsToKeep; j++)
+                {
+                    newRow[j] = originalTable.Rows[i][j];
+                }
+                truncated.Rows.Add(newRow);
+            }
+            return truncated;
+        }
+
+        private static string GetExcelColumnName(int columnIndex)
+        {
+            int dividend = columnIndex;
+            string columnName = string.Empty;
+            while (dividend > 0)
+            {
+                int modifier = (dividend - 1) % 26;
+                columnName = Convert.ToChar(65 + modifier).ToString() + columnName;
+                dividend = (dividend - modifier) / 26;
+            }
+            return columnName;
+        }
+
+        private DataGrid CreateSpreadsheetDataGrid(DataTable dataTable, bool isFullWindow)
+        {
+            var grid = new DataGrid
+            {
+                Style = TryFindResource("SpreadsheetDataGridStyle") as Style,
+                HorizontalScrollBarVisibility = isFullWindow ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = isFullWindow ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled
+            };
+
+            grid.AutoGeneratingColumn += (s, e) =>
+            {
+                if (s is DataGrid dg)
+                {
+                    int index = dg.Columns.Count;
+                    e.Column.Header = GetExcelColumnName(index + 1);
+
+                    if (e.PropertyType == typeof(DateTime) || e.PropertyType == typeof(DateTime?))
+                    {
+                        if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
+                        {
+                            bool hasTime = false;
+                            var dataCol = dataTable.Columns[e.PropertyName];
+                            if (dataCol != null)
+                            {
+                                int colOrdinal = dataCol.Ordinal;
+                                foreach (DataRow row in dataTable.Rows)
+                                {
+                                    if (row[colOrdinal] is DateTime dt)
+                                    {
+                                        if (dt.TimeOfDay != TimeSpan.Zero)
+                                        {
+                                            hasTime = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            binding.StringFormat = hasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd";
+                        }
+                    }
+                }
+            };
+
+            grid.LoadingRow += (s, e) =>
+            {
+                e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+            };
+
+            grid.PreviewMouseWheel += DataGrid_PreviewMouseWheel;
+            grid.CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy, DataGrid_CopyCommandExecuted));
+            grid.ItemsSource = dataTable.DefaultView;
+            return grid;
+        }
+
+        private void DataGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                if (sender is DataGrid grid && grid.LayoutTransform is ScaleTransform scale)
+                {
+                    double step = 0.10;
+                    double newScale = scale.ScaleX + (e.Delta > 0 ? step : -step);
+                    newScale = Math.Max(0.5, Math.Min(4.0, newScale));
+                    scale.ScaleX = newScale;
+                    scale.ScaleY = newScale;
+                }
+            }
+            else
+            {
+                if (sender is DataGrid grid && grid.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled)
+                {
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void DataGrid_CopyCommandExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (sender is DataGrid grid)
+            {
+                var selectedCells = grid.SelectedCells;
+                if (selectedCells.Count == 0) return;
+
+                var rowGroups = new Dictionary<object, List<DataGridCellInfo>>();
+                foreach (var cell in selectedCells)
+                {
+                    if (cell.Item != null)
+                    {
+                        if (!rowGroups.TryGetValue(cell.Item, out var list))
+                        {
+                            list = new List<DataGridCellInfo>();
+                            rowGroups[cell.Item] = list;
+                        }
+                        list.Add(cell);
+                    }
+                }
+
+                var sortedRows = new List<object>(rowGroups.Keys);
+                sortedRows.Sort((r1, r2) => grid.Items.IndexOf(r1).CompareTo(grid.Items.IndexOf(r2)));
+
+                var hasTimeCache = new Dictionary<int, bool>();
+                var sb = new StringBuilder();
+                foreach (var rowItem in sortedRows)
+                {
+                    var cellsInRow = rowGroups[rowItem];
+                    cellsInRow.Sort((c1, c2) => c1.Column.DisplayIndex.CompareTo(c2.Column.DisplayIndex));
+
+                    var cellTexts = new List<string>();
+                    foreach (var cellInfo in cellsInRow)
+                    {
+                        if (cellInfo.Item is DataRowView rowView && cellInfo.Column != null)
+                        {
+                            int colIndex = grid.Columns.IndexOf(cellInfo.Column);
+                            if (colIndex >= 0 && colIndex < rowView.Row.ItemArray.Length)
+                            {
+                                var cellValue = rowView.Row.ItemArray[colIndex];
+                                if (cellValue is DateTime dt)
+                                {
+                                    if (!hasTimeCache.TryGetValue(colIndex, out bool colHasTime))
+                                    {
+                                        colHasTime = false;
+                                        var table = rowView.Row.Table;
+                                        foreach (DataRow r in table.Rows)
+                                        {
+                                            if (r[colIndex] is DateTime rdt && rdt.TimeOfDay != TimeSpan.Zero)
+                                            {
+                                                colHasTime = true;
+                                                break;
+                                            }
+                                        }
+                                        hasTimeCache[colIndex] = colHasTime;
+                                    }
+                                    cellTexts.Add(dt.ToString(colHasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd"));
+                                }
+                                else
+                                {
+                                    cellTexts.Add(cellValue?.ToString() ?? string.Empty);
+                                }
+                            }
+                        }
+                    }
+                    sb.AppendLine(string.Join("\t", cellTexts));
+                }
+
+                try
+                {
+                    Clipboard.SetText(sb.ToString());
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private void OpenExternalButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_currentFilePath) { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
     }

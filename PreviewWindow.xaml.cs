@@ -61,6 +61,11 @@ namespace Filey
                 }
             };
 
+            this.Unloaded += (s, e) =>
+            {
+                SpreadsheetPreviewPane.PreviewFile(null);
+            };
+
             LoadFile(filePath);
         }
 
@@ -76,6 +81,8 @@ namespace Filey
         {
             try
             {
+                SpreadsheetPreviewPane.Visibility = Visibility.Collapsed;
+
                 if (!File.Exists(filePath))
                 {
                     ContentTextBox.Visibility = Visibility.Visible;
@@ -85,6 +92,18 @@ namespace Filey
                 }
 
                 string ext = Path.GetExtension(filePath).ToLower();
+
+                bool isExcel = ext == ".xlsx" || ext == ".xls";
+                if (isExcel)
+                {
+                    SpreadsheetPreviewPane.Visibility = Visibility.Visible;
+                    ContentTextBox.Visibility = Visibility.Collapsed;
+                    ImageScrollViewer.Visibility = Visibility.Collapsed;
+                    PdfViewerGrid.Visibility = Visibility.Collapsed;
+                    SpreadsheetPreviewPane.PreviewFile(filePath);
+                    Title = $"{Path.GetFileName(filePath)} — Secure Preview";
+                    return;
+                }
 
                 if (ext == ".md")
                 {

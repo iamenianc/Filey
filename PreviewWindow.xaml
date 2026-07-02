@@ -451,6 +451,12 @@
             </ScrollViewer>
         </Grid>
 
+        <!-- Mode 4: Spreadsheet Viewer -->
+        <local:PreviewPane
+            x:Name="SpreadsheetPreviewPane"
+            Grid.Row="2"
+            Visibility="Collapsed"/>
+
         <!-- Status Bar -->
         <Border
             Grid.Row="3"
