@@ -34,7 +34,7 @@ graph TD
         N4[IndexService]
         N5[DirectoryViewModel]
         N6[ExplorerPage]
-        N7[FileIndex]
+        N7[SQLiteIndexService]
         N8[BookmarkStore]
         N9[AppSettings]
         N10[NavigationHistoryStore]
@@ -49,13 +49,13 @@ graph TD
     N2 -->|loads| N9
     N2 -->|loads| N10
 
-    N4 -->|populates| N7
+    N4 -->|uses| N7
     N4 -->|uses| N8
     N4 -->|uses| N9
     N4 -->|uses| N10
 
     N6 -->|manages| N5
-    N5 -->|uses| N7
+    N5 -->|uses| N4
     N5 -->|tracks| N10
 
     N3 -->|persists| N9
@@ -64,7 +64,7 @@ graph TD
 ```
 
 ### Graph Interpretation
-- **Nodes**: the entities above, such as App.xaml.cs, MainWindow, SettingsService, IndexService, DirectoryViewModel, ExplorerPage, FileIndex, BookmarkStore, AppSettings, and NavigationHistoryStore.
+- **Nodes**: the entities above, such as App.xaml.cs, MainWindow, SettingsService, IndexService, DirectoryViewModel, ExplorerPage, SQLiteIndexService, BookmarkStore, AppSettings, and NavigationHistoryStore.
 - **Edges**: the directed relationships labeled with verbs such as launches, configures, initializes, creates, hosts, loads, populates, uses, manages, tracks, and persists.
 - **Attributes**: the surrounding narrative supplies metadata for each node and edge, including startup role, persistence responsibility, UI ownership, indexing behavior, and singleton/runtime characteristics.
 
@@ -84,7 +84,8 @@ graph TD
 ### Main libraries and dependencies
 - WPF / PresentationFramework for windows, pages, controls, and styling.
 - WPF-UI (Wpf.Ui 4.3.0) for modern Fluent UI components, theme management (Wpf.Ui.Appearance), and title bar integration.
-- Newtonsoft.Json (13.0.4) for serializing settings, bookmarks, history, and the file index to JSON.
+- Newtonsoft.Json (13.0.4) for serializing settings, bookmarks, and history to JSON.
+- System.Data.SQLite (1.0.119) for managing the file index in a lightweight local database.
 - FuzzySharp (2.0.2) for fuzzy string matching and ranking in search results.
 - CommunityToolkit.Mvvm (8.4.2) for MVVM patterns and property change notifications.
 - OpenMcdf (3.1.4) for reading and decrypting Excel workbooks (Compound Document Format).
@@ -137,13 +138,13 @@ graph TD
   - Managed-code Excel workbook decryption (using OpenMcdf). Supports Agile-encrypted .xlsx/.xlsm files. Removes the open (encryption) password entirely, saving a password-free copy alongside each original. Byte-preserving, so macros and formatting survive intact.
 
 - **IndexService (singleton)**
-  - Central orchestrator for the search index. Loads the persisted index on startup, kicks off background crawls for seed roots via FileSystemCrawler, manages live file watchers (IndexWatcher) for hot roots, periodically refreshes warm roots (history-derived paths), and provides the search API for the UI.
+  - Central orchestrator for the search index. Starts SQLiteIndexService, kicks off background crawls for seed roots via FileSystemCrawler, manages live file watchers (IndexWatcher) for hot roots, periodically refreshes warm roots (history-derived paths), and provides the search API for the UI.
 
-- **FileIndex**
-  - Thread-safe in-memory store of IndexEntry objects, indexed by full path. Supports fuzzy ranked search (via SearchRanker) and JSON persistence through AppStorage.
+- **SQLiteIndexService (singleton)**
+  - Thread-safe, low-memory indexing service powered by an embedded SQLite database. Processes write requests on a dedicated background thread and provides indexed candidate searches to the IndexService.
 
 - **FileSystemCrawler**
-  - Scans seed roots (with bounded concurrency using SemaphoreSlim) using NativeDirectoryEnumerator, respects IndexPolicy rules to skip excluded folders, and populates the FileIndex with discovered entries. Performs iterative depth-first traversal with a safety cap (MaxEntriesPerRoot) to prevent index bloat from huge directory trees.
+  - Scans seed roots (with bounded concurrency using SemaphoreSlim) using NativeDirectoryEnumerator, respects IndexPolicy rules to skip excluded folders, and populates the SQLiteIndexService with discovered entries in low-memory batches. Performs iterative depth-first traversal with a safety cap (MaxEntriesPerRoot) to prevent index bloat from huge directory trees.
 
 - **NativeDirectoryEnumerator**
   - Low-level filesystem API wrapper for efficient directory enumeration. Used by FileSystemCrawler to traverse folder hierarchies while respecting system folder shortcuts and reparse points.
@@ -152,7 +153,7 @@ graph TD
   - One indexed file or folder record: name, path, parent ID, size, modification time, and directory flag. Deliberately minimal to keep memory footprint low for tens of thousands of entries. ToFolderItem() projects entries into the UI row model.
 
 - **IndexWatcher**
-  - Live file-system watcher for hot roots. Detects file creation, deletion, and modification and incrementally updates the index in real-time.
+  - Live file-system watcher for hot roots. Detects file creation, deletion, and modification and incrementally updates SQLiteIndexService in real-time.
 
 - **IndexPolicy**
   - Single source of truth for "selective" indexing: decides WHICH folders get indexed/watched (seed roots, hot/warm tiers based on likelihood of user visit) and WHICH subtrees are skipped (system folders, junk, junctions). Computes roots by merging shell folders, bookmarks, home paths, and navigation history. Handles nesting so no root is contained inside another, and enforces a depth cap (12 levels) to bound index size.
@@ -201,18 +202,18 @@ graph TD
 - **Preview rendering**: PreviewPane and PreviewWindow use specialized renderers—PdfRenderer for PDFs, MarkdownRenderer for markdown, ImageView for images, WebView2 for HTML—selected by file extension.
 
 - **Indexing pipeline**: IndexService coordinates three subsystems:
-  1. FileSystemCrawler scans seed roots asynchronously and populates FileIndex.
+  1. FileSystemCrawler scans seed roots asynchronously and populates SQLiteIndexService in low-memory batches.
   2. IndexWatcher monitors hot roots for real-time changes.
   3. Warm-root refresh timer periodically recrawls history-derived paths.
   - SearchRanker and DirectoryRegistry support proximity-aware search scoring.
 
-- **Search flow**: User query → SearchRanker ranks FileIndex entries → UI displays FolderItem results in SearchResultsView with rank position.
+- **Search flow**: User query → SearchRanker ranks combined local-scope and SQLiteIndexService candidate entries → UI displays FolderItem results in SearchResultsView.
 
 - **State persistence**:
   - Settings (AppSettings) → settings.json via SettingsService
   - Bookmarks (Bookmark collection) → bookmarks.json via BookmarkStore
   - Navigation history (NavigationHistoryRecord) → history.json via NavigationHistoryStore
-  - File index (IndexEntry collection) → index.json via FileIndex
+  - File index (IndexEntry database) → file_index.db via SQLiteIndexService
 
 - **Navigation and history**: DirectoryViewModel owns a NavigationHistory instance for each pane (back/forward stacks). On shutdown, MainWindow persists both stacks as NavigationHistoryRecord.
 
