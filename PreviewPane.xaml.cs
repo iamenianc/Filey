@@ -114,7 +114,7 @@ namespace Filey
             bool isExcel = ext == ".xlsx" || ext == ".xls" || ext == ".xlsm" || ext == ".xlsb";
             bool isDocx = ext == ".docx";
 
-            if (!isText && !isImage && !isPdf && !isExcel)
+            if (!isText && !isImage && !isPdf && !isExcel && !isDocx)
             {
                 ShowEmptyState("Preview not available for this file type.", Path.GetFileName(filePath));
                 PathTextBlock.Text = filePath;
