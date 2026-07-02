@@ -1695,12 +1695,9 @@ namespace Filey
                     int index = dg.Columns.Count;
                     e.Column.Header = GetExcelColumnName(index + 1);
 
-                    if (e.PropertyType == typeof(DateTime) || e.PropertyType == typeof(DateTime?))
+                    if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
                     {
-                        if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
-                        {
-                            binding.StringFormat = "yyyy-MM-dd";
-                        }
+                        binding.Converter = new ExcelDateConverter();
                     }
                 }
             };
@@ -1914,6 +1911,23 @@ namespace Filey
                 _cache[path] = bitmaps;
                 _lruList.Add(path);
             }
+        }
+    }
+
+    public class ExcelDateConverter : System.Windows.Data.IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (value is DateTime dt)
+            {
+                return dt.ToString("yyyy-MM-dd");
+            }
+            return value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return value;
         }
     }
 }
