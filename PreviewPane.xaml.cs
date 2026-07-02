@@ -1795,7 +1795,8 @@ namespace Filey
                                 var cellValue = rowView.Row.ItemArray[colIndex];
                                 if (cellValue is DateTime dt)
                                 {
-                                    cellTexts.Add(dt.ToString("yyyy-MM-dd"));
+                                    string format = (dt.TimeOfDay != TimeSpan.Zero) ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd";
+                                    cellTexts.Add(dt.ToString(format));
                                 }
                                 else
                                 {
