@@ -23,6 +23,7 @@
             <MenuItem Header="Open in Windows Explorer" Click="CtxOpenExplorer_Click"/>
             <MenuItem Header="Copy path to clipboard" Click="CtxCopyPath_Click"/>
             <MenuItem x:Name="CtxFavouriteItem" Header="Add to Favourites" Click="CtxToggleFavourite_Click"/>
+            <MenuItem x:Name="CtxConvertToMarkdownItem" Header="Convert to Markdown" Click="ConvertToMarkdown_Click"/>
             <Separator/>
             <MenuItem
                 x:Name="CtxRemoveExcelPasswordItem"

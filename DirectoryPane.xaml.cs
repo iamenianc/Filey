@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.IO;
 using System.Windows.Threading;
 
 namespace Filey
@@ -831,6 +832,33 @@ namespace Filey
             var item = ItemFromMenu(sender);
             if (item != null) ContextActions.CopyPath(item.FullPath);
         }
+            private void ConvertToMarkdown_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ItemFromMenu(sender);
+            if (item != null && !item.IsDirectory)
+            {
+                var ext = System.IO.Path.GetExtension(item.FullPath);
+                if (!string.Equals(ext, ".doc", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(ext, ".docx", StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("Selected file is not a Word document.", "Conversion", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                string sourcePath = item.FullPath;
+                string destPath = System.IO.Path.ChangeExtension(sourcePath, ".md");
+                try
+                {
+                    WordToMarkdownConverter.Convert(sourcePath, destPath);
+                    MessageBox.Show($"Converted to Markdown:\n{destPath}", "Conversion Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to convert: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
 
         private void CtxToggleFavourite_Click(object sender, RoutedEventArgs e)
         {

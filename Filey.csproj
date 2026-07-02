@@ -261,6 +261,7 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="WordToMarkdownConverter.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -304,6 +305,7 @@
     </PackageReference>
     <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.28000.2270" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.19.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4022.49" />
     <PackageReference Include="System.Data.SQLite">
       <Version>1.0.119</Version>
