@@ -19,56 +19,37 @@ namespace Filey
 
         private static readonly TimeSpan WarmRefreshInterval = TimeSpan.FromMinutes(5);
 
-        private readonly FileIndex _index = new FileIndex();
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private IndexWatcher _watcher;
         private Timer _warmTimer;
         private int _warmRefreshRunning;
-        private readonly System.Collections.Concurrent.ConcurrentQueue<IndexEntry> _uiUpdateQueue = new System.Collections.Concurrent.ConcurrentQueue<IndexEntry>();
         private List<IndexRoot> _roots = new List<IndexRoot>();
         private string _lastPrioritized;
         private bool _started;
 
         private IndexService() { }
 
-        /// <summary>Number of entries currently in the index (for diagnostics/verification).</summary>
-        public int IndexedCount => _index.Count;
+        public int IndexedCount => (int)SQLiteIndexService.Instance.GetTotalEntryCount();
 
-        /// <summary>Number of live watchers (should equal the hot-root count).</summary>
         public int WatcherCount => _watcher?.WatcherCount ?? 0;
 
-        /// <summary>Configured crawler roots.</summary>
         public IReadOnlyList<IndexRoot> Roots => _roots;
 
-        /// <summary>
-        /// Loads the persisted index (instant search), then starts the background crawl,
-        /// hot-root watchers, and warm-root refresh timer. Non-blocking past the load.
-        /// </summary>
         public void Start(AppSettings settings)
         {
             if (_started) return;
             _started = true;
 
-            _index.Load();
             _roots = IndexPolicy.ComputeRoots(settings);
 
-            // Background reconcile crawl of every seed root.
-            _ = FileSystemCrawler.CrawlAsync(_roots, _index, _cts.Token);
+            _ = FileSystemCrawler.CrawlAsync(_roots, _cts.Token);
 
-            // Live-watch only the hot roots.
-            _watcher = new IndexWatcher(_index);
+            _watcher = new IndexWatcher();
             _watcher.Watch(_roots.Where(r => r.Tier == IndexTier.Hot).Select(r => r.Path));
 
-            // Periodically refresh the warm roots (history-derived, not live-watched).
             _warmTimer = new Timer(_ => RefreshWarmRoots(), null, WarmRefreshInterval, WarmRefreshInterval);
         }
 
-        /// <summary>
-        /// Immediately indexes the directory the user is currently viewing so its contents
-        /// are searchable right away, ahead of the background seed crawl. Shallow (one level)
-        /// and de-duplicated against the last prioritised path, so it's cheap to call on every
-        /// navigation.
-        /// </summary>
         public void PrioritizeActiveDirectory(string path)
         {
             if (!_started || _cts.IsCancellationRequested) return;
@@ -78,16 +59,17 @@ namespace Filey
 
             _ = Task.Run(() =>
             {
-                try { _index.ReplaceDirectoryLevel(path, FileSystemCrawler.IndexDirectoryLevel(path)); }
-                catch { /* directory vanished or inaccessible; ignore */ }
+                try
+                {
+                    SQLiteIndexService.Instance.ReplaceDirectoryLevel(path, FileSystemCrawler.IndexDirectoryLevel(path));
+                }
+                catch { }
             }, _cts.Token);
         }
 
-        /// <summary>Re-crawls the warm (history-derived) roots. Safe to call on app activation.</summary>
         public void RefreshWarmRoots()
         {
             if (_cts.IsCancellationRequested) return;
-            // Ensure a single refresh runs at a time to avoid overlapping recrawls.
             if (System.Threading.Interlocked.CompareExchange(ref _warmRefreshRunning, 1, 0) == 1) return;
 
             _ = Task.Run(async () =>
@@ -95,7 +77,7 @@ namespace Filey
                 try
                 {
                     var tasks = _roots.Where(r => r.Tier == IndexTier.Warm)
-                        .Select(r => FileSystemCrawler.RecrawlRootAsync(r.Path, _index, _cts.Token));
+                        .Select(r => FileSystemCrawler.RecrawlRootAsync(r.Path, _cts.Token));
                     await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
                 catch { }
@@ -106,46 +88,13 @@ namespace Filey
             });
         }
 
-        /// <summary>
-        /// Enqueue an incremental index update for UI-batched application.
-        /// </summary>
-        public void EnqueueUiIndexUpdate(IndexEntry entry)
-        {
-            if (entry == null) return;
-            _uiUpdateQueue.Enqueue(entry);
-        }
+        public void EnqueueUiIndexUpdate(IndexEntry entry) { }
+        public List<IndexEntry> DequeueAllUiUpdates() => new List<IndexEntry>();
+        public void ApplyBatchedIndexUpdates(IEnumerable<IndexEntry> entries) { }
 
-        /// <summary>
-        /// Dequeues all pending UI updates as a batch.
-        /// </summary>
-        public List<IndexEntry> DequeueAllUiUpdates()
+        public async Task<IReadOnlyList<FolderItem>> SearchAsync(string query, string activeDirectory, int max = 100)
         {
-            var list = new List<IndexEntry>();
-            while (_uiUpdateQueue.TryDequeue(out var e)) list.Add(e);
-            return list;
-        }
-
-        /// <summary>
-        /// Apply a batch of index updates directly into the backing index.
-        /// </summary>
-        public void ApplyBatchedIndexUpdates(IEnumerable<IndexEntry> entries)
-        {
-            if (entries == null) return;
-            foreach (var e in entries)
-            {
-                try { _index.AddOrUpdate(e); }
-                catch { }
-            }
-        }
-
-        /// <summary>
-        /// Ranked search projected to UI rows, run off the UI thread. Combines active directory
-        /// contents (live) and global index entries into a single candidate list, ranked together
-        /// with active directory priority boost applied.
-        /// </summary>
-        public Task<IReadOnlyList<FolderItem>> SearchAsync(string query, string activeDirectory, int max = 100)
-        {
-            return Task.Run<IReadOnlyList<FolderItem>>(() =>
+            return await Task.Run(async () =>
             {
                 var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var candidates = new List<IndexEntry>();
@@ -162,8 +111,8 @@ namespace Filey
                     }
                 }
 
-                var snapshot = _index.GetSnapshot();
-                foreach (var e in snapshot)
+                var dbCandidates = await SQLiteIndexService.Instance.GetSearchCandidatesAsync(query);
+                foreach (var e in dbCandidates)
                 {
                     if (e != null && seen.Add(e.FullPath))
                     {
@@ -180,21 +129,19 @@ namespace Filey
             });
         }
 
-        /// <summary>Forces a background re-crawl of all configured roots.</summary>
         public void ForceReCrawl()
         {
             if (!_started || _cts.IsCancellationRequested) return;
-            _ = FileSystemCrawler.CrawlAsync(_roots, _index, _cts.Token);
+            _ = FileSystemCrawler.CrawlAsync(_roots, _cts.Token);
         }
 
-        /// <summary>Stops watching/crawling and persists the index. Call on shutdown.</summary>
         public void Shutdown()
         {
             if (!_started) return;
             _cts.Cancel();
             _warmTimer?.Dispose();
             _watcher?.Dispose();
-            _index.Save();
+            SQLiteIndexService.Instance.Dispose();
         }
     }
 }

@@ -43,10 +43,6 @@ namespace Filey
 
         private void UiBatchTimer_Tick(object sender, EventArgs e)
         {
-            var batch = IndexService.Instance.DequeueAllUiUpdates();
-            if (batch.Count == 0) return;
-            IndexService.Instance.ApplyBatchedIndexUpdates(batch);
-            // Refresh any visible stats so the UI reflects the new index size.
             RefreshStats();
         }
 

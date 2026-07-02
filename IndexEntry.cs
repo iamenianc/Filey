@@ -33,14 +33,45 @@ namespace Filey
         public int ParentId { get; set; }
 
         [JsonIgnore]
-        public string ParentPath => DirectoryRegistry.Instance.GetPath(ParentId);
+        public string ParentPath
+        {
+            get => DirectoryRegistry.Instance.GetPath(ParentId);
+            set => ParentId = DirectoryRegistry.Instance.GetOrAdd(value);
+        }
 
         [JsonIgnore]
         public string FullPath => System.IO.Path.Combine(ParentPath ?? "", Name);
 
+        [JsonIgnore]
+        public string Path
+        {
+            get => FullPath;
+            set
+            {
+                if (string.IsNullOrEmpty(value)) return;
+                try
+                {
+                    Name = System.IO.Path.GetFileName(value);
+                    ParentPath = System.IO.Path.GetDirectoryName(value);
+                }
+                catch
+                {
+                    Name = value;
+                    ParentPath = string.Empty;
+                }
+            }
+        }
+
         public bool IsDirectory { get; set; }
         public long Size { get; set; }
         public DateTime DateModifiedUtc { get; set; }
+
+        [JsonIgnore]
+        public long LastWriteTime
+        {
+            get => DateModifiedUtc.Ticks;
+            set => DateModifiedUtc = new DateTime(value, DateTimeKind.Utc);
+        }
 
         /// <summary>Projects an index hit into the UI's row model for the results list.</summary>
         public FolderItem ToFolderItem()

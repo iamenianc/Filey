@@ -201,7 +201,7 @@
     <Compile Include="IndexEntry.cs" />
     <Compile Include="DirectoryRegistry.cs" />
     <Compile Include="IndexPolicy.cs" />
-    <Compile Include="FileIndex.cs" />
+    <Compile Include="sqlite_index_service.cs" />
     <Compile Include="FileSystemCrawler.cs" />
     <Compile Include="IndexWatcher.cs" />
     <Compile Include="IndexService.cs" />
@@ -252,6 +252,9 @@
     <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.28000.2270" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4022.49" />
+    <PackageReference Include="System.Data.SQLite">
+      <Version>1.0.119</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

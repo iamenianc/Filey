@@ -20,7 +20,7 @@ namespace Filey
         private const int MaxConcurrentRoots = 4;
 
         /// <summary>Crawls every root and reconciles it into <paramref name="index"/>.</summary>
-        public static async Task CrawlAsync(IEnumerable<IndexRoot> roots, FileIndex index, CancellationToken token)
+        public static async Task CrawlAsync(IEnumerable<IndexRoot> roots, CancellationToken token)
         {
             using (var gate = new SemaphoreSlim(MaxConcurrentRoots))
             {
@@ -31,7 +31,7 @@ namespace Filey
                     await gate.WaitAsync(token).ConfigureAwait(false);
                     tasks.Add(Task.Run(() =>
                     {
-                        try { RecrawlRoot(path, index, token); }
+                        try { RecrawlRoot(path, token); }
                         finally { gate.Release(); }
                     }, token));
                 }
@@ -39,9 +39,8 @@ namespace Filey
             }
         }
 
-        /// <summary>Re-crawls a single root on a background thread and replaces its subtree in the index.</summary>
-        public static Task RecrawlRootAsync(string rootPath, FileIndex index, CancellationToken token)
-            => Task.Run(() => RecrawlRoot(rootPath, index, token), token);
+        public static Task RecrawlRootAsync(string rootPath, CancellationToken token)
+            => Task.Run(() => RecrawlRoot(rootPath, token), token);
 
         private struct FileScanResult
         {
@@ -55,15 +54,15 @@ namespace Filey
             }
         }
 
-        /// <summary>Walks one root (iterative DFS, depth-capped) and replaces its indexed subtree.</summary>
-        public static void RecrawlRoot(string rootPath, FileIndex index, CancellationToken token)
+        public static void RecrawlRoot(string rootPath, CancellationToken token)
         {
             if (string.IsNullOrEmpty(rootPath)) return;
+
+            SQLiteIndexService.Instance.DeleteSubtree(rootPath);
 
             using (var queue = new System.Collections.Concurrent.BlockingCollection<FileScanResult>(10000))
             using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token))
             {
-                var collected = new System.Collections.Concurrent.ConcurrentBag<IndexEntry>();
                 int collectedCount = 0;
 
                 var readerTask = Task.Run(() =>
@@ -122,6 +121,7 @@ namespace Filey
                     {
                         try
                         {
+                            var batch = new List<IndexEntry>();
                             foreach (var item in queue.GetConsumingEnumerable(linkedCts.Token))
                             {
                                 if (Volatile.Read(ref collectedCount) >= MaxEntriesPerRoot)
@@ -131,9 +131,19 @@ namespace Filey
                                 }
 
                                 var entry = ToEntry(item.Entry, item.ParentPath);
-                                collected.Add(entry);
+                                batch.Add(entry);
+
+                                if (batch.Count >= 5000)
+                                {
+                                    SQLiteIndexService.Instance.UpsertEntries(batch);
+                                    batch.Clear();
+                                }
 
                                 Interlocked.Increment(ref collectedCount);
+                            }
+                            if (batch.Count > 0)
+                            {
+                                SQLiteIndexService.Instance.UpsertEntries(batch);
                             }
                         }
                         catch (OperationCanceledException) { }
@@ -146,10 +156,6 @@ namespace Filey
                     readerTask.Wait();
                 }
                 catch { }
-
-                if (token.IsCancellationRequested) return;
-
-                index.ReplaceSubtree(rootPath, collected);
             }
         }
 

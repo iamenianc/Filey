@@ -17,7 +17,6 @@ namespace Filey
         /// <summary>Upper bound on live watchers, regardless of how many hot roots exist.</summary>
         private const int MaxWatchers = 24;
 
-        private readonly FileIndex _index;
         private readonly List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
         private readonly object _pendingGate = new object();
         private readonly HashSet<string> _pendingRecrawls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -25,9 +24,8 @@ namespace Filey
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private bool _disposed;
 
-        public IndexWatcher(FileIndex index)
+        public IndexWatcher()
         {
-            _index = index;
             _flushTimer = new Timer(FlushPending, null, Timeout.Infinite, Timeout.Infinite);
         }
 
@@ -75,12 +73,12 @@ namespace Filey
 
         private void OnDeleted(object sender, FileSystemEventArgs e)
         {
-            _index.Remove(e.FullPath);
+            SQLiteIndexService.Instance.RemoveEntry(e.FullPath);
         }
 
         private void OnRenamed(object sender, RenamedEventArgs e)
         {
-            _index.Remove(e.OldFullPath);
+            SQLiteIndexService.Instance.RemoveEntry(e.OldFullPath);
             if (!IndexPolicy.IsIndexablePath(e.FullPath)) return;
             if (Directory.Exists(e.FullPath))
                 ScheduleRecrawl(e.FullPath);
@@ -118,13 +116,7 @@ namespace Filey
                     DateModifiedUtc = fi.LastWriteTimeUtc
                 };
 
-                // Enqueue for UI-batched application to avoid flooding the UI with per-file updates.
-                try { IndexService.Instance.EnqueueUiIndexUpdate(entry); }
-                catch
-                {
-                    // Fallback: if enqueueing fails for any reason, apply directly.
-                    try { _index.AddOrUpdate(entry); } catch { }
-                }
+                SQLiteIndexService.Instance.UpsertEntry(entry);
             }
             catch { /* file vanished or locked; ignore */ }
         }
@@ -152,7 +144,7 @@ namespace Filey
             {
                 if (_cts.IsCancellationRequested) return;
                 if (Directory.Exists(path))
-                    _ = FileSystemCrawler.RecrawlRootAsync(path, _index, _cts.Token);
+                    _ = FileSystemCrawler.RecrawlRootAsync(path, _cts.Token);
             }
         }
 
