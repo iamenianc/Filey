@@ -1711,17 +1711,45 @@ namespace Filey
                 }
             }
 
+            int lastUsedRowIndex = headerRowIndex;
+            int lastUsedColIndex = 0;
+
+            for (int r = headerRowIndex; r < dataTable.Rows.Count; r++)
+            {
+                DataRow row = dataTable.Rows[r];
+                bool rowHasValue = false;
+                for (int c = 0; c < dataTable.Columns.Count; c++)
+                {
+                    object val = row[c];
+                    if (val != null && val != DBNull.Value && !string.IsNullOrWhiteSpace(val.ToString()))
+                    {
+                        rowHasValue = true;
+                        if (c > lastUsedColIndex)
+                        {
+                            lastUsedColIndex = c;
+                        }
+                    }
+                }
+                if (rowHasValue)
+                {
+                    lastUsedRowIndex = r;
+                }
+            }
+
+            int columnsCount = Math.Max(1, lastUsedColIndex + 1);
+            int rowsCount = dataTable.Rows.Count > 0 ? (lastUsedRowIndex + 1) : 0;
+
             var cleanedTable = new DataTable(dataTable.TableName);
-            for (int c = 0; c < dataTable.Columns.Count; c++)
+            for (int c = 0; c < columnsCount; c++)
             {
                 cleanedTable.Columns.Add("Col" + c, dataTable.Columns[c].DataType);
             }
 
             int startRow = dataTable.Rows.Count > headerRowIndex ? headerRowIndex : dataTable.Rows.Count;
-            for (int r = startRow; r < dataTable.Rows.Count; r++)
+            for (int r = startRow; r < rowsCount; r++)
             {
                 DataRow newRow = cleanedTable.NewRow();
-                for (int c = 0; c < dataTable.Columns.Count; c++)
+                for (int c = 0; c < columnsCount; c++)
                 {
                     newRow[c] = dataTable.Rows[r][c];
                 }
