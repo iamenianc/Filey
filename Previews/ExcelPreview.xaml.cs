@@ -359,7 +359,8 @@ namespace Filey.Previews
             var cleanedTable = new DataTable(dataTable.TableName);
             for (int c = 0; c < columnsCount; c++)
             {
-                cleanedTable.Columns.Add("Col" + c, dataTable.Columns[c].DataType);
+                Type colType = (c < dataTable.Columns.Count) ? dataTable.Columns[c].DataType : typeof(string);
+                cleanedTable.Columns.Add($"Col{c}", colType);
             }
 
             int startRow = dataTable.Rows.Count > headerRowIndex ? headerRowIndex : dataTable.Rows.Count;
@@ -368,7 +369,10 @@ namespace Filey.Previews
                 DataRow newRow = cleanedTable.NewRow();
                 for (int c = 0; c < columnsCount; c++)
                 {
-                    newRow[c] = dataTable.Rows[r][c];
+                    if (c < dataTable.Columns.Count)
+                        newRow[c] = dataTable.Rows[r][c];
+                    else
+                        newRow[c] = DBNull.Value;
                 }
                 cleanedTable.Rows.Add(newRow);
             }
