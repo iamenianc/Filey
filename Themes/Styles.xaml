@@ -180,7 +180,7 @@
                 <Setter Property="TextWrapping" Value="Wrap"/>
             </Style>
         </Style.Resources>
-        <Setter Property="Background" Value="White"/>
+        <Setter Property="Background" Value="#E0E0E0"/>
         <Setter Property="RowBackground" Value="White"/>
         <Setter Property="AlternatingRowBackground" Value="#F5F5F5"/>
         <Setter Property="Foreground" Value="Black"/>

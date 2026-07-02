@@ -1758,12 +1758,14 @@ namespace Filey
                 if (rowIndex == 0)
                 {
                     e.Row.FontWeight = FontWeights.Bold;
-                    e.Row.Background = TryFindResource("AppTopBarBrush") as Brush;
+                    e.Row.Background = Brushes.Black;
+                    e.Row.Foreground = Brushes.White;
                 }
                 else
                 {
                     e.Row.ClearValue(Control.FontWeightProperty);
                     e.Row.ClearValue(Control.BackgroundProperty);
+                    e.Row.ClearValue(Control.ForegroundProperty);
                 }
             };
 
