@@ -39,6 +39,7 @@ namespace Filey
             PdfPreviewControl.StatusUpdated += OnControlStatusUpdated;
             MarkdownPreviewControl.StatusUpdated += OnControlStatusUpdated;
             ExcelPreviewControl.StatusUpdated += OnControlStatusUpdated;
+            DocxPreviewControl.StatusUpdated += OnControlStatusUpdated;
         }
 
         private void OnControlStatusUpdated(object sender, PreviewStatusEventArgs e)
@@ -111,6 +112,7 @@ namespace Filey
             bool isImage = Array.Exists(ImageExtensions, x => x == ext);
             bool isPdf = ext == ".pdf";
             bool isExcel = ext == ".xlsx" || ext == ".xls" || ext == ".xlsm" || ext == ".xlsb";
+            bool isDocx = ext == ".docx";
 
             if (!isText && !isImage && !isPdf && !isExcel)
             {
@@ -143,6 +145,14 @@ namespace Filey
                 ExcelPreviewControl.Visibility = Visibility.Visible;
                 _activeControl = ExcelPreviewControl;
                 ExcelPreviewControl.Preview(filePath, token);
+                return;
+            }
+            else if (isDocx)
+            {
+                DocxPreviewControl.Visibility = Visibility.Visible;
+                _activeControl = DocxPreviewControl;
+                DocxPreviewControl.Preview(filePath, token);
+                return;
             }
         }
 

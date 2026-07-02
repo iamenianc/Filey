@@ -80,7 +80,9 @@
             <previews:ExcelPreview
                 x:Name="ExcelPreviewControl"
                 Visibility="Collapsed" />
-
+            <previews:DocxPreview
+                x:Name="DocxPreviewControl"
+                Visibility="Collapsed" />
             <!-- Subtle Scroll Reminder Prompt -->
             <TextBlock
                 x:Name="ScrollPromptTextBlock"

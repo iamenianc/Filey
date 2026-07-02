@@ -153,6 +153,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Previews\DocxPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -221,6 +225,10 @@
     </Compile>
     <Compile Include="Previews\ExcelPreview.xaml.cs">
       <DependentUpon>ExcelPreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\DocxPreview.xaml.cs">
+      <DependentUpon>DocxPreview.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="AppSettings.cs" />
