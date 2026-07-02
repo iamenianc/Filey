@@ -1508,6 +1508,15 @@ namespace Filey
                     SpreadsheetMetadataLabel.Text = $"{Path.GetFileName(filePath)} (Safe, Non-Executable)";
                     SpreadsheetViewerGrid.Visibility = Visibility.Visible;
 
+                    if (PaneStatusBar != null)
+                    {
+                        PaneStatusBar.Visibility = isFullWindow ? Visibility.Collapsed : Visibility.Visible;
+                    }
+                    if (SpreadsheetHeaderBorder != null)
+                    {
+                        SpreadsheetHeaderBorder.Visibility = isFullWindow ? Visibility.Collapsed : Visibility.Visible;
+                    }
+
                     if (!isFullWindow)
                     {
                         SpreadsheetTabControl.Visibility = Visibility.Collapsed;

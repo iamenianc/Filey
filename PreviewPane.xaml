@@ -306,6 +306,7 @@
 
             <!-- Header Bar -->
             <Border
+                x:Name="SpreadsheetHeaderBorder"
                 Grid.Row="0"
                 Background="{DynamicResource AppTopBarBrush}"
                 BorderBrush="{DynamicResource AppBorderBrush}"
@@ -443,6 +444,7 @@
 
         <!-- Status Bar -->
         <Border
+            x:Name="PaneStatusBar"
             Grid.Row="1"
             Background="{DynamicResource AppTopBarBrush}"
             BorderBrush="{DynamicResource AppBorderBrush}"
