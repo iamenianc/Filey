@@ -366,6 +366,7 @@
                 <!-- In Full Window Mode: TabControl populated with DataGrids -->
                 <TabControl
                     x:Name="SpreadsheetTabControl"
+                    TabStripPlacement="Bottom"
                     Background="Transparent"
                     BorderThickness="0"
                     Visibility="Collapsed">
@@ -374,7 +375,7 @@
                             <Setter Property="Header" Value="{Binding Header}"/>
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
-                            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                            <Setter Property="BorderThickness" Value="0,2,0,0"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
                             <Setter Property="Padding" Value="12,6"/>
                             <Setter Property="Template">

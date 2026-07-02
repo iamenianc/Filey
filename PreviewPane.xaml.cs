@@ -1699,24 +1699,7 @@ namespace Filey
                     {
                         if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
                         {
-                            bool hasTime = false;
-                            var dataCol = dataTable.Columns[e.PropertyName];
-                            if (dataCol != null)
-                            {
-                                int colOrdinal = dataCol.Ordinal;
-                                foreach (DataRow row in dataTable.Rows)
-                                {
-                                    if (row[colOrdinal] is DateTime dt)
-                                    {
-                                        if (dt.TimeOfDay != TimeSpan.Zero)
-                                        {
-                                            hasTime = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            binding.StringFormat = hasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd";
+                            binding.StringFormat = "yyyy-MM-dd";
                         }
                     }
                 }
@@ -1812,21 +1795,7 @@ namespace Filey
                                 var cellValue = rowView.Row.ItemArray[colIndex];
                                 if (cellValue is DateTime dt)
                                 {
-                                    if (!hasTimeCache.TryGetValue(colIndex, out bool colHasTime))
-                                    {
-                                        colHasTime = false;
-                                        var table = rowView.Row.Table;
-                                        foreach (DataRow r in table.Rows)
-                                        {
-                                            if (r[colIndex] is DateTime rdt && rdt.TimeOfDay != TimeSpan.Zero)
-                                            {
-                                                colHasTime = true;
-                                                break;
-                                            }
-                                        }
-                                        hasTimeCache[colIndex] = colHasTime;
-                                    }
-                                    cellTexts.Add(dt.ToString(colHasTime ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd"));
+                                    cellTexts.Add(dt.ToString("yyyy-MM-dd"));
                                 }
                                 else
                                 {
