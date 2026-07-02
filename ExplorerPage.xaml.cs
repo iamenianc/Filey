@@ -206,6 +206,7 @@ namespace Filey
                 {
                     RightPreviewControl.PreviewFile(null);
                 }
+                UpdateRightPaneMaxWidth();
             }
         }
 
@@ -626,7 +627,22 @@ namespace Filey
 
             if (_currentRightPaneMode == RightPaneMode.PreviewPane)
             {
-                RightPaneCol.MaxWidth = this.ActualWidth / 2;
+                var selected = LeftViewModel.SelectedItem;
+                bool isExcel = false;
+                if (selected != null && !selected.IsDirectory)
+                {
+                    string ext = System.IO.Path.GetExtension(selected.FullPath).ToLower();
+                    isExcel = ext == ".xlsx" || ext == ".xls" || ext == ".xlsm" || ext == ".xlsb";
+                }
+
+                if (isExcel)
+                {
+                    RightPaneCol.MaxWidth = double.PositiveInfinity;
+                }
+                else
+                {
+                    RightPaneCol.MaxWidth = this.ActualWidth / 2;
+                }
             }
             else
             {
