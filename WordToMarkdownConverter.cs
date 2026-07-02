@@ -55,10 +55,20 @@ namespace Filey
 
             bool isQuote = false;
             var runs = paragraph.Elements<Run>().ToList();
+            // Detect line breaks within the paragraph
+            bool hasLineBreak = paragraph.Descendants<Break>().Any();
+
             if (runs.Count > 0)
             {
                 var firstText = runs.First().GetFirstChild<Text>()?.Text ?? string.Empty;
                 if (firstText.StartsWith(">")) isQuote = true;
+            }
+            else if (!hasLineBreak)
+            {
+                // Empty paragraph without explicit line break – treat as a blank line separator
+                writer.WriteLine();
+                writer.WriteLine();
+                return;
             }
 
             string line = string.Empty;
@@ -95,7 +105,16 @@ namespace Filey
             }
             line += string.Concat(textSegments);
 
-            writer.WriteLine(line);
+            // Append markdown line break if the original Word paragraph contains explicit line breaks
+            if (hasLineBreak)
+            {
+                // Two spaces followed by newline is markdown soft break
+                writer.WriteLine(line + "  ");
+            }
+            else
+            {
+                writer.WriteLine(line);
+            }
             writer.WriteLine();
         }
 
