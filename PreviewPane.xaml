@@ -348,10 +348,10 @@
 
                     <!-- Open Native Button -->
                     <Button
-                        x:Name="OpenExternalButton"
+                        x:Name="OpenNewWindowButton"
                         Grid.Column="2"
-                        Content="Open External"
-                        Click="OpenExternalButton_Click"
+                        Content="Open in New Window"
+                        Click="OpenNewWindowButton_Click"
                         Background="{DynamicResource AppBorderBrush}"
                         Foreground="{DynamicResource AppTextPrimaryBrush}"
                         BorderThickness="0"

@@ -1512,6 +1512,7 @@ namespace Filey
                     {
                         SpreadsheetTabControl.Visibility = Visibility.Collapsed;
                         SpreadsheetPaneModeGrid.Visibility = Visibility.Visible;
+                        OpenNewWindowButton.Visibility = Visibility.Visible;
 
                         if (dataSet.Tables.Count > 0)
                         {
@@ -1525,6 +1526,7 @@ namespace Filey
                     {
                         SpreadsheetPaneModeGrid.Visibility = Visibility.Collapsed;
                         SpreadsheetTabControl.Visibility = Visibility.Visible;
+                        OpenNewWindowButton.Visibility = Visibility.Collapsed;
                         SpreadsheetTabControl.Items.Clear();
 
                         foreach (DataTable table in dataSet.Tables)
@@ -1677,11 +1679,13 @@ namespace Filey
 
         private DataGrid CreateSpreadsheetDataGrid(DataTable dataTable, bool isFullWindow)
         {
+            double initialScale = isFullWindow ? 1.0 : 0.8;
             var grid = new DataGrid
             {
                 Style = TryFindResource("SpreadsheetDataGridStyle") as Style,
                 HorizontalScrollBarVisibility = isFullWindow ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled,
-                VerticalScrollBarVisibility = isFullWindow ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled
+                VerticalScrollBarVisibility = isFullWindow ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled,
+                LayoutTransform = new ScaleTransform(initialScale, initialScale)
             };
 
             grid.AutoGeneratingColumn += (s, e) =>
@@ -1734,13 +1738,27 @@ namespace Filey
             if (Keyboard.Modifiers == ModifierKeys.Control)
             {
                 e.Handled = true;
-                if (sender is DataGrid grid && grid.LayoutTransform is ScaleTransform scale)
+                if (sender is DataGrid grid)
                 {
+                    double currentScaleVal = 1.0;
+                    if (grid.LayoutTransform is ScaleTransform scale)
+                    {
+                        currentScaleVal = scale.ScaleX;
+                    }
+
                     double step = 0.10;
-                    double newScale = scale.ScaleX + (e.Delta > 0 ? step : -step);
+                    double newScale = currentScaleVal + (e.Delta > 0 ? step : -step);
                     newScale = Math.Max(0.5, Math.Min(4.0, newScale));
-                    scale.ScaleX = newScale;
-                    scale.ScaleY = newScale;
+
+                    if (grid.LayoutTransform is ScaleTransform mutableScale && !mutableScale.IsFrozen)
+                    {
+                        mutableScale.ScaleX = newScale;
+                        mutableScale.ScaleY = newScale;
+                    }
+                    else
+                    {
+                        grid.LayoutTransform = new ScaleTransform(newScale, newScale);
+                    }
                 }
             }
             else
@@ -1830,18 +1848,21 @@ namespace Filey
             }
         }
 
-        private void OpenExternalButton_Click(object sender, RoutedEventArgs e)
+        private void OpenNewWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+            if (string.IsNullOrEmpty(_currentFilePath) || !File.Exists(_currentFilePath)) return;
+
+            try
             {
-                try
+                var previewWindow = new PreviewWindow(_currentFilePath)
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_currentFilePath) { UseShellExecute = true });
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to open file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                    Owner = Window.GetWindow(this)
+                };
+                previewWindow.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open preview window: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
