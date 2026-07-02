@@ -353,6 +353,8 @@ namespace Filey
             PathTextBlock.Text = string.Empty;
             EncodingTextBlock.Text = string.Empty;
             SizeTextBlock.Text = string.Empty;
+
+            System.Threading.Tasks.Task.Run(() => MemoryManager.ReleaseUnusedMemory());
         }
 
         private void ShowEmptyState(string mainText, string subText)
@@ -800,33 +802,17 @@ namespace Filey
 
                 if (token.IsCancellationRequested) return;
 
-                // Load with low-resolution decoding (800px wide) optimized for inline preview
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.DecodePixelWidth = 800; // Aggressive downsampling!
-                bitmap.UriSource = new Uri(filePath);
-                bitmap.EndInit();
-
-                // Wait for download if necessary (local files load instantly)
-                if (bitmap.IsDownloading)
+                double containerWidth = 800;
+                Dispatcher.Invoke(() =>
                 {
-                    var tcs = new TaskCompletionSource<bool>();
-                    EventHandler completedHandler = (s, e) => tcs.TrySetResult(true);
-                    EventHandler<ExceptionEventArgs> failedHandler = (s, e) => tcs.TrySetException(e.ErrorException);
-
-                    bitmap.DownloadCompleted += completedHandler;
-                    bitmap.DownloadFailed += failedHandler;
-
-                    tcs.Task.Wait(token);
-
-                    bitmap.DownloadCompleted -= completedHandler;
-                    bitmap.DownloadFailed -= failedHandler;
-                }
+                    if (ImageScrollViewer.ActualWidth > 0)
+                        containerWidth = ImageScrollViewer.ActualWidth;
+                });
 
                 if (token.IsCancellationRequested) return;
 
-                bitmap.Freeze(); // Freezing allows cross-thread access!
+                var bitmap = ImageView.LoadOptimizedImage(filePath, containerWidth, 0);
+                if (bitmap == null || token.IsCancellationRequested) return;
 
                 double initialRotation = ImageView.AngleFor(rotation);
 

@@ -124,18 +124,20 @@ namespace Filey
 
                     UpdateImageMetadata(filePath, originalWidth, originalHeight);
 
-                    // Asynchronously load the image using native WPF BitmapImage with downsampling
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // releases file lock immediately
-                    bitmap.DecodePixelWidth = 1600;
-                    bitmap.UriSource = new Uri(filePath);
-                    bitmap.EndInit();
+                    double containerWidth = ImageScrollViewer.ActualWidth > 0 ? ImageScrollViewer.ActualWidth : 1600;
 
-                    ContentImage.Source = bitmap;
-
-                    // Fit to window based on the active image dimensions
-                    Dispatcher.BeginInvoke(new Action(() => FitImageToWindow()), System.Windows.Threading.DispatcherPriority.Loaded);
+                    Task.Run(() =>
+                    {
+                        var bitmap = ImageView.LoadOptimizedImage(filePath, containerWidth, 0);
+                        if (bitmap != null)
+                        {
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                ContentImage.Source = bitmap;
+                                FitImageToWindow();
+                            }));
+                        }
+                    });
                 }
                 else if (isPdf)
                 {
@@ -409,6 +411,16 @@ namespace Filey
             }
             _thumbnailCts?.Cancel();
             _zoomDebounceTimer?.Stop();
+
+            ContentImage.Source = null;
+            PdfPageItemsControl.ItemsSource = null;
+            PdfThumbnailItemsControl.ItemsSource = null;
+            _pdfPages = null;
+            _pdfThumbnails = null;
+            _pdfRows = null;
+            _pdfRenderer = null;
+
+            System.Threading.Tasks.Task.Run(() => MemoryManager.ReleaseUnusedMemory());
         }
 
         private void LoadPdfFile(string filePath)

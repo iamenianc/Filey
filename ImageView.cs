@@ -164,6 +164,38 @@ namespace Filey
             return $"{bytes} B";
         }
 
+        public static BitmapSource LoadOptimizedImage(string filePath, double maxWidth, double maxHeight)
+        {
+            if (!File.Exists(filePath)) return null;
+            try
+            {
+                var bitmap = new BitmapImage();
+                using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    bitmap.BeginInit();
+                    bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+
+                    if (maxWidth > 0 || maxHeight > 0)
+                    {
+                        if (maxWidth > 0)
+                            bitmap.DecodePixelWidth = (int)maxWidth;
+                        else if (maxHeight > 0)
+                            bitmap.DecodePixelHeight = (int)maxHeight;
+                    }
+
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                }
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static void Swap(ref int a, ref int b)
         {
             int t = a; a = b; b = t;

@@ -186,6 +186,7 @@
     <Compile Include="DirectoryViewModel.cs" />
     <Compile Include="IconHelper.cs" />
     <Compile Include="ImageView.cs" />
+    <Compile Include="MemoryManager.cs" />
     <Compile Include="PdfLayout.cs" />
     <Compile Include="PdfRenderer.cs" />
     <Compile Include="InputDialog.cs" />
