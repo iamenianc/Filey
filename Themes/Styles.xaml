@@ -176,6 +176,9 @@
     <Style x:Key="SpreadsheetDataGridStyle" TargetType="DataGrid">
         <Style.Resources>
             <Style TargetType="ScrollBar" BasedOn="{x:Null}"/>
+            <Style TargetType="TextBlock">
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
         </Style.Resources>
         <Setter Property="Background" Value="White"/>
         <Setter Property="RowBackground" Value="White"/>

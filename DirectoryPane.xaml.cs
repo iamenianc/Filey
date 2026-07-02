@@ -750,7 +750,7 @@ namespace Filey
                 || string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static readonly string[] ExcelExtensions = new[] { ".xlsx", ".xls", ".xlsm" };
+        private static readonly string[] ExcelExtensions = new[] { ".xlsx", ".xls", ".xlsm", ".xlsb" };
 
         private static bool IsExcelFile(string path)
         {

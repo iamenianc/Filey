@@ -179,7 +179,7 @@ namespace Filey
             bool isText = Array.Exists(TextExtensions, x => x == ext);
             bool isImage = Array.Exists(ImageExtensions, x => x == ext);
             bool isPdf = ext == ".pdf";
-            bool isExcel = ext == ".xlsx" || ext == ".xls";
+            bool isExcel = ext == ".xlsx" || ext == ".xls" || ext == ".xlsm" || ext == ".xlsb";
 
             if (!isText && !isImage && !isPdf && !isExcel)
             {
@@ -1711,24 +1711,13 @@ namespace Filey
                 }
             }
 
-            var headerNames = new List<string>();
-            if (dataTable.Rows.Count > headerRowIndex)
-            {
-                DataRow headerRow = dataTable.Rows[headerRowIndex];
-                for (int c = 0; c < dataTable.Columns.Count; c++)
-                {
-                    object val = headerRow[c];
-                    headerNames.Add(val != null && val != DBNull.Value ? val.ToString().Trim() : string.Empty);
-                }
-            }
-
             var cleanedTable = new DataTable(dataTable.TableName);
             for (int c = 0; c < dataTable.Columns.Count; c++)
             {
                 cleanedTable.Columns.Add("Col" + c, dataTable.Columns[c].DataType);
             }
 
-            int startRow = dataTable.Rows.Count > headerRowIndex ? headerRowIndex + 1 : dataTable.Rows.Count;
+            int startRow = dataTable.Rows.Count > headerRowIndex ? headerRowIndex : dataTable.Rows.Count;
             for (int r = startRow; r < dataTable.Rows.Count; r++)
             {
                 DataRow newRow = cleanedTable.NewRow();
@@ -1753,12 +1742,7 @@ namespace Filey
                 if (s is DataGrid dg)
                 {
                     int index = dg.Columns.Count;
-                    string headerText = index < headerNames.Count ? headerNames[index] : string.Empty;
-                    if (string.IsNullOrWhiteSpace(headerText))
-                    {
-                        headerText = GetExcelColumnName(index + 1);
-                    }
-                    e.Column.Header = headerText;
+                    e.Column.Header = GetExcelColumnName(index + 1);
 
                     if (e.Column is DataGridTextColumn textColumn && textColumn.Binding is System.Windows.Data.Binding binding)
                     {
@@ -1769,7 +1753,18 @@ namespace Filey
 
             grid.LoadingRow += (s, e) =>
             {
-                e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+                int rowIndex = e.Row.GetIndex();
+                e.Row.Header = (rowIndex + 1).ToString();
+                if (rowIndex == 0)
+                {
+                    e.Row.FontWeight = FontWeights.Bold;
+                    e.Row.Background = TryFindResource("AppTopBarBrush") as Brush;
+                }
+                else
+                {
+                    e.Row.ClearValue(Control.FontWeightProperty);
+                    e.Row.ClearValue(Control.BackgroundProperty);
+                }
             };
 
             grid.PreviewMouseWheel += DataGrid_PreviewMouseWheel;

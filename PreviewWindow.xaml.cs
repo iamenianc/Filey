@@ -93,7 +93,7 @@ namespace Filey
 
                 string ext = Path.GetExtension(filePath).ToLower();
 
-                bool isExcel = ext == ".xlsx" || ext == ".xls";
+                bool isExcel = ext == ".xlsx" || ext == ".xls" || ext == ".xlsm" || ext == ".xlsb";
                 if (isExcel)
                 {
                     SpreadsheetPreviewPane.Visibility = Visibility.Visible;
