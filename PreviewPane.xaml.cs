@@ -240,6 +240,7 @@ namespace Filey
             if (_webView == null)
             {
                 _webView = new WebView2();
+                GC.SuppressFinalize(_webView);
                 WebViewHost.Children.Add(_webView);
                 _pendingHtml = html;
                 try
@@ -252,9 +253,17 @@ namespace Filey
                     return;
                 }
 
+                if (_webView == null || _webView.CoreWebView2 == null) return;
+
                 if (_pendingHtml != null)
                 {
-                    _webView.CoreWebView2.NavigateToString(_pendingHtml);
+                    try
+                    {
+                        _webView.CoreWebView2.NavigateToString(_pendingHtml);
+                    }
+                    catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException || ex is ObjectDisposedException)
+                    {
+                    }
                     _pendingHtml = null;
                 }
                 return;
@@ -266,7 +275,13 @@ namespace Filey
                 return;
             }
 
-            _webView.CoreWebView2.NavigateToString(html);
+            try
+            {
+                _webView.CoreWebView2.NavigateToString(html);
+            }
+            catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException || ex is ObjectDisposedException)
+            {
+            }
         }
 
         private void DisposeWebView()
