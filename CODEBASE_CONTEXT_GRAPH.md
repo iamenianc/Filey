@@ -89,6 +89,7 @@ graph TD
 - FuzzySharp (2.0.2) for fuzzy string matching and ranking in search results.
 - CommunityToolkit.Mvvm (8.4.2) for MVVM patterns and property change notifications.
 - OpenMcdf (3.1.4) for reading and decrypting Excel workbooks (Compound Document Format).
+- ExcelDataReader & ExcelDataReader.DataSet (3.7.0) for lightweight, macro-safe, and out-of-band request immune spreadsheet reading.
 - Microsoft.Web.WebView2 (1.0.4022.49) for rendering HTML content in the preview pane.
 - System.IO / System.Threading / System.Collections.Concurrent for filesystem traversal and background indexing.
 - Windows interop APIs (user32.dll, dwmapi.dll) for single-instance activation, foreground window management, and dark mode window attributes.
@@ -120,7 +121,7 @@ graph TD
   - User control that displays a single directory's contents as a browsable tree/list. Receives a DirectoryViewModel and Side (Left/Right) property to configure layout and behavior.
 
 - **PreviewPane / PreviewWindow**
-  - Multi-format preview renderers for files displayed in the right pane (PreviewPane) or as a floating window (PreviewWindow). Support PDF (with page navigation and zoom), Markdown (rendered to HTML via MarkdownRenderer), text files, images (with rotation and zoom), and HTML content via WebView2. PreviewPane can be toggled into/out of ExplorerPage layout.
+  - Multi-format preview renderers for files displayed in the right pane (PreviewPane) or as a floating window (PreviewWindow). Support PDF (with page navigation and zoom), Markdown (rendered to HTML via MarkdownRenderer), text files, images (with rotation and zoom), Excel spreadsheets (securely parsed using ExcelDataReader with OLE2-decryption password prompt, hidden sheet/row/column disclosure, ISO 8601 date formatting, Ctrl+MouseWheel zooming, and cell TSV copy support), and HTML content via WebView2. PreviewPane can be toggled into/out of ExplorerPage layout.
 
 - **SearchResultsView**
   - Information-dense overlay that displays full ranked search results from the index. Rows are sortable by column and activation raises ResultActivated event for navigation.
@@ -202,7 +203,7 @@ graph TD
 
 - **Navigation flow**: User interacts with AddressBar (breadcrumb, search box, navigation buttons) or DirectoryPane (folder selection). Both trigger DirectoryViewModel.LoadDirectory(), which updates CurrentDirectory, loads contents asynchronously, and triggers IndexService to prioritize that directory for search. NavigationHistory is updated on navigation away.
 
-- **Preview rendering**: PreviewPane and PreviewWindow use specialized renderers—PdfRenderer for PDFs, MarkdownRenderer for markdown, ImageView for images, WebView2 for HTML—selected by file extension. Images are loaded asynchronously and downsampled via `ImageView.LoadOptimizedImage` using `FileStream` to avoid locking, and `MemoryManager` is triggered to release unused memory and compact the Large Object Heap (LOH) when panels are closed or recycled.
+- **Preview rendering**: PreviewPane and PreviewWindow use specialized renderers—PdfRenderer for PDFs, MarkdownRenderer for markdown, ImageView for images, ExcelDataReader for spreadsheets, WebView2 for HTML—selected by file extension. Images are loaded asynchronously and downsampled via `ImageView.LoadOptimizedImage` using `FileStream` to avoid locking. Spreadsheets are parsed on background threads; they disclose hidden workbook data, resolve encrypted streams by prompting for password, enforce ISO 8601 dates, and disable scrolling/sheet-tabs in constrained sidebar preview pane mode. `MemoryManager` is triggered to release unused memory and compact the Large Object Heap (LOH) when panels are closed or recycled.
 
 - **Indexing pipeline**: IndexService coordinates three subsystems:
   1. FileSystemCrawler scans seed roots asynchronously and populates SQLiteIndexService in low-memory batches.
