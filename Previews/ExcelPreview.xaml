@@ -1,0 +1,175 @@
+<UserControl
+    x:Class="Filey.Previews.ExcelPreview"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Bar -->
+        <Border
+            x:Name="SpreadsheetHeaderBorder"
+            Grid.Row="0"
+            Background="{DynamicResource AppTopBarBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Secure View Badge -->
+                <Border
+                    Grid.Column="0"
+                    Background="#FF1E3D2F"
+                    BorderBrush="#FF4EC9B0"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="6,2"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        Text="🛡️ SECURE VIEW"
+                        Foreground="#FF4EC9B0"
+                        FontSize="{DynamicResource SmallFontSize}"
+                        FontWeight="Bold"/>
+                </Border>
+
+                <!-- File Metadata Label -->
+                <TextBlock
+                    x:Name="SpreadsheetMetadataLabel"
+                    Grid.Column="1"
+                    Text="Safe Status"
+                    Foreground="{DynamicResource AppTextPrimaryBrush}"
+                    FontSize="{DynamicResource NormalFontSize}"
+                    FontWeight="SemiBold"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis"/>
+
+                <!-- Open Native Button -->
+                <Button
+                    x:Name="OpenNewWindowButton"
+                    Grid.Column="2"
+                    Content="Open in New Window"
+                    Click="OpenNewWindowButton_Click"
+                    Background="{DynamicResource AppBorderBrush}"
+                    Foreground="{DynamicResource AppTextPrimaryBrush}"
+                    BorderThickness="0"
+                    Padding="10,4"
+                    FontSize="{DynamicResource SmallFontSize}"
+                    Cursor="Hand"/>
+            </Grid>
+        </Border>
+
+        <!-- Bottom Region: Tab Control / Grid Host -->
+        <Grid Grid.Row="1" x:Name="SpreadsheetContentGrid">
+            <!-- In Full Window Mode: TabControl populated with DataGrids -->
+            <TabControl
+                x:Name="SpreadsheetTabControl"
+                TabStripPlacement="Bottom"
+                Background="Transparent"
+                BorderThickness="0"
+                Visibility="Collapsed">
+                <TabControl.Resources>
+                    <Style TargetType="TabControl">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabControl">
+                                    <Grid KeyboardNavigation.TabNavigation="Local">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <!-- Tab Content (Top) -->
+                                        <Border 
+                                            Grid.Row="0"
+                                            Background="{TemplateBinding Background}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            BorderBrush="{TemplateBinding BorderBrush}">
+                                            <ContentPresenter 
+                                                x:Name="PART_SelectedContentHost"
+                                                ContentSource="SelectedContent"/>
+                                        </Border>
+                                        
+                                        <!-- Tab Headers (Bottom) -->
+                                        <Border
+                                            Grid.Row="1"
+                                            BorderBrush="{DynamicResource AppBorderBrush}"
+                                            BorderThickness="0,1,0,0"
+                                            Background="{DynamicResource AppTopBarBrush}">
+                                            <TabPanel 
+                                                x:Name="HeaderPanel"
+                                                IsItemsHost="True"
+                                                KeyboardNavigation.TabIndex="1"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header" Value="{Binding Header}"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
+                        <Setter Property="BorderThickness" Value="0,2,0,0"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="Padding" Value="12,6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter ContentSource="Header"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource AppGoldAccentBrush}"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AppGoldAccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource AppHoverBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.Resources>
+            </TabControl>
+
+            <!-- In Preview Pane Mode: Single DataGrid, no tabs, scrollbars disabled -->
+            <Grid x:Name="SpreadsheetPaneModeGrid" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <ContentControl
+                    x:Name="SpreadsheetPaneHost"/>
+
+                <Border
+                    Grid.Row="1"
+                    Background="#800C0C0C"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,6">
+                    <TextBlock
+                        Text="Showing first sheet only. Open in Full Window to scroll and view other sheets."
+                        Foreground="{DynamicResource AppTextSecondaryBrush}"
+                        FontSize="{DynamicResource SmallFontSize}"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

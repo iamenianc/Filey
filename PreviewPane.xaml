@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:Filey"
-    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    xmlns:previews="clr-namespace:Filey.Previews"
     mc:Ignorable="d"
     d:DesignHeight="600"
     d:DesignWidth="400"
@@ -19,468 +19,81 @@
                 Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Mode 1: Text Viewer -->
-        <TextBox
-            x:Name="ContentTextBox"
-            Grid.Row="0"
-            Visibility="Collapsed"
-            Background="{DynamicResource AppPanelBackgroundBrush}"
-            Foreground="{DynamicResource AppTextHeaderBrush}"
-            BorderThickness="0"
-            FontFamily="{DynamicResource AppMonoFontFamily}"
-            FontSize="{DynamicResource NormalFontSize}"
-            Padding="10"
-            IsReadOnly="True"
-            AcceptsReturn="True"
-            AcceptsTab="True"
-            TextWrapping="Wrap"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto"
-            CaretBrush="{DynamicResource AppTextPrimaryBrush}"
-            SelectionBrush="{DynamicResource AppSelectionBrush}"
-            PreviewMouseWheel="ContentTextBox_PreviewMouseWheel" />
+        <!-- Preview Hosts -->
+        <Grid Grid.Row="0">
+            <!-- Mode 1: Text Viewer -->
+            <previews:TextPreview
+                x:Name="TextPreviewControl"
+                Visibility="Collapsed" />
 
-        <!-- Mode 2: Image Viewer -->
-        <ScrollViewer
-            x:Name="ImageScrollViewer"
-            Grid.Row="0"
-            Visibility="Collapsed"
-            HorizontalScrollBarVisibility="Auto"
-            VerticalScrollBarVisibility="Auto"
-            Background="{DynamicResource AppPanelBackgroundBrush}"
-            PreviewMouseWheel="ImageScrollViewer_PreviewMouseWheel">
-            <Grid
-                x:Name="ImageGrid"
-                Background="Transparent"
-                ClipToBounds="True"
-                MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
-                MouseLeftButtonUp="ImageGrid_MouseLeftButtonUp"
-                MouseMove="ImageGrid_MouseMove">
-                <Image
-                    x:Name="ContentImage"
-                    Stretch="Uniform"
-                    RenderOptions.BitmapScalingMode="HighQuality">
-                    <Image.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform
-                                x:Name="ImageScale" />
-                            <RotateTransform
-                                x:Name="ImageRotation" />
-                        </TransformGroup>
-                    </Image.LayoutTransform>
-                </Image>
-            </Grid>
-        </ScrollViewer>
+            <!-- Mode 2: Image Viewer -->
+            <previews:ImagePreview
+                x:Name="ImagePreviewControl"
+                Visibility="Collapsed" />
 
-        <!-- Mode 3: Empty State / Non-Supported File Indicator -->
-        <Border
-            x:Name="EmptyStateBorder"
-            Grid.Row="0"
-            Background="{DynamicResource AppPanelBackgroundBrush}"
-            Visibility="Visible">
-            <StackPanel
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center"
-                Margin="20">
-                <TextBlock
-                    x:Name="EmptyStateMainText"
-                    Text="Select a file to preview"
-                    Foreground="{DynamicResource AppTextMutedBrush}"
-                    FontSize="{DynamicResource NormalFontSize}"
-                    FontWeight="SemiBold"
-                    HorizontalAlignment="Center"
-                    TextAlignment="Center"
-                    TextWrapping="Wrap" />
-                <TextBlock
-                    x:Name="EmptyStateSubText"
-                    Text="Support for text, code files, and images"
-                    Foreground="{DynamicResource AppTextDimBrush}"
-                    FontSize="{DynamicResource HeaderFontSize}"
-                    HorizontalAlignment="Center"
-                    Margin="0,4,0,0"
-                    TextAlignment="Center"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
-
-        <!-- Mode 4: Folder Viewer -->
-        <ScrollViewer
-            x:Name="FolderScrollViewer"
-            Grid.Row="0"
-            HorizontalScrollBarVisibility="Auto"
-            VerticalScrollBarVisibility="Auto"
-            Background="{DynamicResource AppPanelBackgroundBrush}"
-            Padding="16"
-            Visibility="Collapsed"
-            PreviewMouseWheel="FolderScrollViewer_PreviewMouseWheel"
-            ScrollChanged="FolderScrollViewer_ScrollChanged">
-            <local:FastTreeVisualHost
-                x:Name="FolderTreeVisualHost"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top" />
-        </ScrollViewer>
-
-        <!-- Mode 5: PDF Viewer -->
-        <Grid
-            x:Name="PdfViewerGrid"
-            Grid.Row="0"
-            Visibility="Collapsed">
-            <!-- Preview State: 2x2 Grid for the first 4 pages -->
-            <Grid
-                x:Name="PdfSkimGrid"
-                Visibility="Visible"
-                Focusable="True"
-                MouseDown="PdfSkimGrid_MouseDown">
-                <Grid.RowDefinitions>
-                    <RowDefinition
-                        Height="*" />
-                    <RowDefinition
-                        Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition
-                        Width="*" />
-                    <ColumnDefinition
-                        Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border
-                    x:Name="PdfSkimBorder0"
-                    Grid.Row="0"
-                    Grid.Column="0"
-                    Margin="4"
-                    BorderBrush="{DynamicResource AppBorderBrush}"
-                    BorderThickness="1"
-                    Background="{DynamicResource AppSurfaceDarkBrush}">
-                    <Image
-                        x:Name="PdfSkimImage0"
-                        Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="HighQuality" />
-                </Border>
-                <Border
-                    x:Name="PdfSkimBorder1"
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="4"
-                    BorderBrush="{DynamicResource AppBorderBrush}"
-                    BorderThickness="1"
-                    Background="{DynamicResource AppSurfaceDarkBrush}">
-                    <Image
-                        x:Name="PdfSkimImage1"
-                        Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="HighQuality" />
-                </Border>
-                <Border
-                    x:Name="PdfSkimBorder2"
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    Margin="4"
-                    BorderBrush="{DynamicResource AppBorderBrush}"
-                    BorderThickness="1"
-                    Background="{DynamicResource AppSurfaceDarkBrush}">
-                    <Image
-                        x:Name="PdfSkimImage2"
-                        Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="HighQuality" />
-                </Border>
-                <Border
-                    x:Name="PdfSkimBorder3"
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    Margin="4"
-                    BorderBrush="{DynamicResource AppBorderBrush}"
-                    BorderThickness="1"
-                    Background="{DynamicResource AppSurfaceDarkBrush}">
-                    <Image
-                        x:Name="PdfSkimImage3"
-                        Stretch="Uniform"
-                        RenderOptions.BitmapScalingMode="HighQuality" />
-                </Border>
-
-                <!-- Overlay prompt -->
-                <Border
-                    Grid.Row="0"
-                    Grid.Column="0"
-                    Grid.RowSpan="2"
-                    Grid.ColumnSpan="2"
-                    Background="#B00C0C0C"
-                    BorderBrush="{DynamicResource AppBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    VerticalAlignment="Bottom"
-                    HorizontalAlignment="Center"
-                    Margin="16"
-                    Padding="12,6"
-                    IsHitTestVisible="False">
-                    <TextBlock
-                        Text="🖱️ Double-click to open in full preview window"
-                        Foreground="{DynamicResource AppTextSecondaryBrush}"
-                        FontSize="{DynamicResource HeaderFontSize}"
-                        FontWeight="SemiBold" />
-                </Border>
-            </Grid>
-
-            <!-- Active State: Full scroll viewer -->
-            <ScrollViewer
-                x:Name="PdfActiveViewer"
-                Visibility="Collapsed"
-                VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Disabled"
-                ScrollChanged="PdfActiveViewer_ScrollChanged"
-                SizeChanged="PdfActiveViewer_SizeChanged">
-                <ItemsControl
-                    x:Name="PdfPageItemsControl"
-                    VirtualizingStackPanel.IsVirtualizing="True"
-                    VirtualizingStackPanel.VirtualizationMode="Recycling">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <VirtualizingStackPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border
-                                Margin="8,12"
-                                BorderBrush="{DynamicResource AppBorderBrush}"
-                                BorderThickness="1"
-                                Background="{DynamicResource AppPanelBackgroundBrush}"
-                                Width="{Binding DisplayWidth}"
-                                Height="{Binding DisplayHeight}"
-                                HorizontalAlignment="Center"
-                                SnapsToDevicePixels="True">
-                                <Grid>
-                                    <TextBlock
-                                        Text="Loading..."
-                                        Foreground="{DynamicResource AppTextDimBrush}"
-                                        FontSize="{DynamicResource NormalFontSize}"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style
-                                                TargetType="TextBlock">
-                                                <Setter
-                                                    Property="Visibility"
-                                                    Value="Collapsed" />
-                                                <Style.Triggers>
-                                                    <DataTrigger
-                                                        Binding="{Binding Image}"
-                                                        Value="{x:Null}">
-                                                        <Setter
-                                                            Property="Visibility"
-                                                            Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <Image
-                                        Source="{Binding Image}"
-                                        Stretch="Uniform"
-                                        RenderOptions.BitmapScalingMode="NearestNeighbor"
-                                        SnapsToDevicePixels="True" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
-
-
-        <!-- Mode 6: Markdown / Web Viewer (WebView2 hosted lazily in code-behind) -->
-        <Grid
-            x:Name="WebViewHost"
-            Grid.Row="0"
-            Background="{DynamicResource AppPanelBackgroundBrush}"
-            Visibility="Collapsed" />
-
-        <!-- Mode 7: Spreadsheet Viewer -->
-        <Grid
-            x:Name="SpreadsheetViewerGrid"
-            Grid.Row="0"
-            Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Header Bar -->
+            <!-- Mode 3: Empty State / Non-Supported File Indicator -->
             <Border
-                x:Name="SpreadsheetHeaderBorder"
-                Grid.Row="0"
-                Background="{DynamicResource AppTopBarBrush}"
-                BorderBrush="{DynamicResource AppBorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="12,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Secure View Badge -->
-                    <Border
-                        Grid.Column="0"
-                        Background="#FF1E3D2F"
-                        BorderBrush="#FF4EC9B0"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Padding="6,2"
-                        Margin="0,0,12,0"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                            Text="🛡️ SECURE VIEW"
-                            Foreground="#FF4EC9B0"
-                            FontSize="{DynamicResource SmallFontSize}"
-                            FontWeight="Bold"/>
-                    </Border>
-
-                    <!-- File Metadata Label -->
+                x:Name="EmptyStateBorder"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                Visibility="Visible">
+                <StackPanel
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Margin="20">
                     <TextBlock
-                        x:Name="SpreadsheetMetadataLabel"
-                        Grid.Column="1"
-                        Text="Safe Status"
-                        Foreground="{DynamicResource AppTextPrimaryBrush}"
+                        x:Name="EmptyStateMainText"
+                        Text="Select a file to preview"
+                        Foreground="{DynamicResource AppTextMutedBrush}"
                         FontSize="{DynamicResource NormalFontSize}"
                         FontWeight="SemiBold"
-                        VerticalAlignment="Center"
-                        TextTrimming="CharacterEllipsis"/>
-
-                    <!-- Open Native Button -->
-                    <Button
-                        x:Name="OpenNewWindowButton"
-                        Grid.Column="2"
-                        Content="Open in New Window"
-                        Click="OpenNewWindowButton_Click"
-                        Background="{DynamicResource AppBorderBrush}"
-                        Foreground="{DynamicResource AppTextPrimaryBrush}"
-                        BorderThickness="0"
-                        Padding="10,4"
-                        FontSize="{DynamicResource SmallFontSize}"
-                        Cursor="Hand"/>
-                </Grid>
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        x:Name="EmptyStateSubText"
+                        Text="Support for text, code files, and images"
+                        Foreground="{DynamicResource AppTextDimBrush}"
+                        FontSize="{DynamicResource HeaderFontSize}"
+                        HorizontalAlignment="Center"
+                        Margin="0,4,0,0"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
             </Border>
 
-            <!-- Bottom Region: Tab Control / Grid Host -->
-            <Grid Grid.Row="1" x:Name="SpreadsheetContentGrid">
-                <!-- In Full Window Mode: TabControl populated with DataGrids -->
-                <TabControl
-                    x:Name="SpreadsheetTabControl"
-                    TabStripPlacement="Bottom"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Visibility="Collapsed">
-                    <TabControl.Resources>
-                        <Style TargetType="TabControl">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="TabControl">
-                                        <Grid KeyboardNavigation.TabNavigation="Local">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="*"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            
-                                            <!-- Tab Content (Top) -->
-                                            <Border 
-                                                Grid.Row="0"
-                                                Background="{TemplateBinding Background}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                BorderBrush="{TemplateBinding BorderBrush}">
-                                                <ContentPresenter 
-                                                    x:Name="PART_SelectedContentHost"
-                                                    ContentSource="SelectedContent"/>
-                                            </Border>
-                                            
-                                            <!-- Tab Headers (Bottom) -->
-                                            <Border
-                                                Grid.Row="1"
-                                                BorderBrush="{DynamicResource AppBorderBrush}"
-                                                BorderThickness="0,1,0,0"
-                                                Background="{DynamicResource AppTopBarBrush}">
-                                                <TabPanel 
-                                                    x:Name="HeaderPanel"
-                                                    IsItemsHost="True"
-                                                    KeyboardNavigation.TabIndex="1"
-                                                    HorizontalAlignment="Left"
-                                                    VerticalAlignment="Center"/>
-                                            </Border>
-                                        </Grid>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
+            <!-- Mode 4: Folder Viewer -->
+            <previews:FolderPreview
+                x:Name="FolderPreviewControl"
+                Visibility="Collapsed" />
 
-                        <Style TargetType="TabItem">
-                            <Setter Property="Header" Value="{Binding Header}"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}"/>
-                            <Setter Property="BorderThickness" Value="0,2,0,0"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Padding" Value="12,6"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="TabItem">
-                                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter ContentSource="Header"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource AppGoldAccentBrush}"/>
-                                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AppGoldAccentBrush}"/>
-                                            </Trigger>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="{DynamicResource AppHoverBrush}"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </TabControl.Resources>
-                </TabControl>
+            <!-- Mode 5: PDF Viewer -->
+            <previews:PdfPreview
+                x:Name="PdfPreviewControl"
+                Visibility="Collapsed" />
 
-                <!-- In Preview Pane Mode: Single DataGrid, no tabs, scrollbars disabled -->
-                <Grid x:Name="SpreadsheetPaneModeGrid" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
-                    <ContentControl
-                        x:Name="SpreadsheetPaneHost"/>
+            <!-- Mode 6: Markdown / Web Viewer -->
+            <previews:MarkdownPreview
+                x:Name="MarkdownPreviewControl"
+                Visibility="Collapsed" />
 
-                    <Border
-                        Grid.Row="1"
-                        Background="#800C0C0C"
-                        BorderBrush="{DynamicResource AppBorderBrush}"
-                        BorderThickness="0,1,0,0"
-                        Padding="12,6">
-                        <TextBlock
-                            Text="Showing first sheet only. Open in Full Window to scroll and view other sheets."
-                            Foreground="{DynamicResource AppTextSecondaryBrush}"
-                            FontSize="{DynamicResource SmallFontSize}"
-                            HorizontalAlignment="Center"
-                            TextAlignment="Center"/>
-                    </Border>
-                </Grid>
-            </Grid>
+            <!-- Mode 7: Spreadsheet Viewer -->
+            <previews:ExcelPreview
+                x:Name="ExcelPreviewControl"
+                Visibility="Collapsed" />
+
+            <!-- Subtle Scroll Reminder Prompt -->
+            <TextBlock
+                x:Name="ScrollPromptTextBlock"
+                Text="Ctrl + Scroll Wheel to adjust folder depth"
+                Foreground="{DynamicResource AppTextDimBrush}"
+                FontSize="{DynamicResource NormalFontSize}"
+                FontStyle="Italic"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,8,24,0"
+                IsHitTestVisible="False"
+                Visibility="Collapsed" />
         </Grid>
-
-        <!-- Subtle Scroll Reminder Prompt -->
-        <TextBlock
-            x:Name="ScrollPromptTextBlock"
-            Grid.Row="0"
-            Text="Ctrl + Scroll Wheel to adjust folder depth"
-            Foreground="{DynamicResource AppTextDimBrush}"
-            FontSize="{DynamicResource NormalFontSize}"
-            FontStyle="Italic"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Margin="0,8,24,0"
-            IsHitTestVisible="False"
-            Visibility="Collapsed" />
 
         <!-- Status Bar -->
         <Border

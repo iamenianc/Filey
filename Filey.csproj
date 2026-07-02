@@ -129,6 +129,30 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Previews\TextPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Previews\ImagePreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Previews\FolderPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Previews\PdfPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Previews\MarkdownPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Previews\ExcelPreview.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -172,6 +196,31 @@
     </Compile>
     <Compile Include="CrawlerStatusPage.xaml.cs">
       <DependentUpon>CrawlerStatusPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\IPreviewControl.cs" />
+    <Compile Include="Previews\TextPreview.xaml.cs">
+      <DependentUpon>TextPreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\ImagePreview.xaml.cs">
+      <DependentUpon>ImagePreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\FolderPreview.xaml.cs">
+      <DependentUpon>FolderPreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\PdfPreview.xaml.cs">
+      <DependentUpon>PdfPreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\MarkdownPreview.xaml.cs">
+      <DependentUpon>MarkdownPreview.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Previews\ExcelPreview.xaml.cs">
+      <DependentUpon>ExcelPreview.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="AppSettings.cs" />
