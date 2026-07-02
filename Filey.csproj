@@ -248,6 +248,7 @@
     <Compile Include="PdfRenderer.cs" />
     <Compile Include="InputDialog.cs" />
     <Compile Include="PasswordPromptDialog.cs" />
+    <Compile Include="DocxToFlowDocumentConverter.cs" />
     <Compile Include="ExcelDecryptor.cs" />
     <Compile Include="ExcelPasswordResult.cs" />
     <Compile Include="FastTreeVisualHost.cs" />

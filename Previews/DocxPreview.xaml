@@ -2,9 +2,16 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Filey.Previews"
+             Background="Transparent"
              Visibility="Collapsed">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Border Background="Transparent"
+            PreviewMouseWheel="DocViewerHost_PreviewMouseWheel">
         <FlowDocumentScrollViewer x:Name="DocViewer"
-                                   IsToolBarVisible="False"/>
-    </ScrollViewer>
+                                  IsToolBarVisible="False"
+                                  Background="Transparent"
+                                  Foreground="{DynamicResource AppTextPrimaryBrush}"
+                                  Padding="20,16"
+                                  Zoom="100"
+                                  IsSelectionEnabled="True" />
+    </Border>
 </UserControl>
